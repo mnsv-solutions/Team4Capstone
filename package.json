@@ -1,0 +1,19 @@
+{
+  "name": "credit-pulse",
+  "version": "0.0.1",
+  "description": "A Digital Loan Origination & Credit Assessment Platform",
+  "license": "Apache-2.0",
+  "author": "Group 4 - Victor, Nirali, Sukhpreet and Miswa",
+  "workspaces": [
+    "credit-pulse/backend",
+    "credit-pulse/frontend"
+  ],
+  "scripts": {
+    "start:dev:backend": "npm run start:dev --workspace=credit-pulse/backend",
+    "start:dev:frontend": "npm run dev --workspace=credit-pulse/frontend",
+    "start:dev": "concurrently \"npm run start:dev:backend\" \"npm run start:dev:frontend\""
+  },
+  "dependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
