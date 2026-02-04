@@ -11,27 +11,41 @@ A Digital Loan Origination &amp; Credit Assessment Platform.
 
 - **Frontend**:
     - **[NextJS](https://nextjs.org/)**: React Framework.
+    - React Router
     - Tailwind CSS
 
 ## Initial Setup
 
-We are using `npm` as the default package manager, so after cloning the repository execute the following:
-
-- Go to the `credit-pulse/backend` folder and execute the `npm install` command.
-- Go to the `credit-pulse/frontend` folder and execute the same `npm install` command.
-
-After this, you should have the `package-lock.json` files and the `node_modules` directory in both apps.
-
-Move back to the project root directory and run both, frontend and backend, in a single command
+We are using `npm` as the default package manager, so execute the following commands on your terminal (run one line at a time):
 
 ```bash
+# Clone the repository using only one of the following clone commands:
+# for HTTPS:
+git clone https://github.com/mnsv-solutions/Team4Capstone.git
+# for SSH:
+git clone git@github.com:mnsv-solutions/Team4Capstone.git
+
+# After cloning... move your terminal working directory to the root dir:
+cd Team4Capstone
+
+# Now, inside the root directory, let's install the workspoce dependencies:
+npm install
+
+# Lastly, you can to start both projects at the same time:
 npm run start:dev
 ```
 
-This will run each app concurrently, and you can check the initial pages on ports 3000 (frontend) and 3001 (backend) in your
-localhost environment.
+Notice that we have two distinct projects here within `credit-pulse` directory: `frontend` and `backend`.
 
-```plainText
-http://localhost:3000 #frontend - NextJS
-http://localhost:3001 #backend - NestJS
-```
+The root level is set as a _npm workspace_, so that's why we run ` npm install` only once.
+
+Moreover, the `start:dev` script will initialize both project using
+[concurrently](https://www.npmjs.com/package/concurrently).
+
+By default, the `frontend` and `backend` run on ports `3000` and `3001`, respectively.
+
+Access these URLs in your browser and you should be able to see they running:
+- http://localhost:3000 for NextJS - frontend.
+- http://localhost:3001 for NestJS - backend.
+
+---
