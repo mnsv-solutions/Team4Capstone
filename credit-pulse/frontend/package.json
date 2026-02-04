@@ -1,6 +1,8 @@
 {
   "name": "frontend",
   "version": "0.1.0",
+  "description": "Frontend application for Credit Pulse Application",
+  "author": "Group 4 - Victor, Nirali, Sukhpreet and Miswa",
   "private": true,
   "scripts": {
     "dev": "next dev",

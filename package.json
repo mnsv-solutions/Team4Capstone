@@ -1,9 +1,7 @@
 {
   "name": "credit-pulse",
-  "version": "0.0.1",
-  "description": "A Digital Loan Origination & Credit Assessment Platform",
   "license": "Apache-2.0",
-  "author": "Group 4 - Victor, Nirali, Sukhpreet and Miswa",
+  "private": true,
   "workspaces": [
     "credit-pulse/backend",
     "credit-pulse/frontend"
