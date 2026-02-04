@@ -1,0 +1,20 @@
+FROM node:25-alpine
+
+WORKDIR /app
+
+# Copy root package.json
+COPY package.json ./
+
+# Copy backend and frontend package.json files
+COPY credit-pulse/backend/package.json ./credit-pulse/backend/
+COPY credit-pulse/frontend/package.json ./credit-pulse/frontend/
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application code
+COPY . .
+
+EXPOSE 3000 3001
+
+CMD ["npm", "run", "start:dev"]

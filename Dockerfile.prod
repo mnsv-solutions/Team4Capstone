@@ -1,0 +1,43 @@
+# Build stage
+FROM node:25-alpine AS builder
+
+WORKDIR /app
+
+# Copy root package.json
+COPY package.json ./
+
+# Copy backend and frontend package.json files
+COPY credit-pulse/backend/package.json ./credit-pulse/backend/
+COPY credit-pulse/frontend/package.json ./credit-pulse/frontend/
+
+# Install dependencies
+RUN npm install
+
+# Copy the rest of the application code
+COPY . .
+
+# Build backend and frontend applications
+RUN npm run build
+
+# Final stage
+FROM node:25-alpine
+
+WORKDIR /app
+
+# Copy only what we need to run
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+
+# Copy NestJS build output
+COPY --from=builder /app/credit-pulse/backend/dist ./credit-pulse/backend/dist
+COPY --from=builder /app/credit-pulse/backend/package.json ./credit-pulse/backend/package.json
+
+# Copy NextJS build output
+COPY --from=builder /app/credit-pulse/frontend/package.json ./credit-pulse/frontend/package.json
+COPY --from=builder /app/credit-pulse/frontend/next.config.ts ./credit-pulse/frontend/next.config.ts
+COPY --from=builder /app/credit-pulse/frontend/public ./credit-pulse/frontend/public
+COPY --from=builder /app/credit-pulse/frontend/.next ./credit-pulse/frontend/.next
+
+EXPOSE 3000 3001
+
+CMD ["npm", "run", "start:prod"]

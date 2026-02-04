@@ -6,10 +6,20 @@
     "credit-pulse/backend",
     "credit-pulse/frontend"
   ],
+  "engines": {
+    "node": ">=20.9.0",
+    "npm": ">=10.1.0"
+  },
   "scripts": {
+    "build:backend": "npm run build --workspace=credit-pulse/backend",
+    "build:frontend": "npm run build --workspace=credit-pulse/frontend",
+    "build": "npm run build:backend && npm run build:frontend",
     "start:dev:backend": "npm run start:dev --workspace=credit-pulse/backend",
     "start:dev:frontend": "npm run dev --workspace=credit-pulse/frontend",
-    "start:dev": "concurrently \"npm run start:dev:backend\" \"npm run start:dev:frontend\""
+    "start:dev": "concurrently \"npm run start:dev:backend\" \"npm run start:dev:frontend\"",
+    "start:prod:backend": "npm run start:prod --workspace=credit-pulse/backend",
+    "start:prod:frontend": "npm run start --workspace=credit-pulse/frontend",
+    "start:prod": "concurrently \"npm run start:prod:backend\" \"npm run start:prod:frontend\""
   },
   "dependencies": {
     "concurrently": "^9.2.1"
