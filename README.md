@@ -15,8 +15,27 @@ A Digital Loan Origination &amp; Credit Assessment Platform.
     - Tailwind CSS
 
 ## Initial Setup
+ 
+### Using NPM
 
-We are using `npm` as the default package manager, so execute the following commands on your terminal (run one line at a time):
+First, make sure that **[NodeJS](https://nodejs.org/en)** and **[NPM](https://www.npmjs.com/)** are installed and
+working fine in your local environment.
+
+_**It's recommended to use NodeJS version 20.9.0 (or higher) due the frameworks' minimum
+requirements.**_
+
+You can check if they're installed (and which version) by running the following commands in your terminal:
+
+```bash
+node --version
+# if NodeJS is installed, it should print the current version. Example: "v25.4.0"
+
+npm --version
+# same logic applies here, if NPM is installed, the output should be the current version. Example: "11.7.0"
+```
+
+Now, execute the following commands (run one line at a time), to get the project running in development
+mode:
 
 ```bash
 # Clone the repository using only one of the following clone commands:
@@ -28,7 +47,7 @@ git clone git@github.com:mnsv-solutions/Team4Capstone.git
 # After cloning... move your terminal working directory to the root dir:
 cd Team4Capstone
 
-# Now, inside the root directory, let's install the workspoce dependencies:
+# Now, inside the root directory, let's install the workspace dependencies:
 npm install
 
 # Lastly, you can to start both projects at the same time:
@@ -44,8 +63,58 @@ Moreover, the `start:dev` script will initialize both project using
 
 By default, the `frontend` and `backend` run on ports `3000` and `3001`, respectively.
 
-Access these URLs in your browser and you should be able to see they running:
+Access these URLs in your browser and you should be able to see the applications running:
 - http://localhost:3000 for NextJS - frontend.
 - http://localhost:3001 for NestJS - backend.
 
 ---
+
+### Using Docker
+
+Make sure you have **[Docker](https://www.docker.com/)** installed and running in your local environment.
+
+You can check if it's installed by running the following command in your terminal:
+
+```bash
+docker --version
+# if Docker is installed, it should print the current version. Example: "Docker version 29.2.1, build a5c7197"
+```
+
+With docker running, you can build the image from one of the provided Dockerfiles:
+
+```bash
+# For development environment:
+docker build -f Dockerfile.dev -t credit-pulse-dev .
+
+# For production environment:
+docker build -f Dockerfile.prod -t credit-pulse-prod .
+```
+
+_Observation: You can tag the image with any name you want, the names used above are just examples._
+_If you change the image name, remember to use the same one when running the container in the next step._
+
+After building the image, you can run a container from it:
+
+```bash
+# For development environment:
+docker run -p 3000:3000 -p 3001:3001 credit-pulse-dev
+
+# For production environment:
+docker run -p 3000:3000 -p 3001:3001 credit-pulse-prod
+``` 
+By default, the `frontend` and `backend` run on ports `3000` and `3001`, respectively. The `-p` flag maps the container ports to your local machine ports.
+
+Access these URLs in your browser and you should be able to see the applications running:
+- http://localhost:3000 for NextJS - frontend.
+- http://localhost:3001 for NestJS - backend.
+
+## Team
+
+This project is part of the Capstone course (PROG8751-26W-Sec1-Capstone) for the Web Development Program at
+**[Conestoga College](https://www.conestogac.on.ca/)**.
+
+Team members:
+- **[Victor Ferreira Araujo](https://github.com/vict-devv)**
+- **[Sukhpreet Singh](https://github.com/sukhpreet1616)**
+- **[Nirali Dineshkumar Patel](https://github.com/niralipatel2107)**
+- **[Miswa Shaileshbhai Patel](https://github.com/MiswaPatel)**
