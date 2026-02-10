@@ -1,4 +1,10 @@
-import { Body, Controller, ForbiddenException, HttpCode, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  ForbiddenException,
+  HttpCode,
+  Post,
+} from '@nestjs/common';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from '../auth.service';
 
@@ -10,7 +16,10 @@ export class LoginController {
     const { username, password } = loginDto;
     const isAuthenticated = this.authService.login(username, password);
     if (!isAuthenticated) {
-        throw new ForbiddenException({ success: false, message: 'Invalid username or password' });
+      throw new ForbiddenException({
+        success: false,
+        message: 'Invalid username or password',
+      });
     }
     return { success: true, message: 'Login successful' };
   }
