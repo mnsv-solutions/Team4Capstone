@@ -1,6 +1,8 @@
+import type { Metadata } from "next";
+import Link from "next/link";
 import "./globals.css";
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "CreditPulse",
   description: "Sprint 0 UI",
 };
@@ -11,29 +13,29 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header className="topbar">
           <div className="container">
-            <div className="clearfix" style={{ padding: "14px 0" }}>
-              <div style={{ float: "left" }}>
-                <a href="/" className="logo-box">
+            <div className="clearfix topbar-row">
+              <div className="logo-wrap">
+                <Link href="/" className="logo-box">
                   Logo
-                </a>
+                </Link>
               </div>
 
               <nav className="nav" aria-label="Primary">
-                <a href="/">Home</a>
-                <a href="/about">About Us</a>
-                <a href="/contact">Contact Us</a>
-                <a href="/signin">Sign In</a>
-                <a href="/signup" className="cta">
+                <Link href="/">Home</Link>
+                <Link href="/about">About Us</Link>
+                <Link href="/contact">Contact Us</Link>
+                <Link href="/signin">Sign In</Link>
+                <Link href="/signup" className="cta">
                   Sign Up
-                </a>
+                </Link>
               </nav>
             </div>
           </div>
         </header>
 
-        <div className="page">
+        <main className="page">
           <div className="container">{children}</div>
-        </div>
+        </main>
 
         <footer className="footer">Footer</footer>
       </body>

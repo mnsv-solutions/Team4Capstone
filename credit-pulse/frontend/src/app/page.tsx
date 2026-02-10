@@ -1,46 +1,51 @@
 export default function Home() {
   return (
     <main>
-      <section className="panel hero">
-        <div className="hero-bg" />
-        <div className="hero-x" />
+      <section className="panel hero" aria-label="Hero">
+        <div className="hero-bg" aria-hidden="true" />
+        <div className="hero-x" aria-hidden="true" />
         <div className="hero-label">Hero image</div>
 
         <div className="status-bar">
-          <div className="clearfix">
+          <form className="clearfix" action="#" method="post">
             <input
               className="status-input"
               type="text"
+              name="statusQuery"
               placeholder="Mobile Number / Application No"
               aria-label="Mobile Number or Application Number"
+              autoComplete="tel"
+              inputMode="numeric"
             />
-            <button className="status-btn" type="button">
+            <button className="status-btn" type="submit">
               Check Status
             </button>
-          </div>
+          </form>
         </div>
       </section>
 
       <section className="cards clearfix" aria-label="Testimonials">
-        <div className="card">
-          <div className="card-icon" aria-hidden="true" />
-          <div style={{ fontSize: "18px", fontWeight: 600 }}>Testimony 1</div>
-        </div>
+        <ul className="cards-list" aria-label="Testimonials list">
+          <li className="card">
+            <div className="card-icon" aria-hidden="true" />
+            <div className="card-title">Testimony 1</div>
+          </li>
 
-        <div className="card">
-          <div className="card-icon" aria-hidden="true" />
-          <div style={{ fontSize: "18px", fontWeight: 600 }}>Testimony 2</div>
-        </div>
+          <li className="card">
+            <div className="card-icon" aria-hidden="true" />
+            <div className="card-title">Testimony 2</div>
+          </li>
 
-        <div className="card">
-          <div className="card-icon" aria-hidden="true" />
-          <div style={{ fontSize: "18px", fontWeight: 600 }}>Testimony 3</div>
-        </div>
+          <li className="card">
+            <div className="card-icon" aria-hidden="true" />
+            <div className="card-title">Testimony 3</div>
+          </li>
 
-        <div className="card">
-          <div className="card-icon" aria-hidden="true" />
-          <div style={{ fontSize: "18px", fontWeight: 600 }}>Testimony 4</div>
-        </div>
+          <li className="card">
+            <div className="card-icon" aria-hidden="true" />
+            <div className="card-title">Testimony 4</div>
+          </li>
+        </ul>
       </section>
     </main>
   );

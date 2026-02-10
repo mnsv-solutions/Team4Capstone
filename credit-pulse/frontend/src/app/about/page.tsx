@@ -1,16 +1,16 @@
 export default function AboutPage() {
   return (
-    <main className="panel form-wrap">
-      <h1 className="form-title" style={{ fontSize: "48px" }}>
+    <main className="panel form-wrap" aria-labelledby="about-title">
+      <h1 id="about-title" className="form-title about-title">
         About Us
       </h1>
 
-      <div className="form-area">
-        <p style={{ fontSize: "18px", color: "rgba(11,18,32,0.70)", lineHeight: "32px" }}>
-          This page is a Sprint 1 placeholder. Content will be implemented in later sprints
-          based on approved requirements and user stories.
+      <section className="form-area">
+        <p className="about-text">
+          This page is a Sprint 1 placeholder. Content will be implemented in later
+          sprints based on approved requirements and user stories.
         </p>
-      </div>
+      </section>
     </main>
   );
 }
