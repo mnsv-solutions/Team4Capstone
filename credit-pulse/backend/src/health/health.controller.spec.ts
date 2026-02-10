@@ -17,14 +17,7 @@ describe('HealthController', () => {
   });
 
   it('should return status ok', () => {
-    const mockResponse = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn(),
-    };
-
-    controller.healthCheck(mockResponse as any);
-
-    expect(mockResponse.status).toHaveBeenCalledWith(200);
-    expect(mockResponse.json).toHaveBeenCalledWith({ status: 'ok' });
+    controller.healthCheck();
+    expect(controller.healthCheck()).toEqual({ status: 'ok' });
   });
 });
