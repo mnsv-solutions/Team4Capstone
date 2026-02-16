@@ -9,8 +9,10 @@ export type SignUpFormState = {
 export type SignUpFormErrors = Partial<Record<keyof SignUpFormState, string>>;
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const NAME_REGEX = /^[A-Za-z][A-Za-z\s'-]*$/;
 const PHONE_REGEX = /^\d{10}$/;
+
+// Similar simplicity to SignIn:
+const NAME_REGEX = /^[A-Za-z][A-Za-z\s'-]*$/;
 
 export function sanitizeMobile(value: string) {
   return value.replace(/\D/g, "").slice(0, 10);
