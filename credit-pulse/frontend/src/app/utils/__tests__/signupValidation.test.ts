@@ -7,7 +7,7 @@ describe("signupValidation", () => {
       firstName: "",
       lastName: "",
       email: "",
-      phone: "",
+      mobile: "",
       password: "",
     });
 
@@ -23,7 +23,7 @@ describe("signupValidation", () => {
       firstName: "John",
       lastName: "Doe",
       email: "john@doe.com",
-      phone: "1234567890",
+      mobile: "1234567890",
       password: "Aa1!aaaa",
     });
 
