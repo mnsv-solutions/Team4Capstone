@@ -1,10 +1,17 @@
-
 "use client";
 
-import { useMemo, useState } from "react";
-import { sanitizeMobile, validateSignUp, SignUpFormErrors, SignUpFormState } from "../utils/signupValidation";
+import React, { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  sanitizeMobile,
+  validateSignUp,
+  SignUpFormErrors,
+  SignUpFormState,
+} from "../utils/signupValidation";
 
 export default function SignUpPage() {
+  const router = useRouter();
+
   const [form, setForm] = useState<SignUpFormState>({
     firstName: "",
     lastName: "",
@@ -17,31 +24,69 @@ export default function SignUpPage() {
   const [touched, setTouched] = useState<Partial<Record<keyof SignUpFormState, boolean>>>({});
   const [submitted, setSubmitted] = useState(false);
 
+  const [successMsg, setSuccessMsg] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // For button enable/disable only (doesn't show errors by itself)
   const isValid = useMemo(() => Object.keys(validateSignUp(form)).length === 0, [form]);
 
   function setField<K extends keyof SignUpFormState>(key: K, value: SignUpFormState[K]) {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
-      if (touched[key] || submitted) setErrors(validateSignUp(next));
+
+      // Only validate live if user has touched the field OR already tried submitting
+      if (touched[key] || submitted) {
+        setErrors(validateSignUp(next));
+      }
+
       return next;
     });
   }
 
-  function onBlur<K extends keyof SignUpFormState>(key: K) {
+  function onBlurField<K extends keyof SignUpFormState>(key: K) {
     setTouched((prev) => ({ ...prev, [key]: true }));
     setErrors(validateSignUp(form));
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setSubmitted(true);
+    setSuccessMsg("");
 
-    const nextErrors = validateSignUp(form);
-    setErrors(nextErrors);
+    const validationErrors = validateSignUp(form);
+    setErrors(validationErrors);
 
-    if (Object.keys(nextErrors).length > 0) return;
+    if (Object.keys(validationErrors).length > 0) return;
 
-    alert("Account details validated.");
+    setIsSubmitting(true);
+    setSuccessMsg("Account created (dummy). Redirecting to Sign In...");
+
+    setTimeout(() => {
+      router.push("/signin");
+    }, 900);
+  }
+
+  function handleSocial(provider: "google" | "apple") {
+    if (isSubmitting) return;
+
+    setErrors({});
+    setTouched({});
+    setSubmitted(false);
+
+    setSuccessMsg("");
+    setIsSubmitting(true);
+
+    setSuccessMsg(
+      provider === "google"
+        ? "Google sign-up (dummy). Redirecting to Home..."
+        : "Apple sign-up (dummy). Redirecting to Home..."
+    );
+
+    setTimeout(() => {
+      router.push("/");
+    }, 900);
   }
 
   return (
@@ -57,11 +102,27 @@ export default function SignUpPage() {
         </h1>
 
         <div className="form-area signup-area">
-          <button type="button" className="social-btn social-btn-top">
+          {successMsg && (
+            <div className="alert success" role="status" aria-live="polite">
+              {successMsg}
+            </div>
+          )}
+
+          <button
+            type="button"
+            className="social-btn social-btn-top"
+            onClick={() => handleSocial("google")}
+            disabled={isSubmitting}
+          >
             Continue with Google
           </button>
 
-          <button type="button" className="social-btn">
+          <button
+            type="button"
+            className="social-btn"
+            onClick={() => handleSocial("apple")}
+            disabled={isSubmitting}
+          >
             Continue with Apple
           </button>
 
@@ -84,16 +145,18 @@ export default function SignUpPage() {
                 type="text"
                 value={form.firstName}
                 onChange={(e) => setField("firstName", e.target.value)}
-                onBlur={() => onBlur("firstName")}
+                onBlur={() => onBlurField("firstName")}
                 aria-invalid={!!errors.firstName}
                 aria-describedby={errors.firstName ? "firstName-error" : undefined}
                 placeholder="Enter your first name"
+                disabled={isSubmitting}
+                required
               />
-              {errors.firstName ? (
+              {errors.firstName && (
                 <p id="firstName-error" className="error-text" role="alert">
                   {errors.firstName}
                 </p>
-              ) : null}
+              )}
             </div>
 
             <div className="form-group-md">
@@ -106,16 +169,18 @@ export default function SignUpPage() {
                 type="text"
                 value={form.lastName}
                 onChange={(e) => setField("lastName", e.target.value)}
-                onBlur={() => onBlur("lastName")}
+                onBlur={() => onBlurField("lastName")}
                 aria-invalid={!!errors.lastName}
                 aria-describedby={errors.lastName ? "lastName-error" : undefined}
                 placeholder="Enter your last name"
+                disabled={isSubmitting}
+                required
               />
-              {errors.lastName ? (
+              {errors.lastName && (
                 <p id="lastName-error" className="error-text" role="alert">
                   {errors.lastName}
                 </p>
-              ) : null}
+              )}
             </div>
 
             <div className="form-group-md">
@@ -128,16 +193,18 @@ export default function SignUpPage() {
                 type="email"
                 value={form.email}
                 onChange={(e) => setField("email", e.target.value)}
-                onBlur={() => onBlur("email")}
+                onBlur={() => onBlurField("email")}
                 aria-invalid={!!errors.email}
                 aria-describedby={errors.email ? "email-error" : undefined}
                 placeholder="example@domain.com"
+                disabled={isSubmitting}
+                required
               />
-              {errors.email ? (
+              {errors.email && (
                 <p id="email-error" className="error-text" role="alert">
                   {errors.email}
                 </p>
-              ) : null}
+              )}
             </div>
 
             <div className="form-group-md">
@@ -153,16 +220,18 @@ export default function SignUpPage() {
                 maxLength={10}
                 value={form.mobile}
                 onChange={(e) => setField("mobile", sanitizeMobile(e.target.value))}
-                onBlur={() => onBlur("mobile")}
+                onBlur={() => onBlurField("mobile")}
                 aria-invalid={!!errors.mobile}
                 aria-describedby={errors.mobile ? "mobile-error" : undefined}
                 placeholder="1234567890"
+                disabled={isSubmitting}
+                required
               />
-              {errors.mobile ? (
+              {errors.mobile && (
                 <p id="mobile-error" className="error-text" role="alert">
                   {errors.mobile}
                 </p>
-              ) : null}
+              )}
             </div>
 
             <div className="form-group-md">
@@ -175,20 +244,22 @@ export default function SignUpPage() {
                 type="password"
                 value={form.password}
                 onChange={(e) => setField("password", e.target.value)}
-                onBlur={() => onBlur("password")}
+                onBlur={() => onBlurField("password")}
                 aria-invalid={!!errors.password}
                 aria-describedby={errors.password ? "password-error" : undefined}
                 placeholder="Min 8 chars, Upper, Lower, Number, Symbol"
+                disabled={isSubmitting}
+                required
               />
-              {errors.password ? (
+              {errors.password && (
                 <p id="password-error" className="error-text" role="alert">
                   {errors.password}
                 </p>
-              ) : null}
+              )}
             </div>
 
-            <button type="submit" className="signup-submit-btn" disabled={!isValid}>
-              Create Account
+            <button type="submit" className="signup-submit-btn" disabled={isSubmitting || !isValid}>
+              {isSubmitting ? "Creating..." : "Create Account"}
             </button>
           </form>
 
