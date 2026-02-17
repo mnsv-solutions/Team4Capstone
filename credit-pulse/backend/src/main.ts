@@ -14,6 +14,9 @@ async function bootstrap() {
 
   logger.log(`Listening on port ${port}...`);
 
-  await app.listen(port);
+  await app.listen(port).catch((err) => {
+    logger.error('Failed to keep server running', err);
+    process.exit(1);
+  });
 }
 bootstrap();

@@ -9,3 +9,7 @@ db:
     username: postgres
     password: 123456
     database: credit_pulse
+
+jwt:
+  secret: your_jwt_secret_key
+  expiresIn: 3600s
