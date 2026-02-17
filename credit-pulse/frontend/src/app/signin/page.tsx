@@ -24,10 +24,18 @@ export default function SignInPage() {
     if (Object.keys(validationErrors).length > 0) return;
 
     setIsSubmitting(true);
-    setSuccessMsg("");
 
     try {
-      await axios.post("/api/auth/signin", { loginId, password });
+      // TODO: Build this URL dynamically from environment variables
+      await axios.post("http://localhost:8080/auth/signin", {
+          loginId,
+          password,
+      }, {
+        headers: {
+          "Content-Type": "application/json",
+          "Allow-Control-Allow-Origin": "*",
+        },
+      });
 
       setSuccessMsg("Signed in successfully. Redirecting to Home...");
       setTimeout(() => {
@@ -63,7 +71,7 @@ export default function SignInPage() {
     setSuccessMsg(
       provider === "google"
         ? "Google sign-in (dummy). Redirecting to Home..."
-        : "Apple sign-in (dummy). Redirecting to Home..."
+        : "Apple sign-in (dummy). Redirecting to Home...",
     );
 
     setTimeout(() => {
@@ -72,115 +80,98 @@ export default function SignInPage() {
   };
 
   return (
-    <main className="container py-4">
-      <div className="row justify-content-center">
-        <div className="col-12 col-sm-10 col-md-8 col-lg-5">
-          <div className="cp-card auth-card">
-            <h1 className="fw-bold mb-3">Sign In</h1>
-            <p className="mb-4 auth-muted">Access your CreditPulse account.</p>
+    <main className="panel form-wrap" aria-labelledby="signin-title">
+      <h1 id="signin-title" className="form-title">
+        Sign In
+      </h1>
 
-            {successMsg && (
-              <div className="alert alert-success" role="status" aria-live="polite">
-                {successMsg}
-              </div>
-            )}
+      <div className="form-area">
+        <form className="signin-form" onSubmit={handleSubmit} noValidate>
+          {successMsg && (
+            <div className="alert success" role="status" aria-live="polite">
+              {successMsg}
+            </div>
+          )}
 
-            <form onSubmit={handleSubmit} noValidate>
-              <div className="mb-3">
-                <label htmlFor="loginId" className="form-label fw-semibold">
-                  Email / Mobile No
-                </label>
-                <input
-                  id="loginId"
-                  name="loginId"
-                  className={`form-control ${errors.loginId ? "is-invalid" : ""}`}
-                  type="text"
-                  value={loginId}
-                  onChange={(e) => setLoginId(e.target.value)}
-                  aria-invalid={!!errors.loginId}
-                  aria-describedby={errors.loginId ? "loginId-error" : undefined}
-                  disabled={isSubmitting}
-                  required
-                />
-                {errors.loginId && (
-                  <div id="loginId-error" className="invalid-feedback">
-                    {errors.loginId}
-                  </div>
-                )}
-              </div>
-
-              <div className="mb-3">
-                <div className="d-flex justify-content-between align-items-center">
-                  <label htmlFor="password" className="form-label fw-semibold mb-0">
-                    Password
-                  </label>
-                  <a className="auth-link" href="/forgot-password">
-                    Forgot?
-                  </a>
-                </div>
-
-                <input
-                  id="password"
-                  name="password"
-                  className={`form-control ${errors.password ? "is-invalid" : ""}`}
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  aria-invalid={!!errors.password}
-                  aria-describedby={errors.password ? "password-error" : undefined}
-                  disabled={isSubmitting}
-                  required
-                />
-                {errors.password && (
-                  <div id="password-error" className="invalid-feedback">
-                    {errors.password}
-                  </div>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                className="btn btn-primary w-100 fw-bold py-2"
-                disabled={isSubmitting}
-              >
-                {isSubmitting ? "Signing In..." : "Sign In"}
-              </button>
-
-              <div className="auth-or my-4" aria-label="Alternative sign in options">
-                <div className="auth-or-line" aria-hidden="true" />
-                <div className="auth-or-text" aria-hidden="true">
-                  OR
-                </div>
-                <div className="auth-or-line" aria-hidden="true" />
-              </div>
-
-              <button
-                type="button"
-                className="btn btn-outline-secondary w-100 fw-semibold py-2 mb-2"
-                onClick={() => handleSocial("google")}
-                disabled={isSubmitting}
-              >
-                Continue with Google
-              </button>
-
-              <button
-                type="button"
-                className="btn btn-outline-secondary w-100 fw-semibold py-2"
-                onClick={() => handleSocial("apple")}
-                disabled={isSubmitting}
-              >
-                Continue with Apple
-              </button>
-
-              <p className="text-center mt-3 mb-0">
-                <span className="auth-muted">New here?</span>{" "}
-                <a className="auth-link fw-semibold" href="/signup">
-                  Create an account
-                </a>
+          <div className="form-group-lg">
+            <label className="label" htmlFor="loginId">
+              Email / Mobile No
+            </label>
+            <input
+              id="loginId"
+              name="loginId"
+              className={`input ${errors.loginId ? "input-error" : ""}`}
+              type="text"
+              value={loginId}
+              onChange={(e) => setLoginId(e.target.value)}
+              aria-invalid={!!errors.loginId}
+              aria-describedby={errors.loginId ? "loginId-error" : undefined}
+              disabled={isSubmitting}
+              required
+            />
+            {errors.loginId && (
+              <p id="loginId-error" className="error-text" role="alert">
+                {errors.loginId}
               </p>
-            </form>
+            )}
           </div>
-        </div>
+
+          <div className="form-group-sm">
+            <label className="label" htmlFor="password">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              className={`input ${errors.password ? "input-error" : ""}`}
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? "password-error" : undefined}
+              disabled={isSubmitting}
+              required
+            />
+            {errors.password && (
+              <p id="password-error" className="error-text" role="alert">
+                {errors.password}
+              </p>
+            )}
+          </div>
+
+          <button type="submit" className="primary-btn" disabled={isSubmitting}>
+            {isSubmitting ? "Signing In..." : "Sign In"}
+          </button>
+
+          <div
+            className="or-row clearfix"
+            aria-label="Alternative sign in options"
+          >
+            <div className="or-line" aria-hidden="true" />
+            <div className="or-text" aria-hidden="true">
+              OR
+            </div>
+            <div className="or-line" aria-hidden="true" />
+          </div>
+
+          <button
+            type="button"
+            className="social-btn"
+            onClick={() => handleSocial("google")}
+            disabled={isSubmitting}
+          >
+            Continue with Google
+          </button>
+
+          <button
+            type="button"
+            className="social-btn"
+            onClick={() => handleSocial("apple")}
+            disabled={isSubmitting}
+          >
+            Continue with Apple
+          </button>
+        </form>
       </div>
     </main>
   );
