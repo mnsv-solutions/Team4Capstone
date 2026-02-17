@@ -16,7 +16,7 @@
     "build": "npm run build:backend && npm run build:frontend",
     "format:backend": "npm run format --workspace=credit-pulse/backend",
     "start:local:backend": "npm run start:local --workspace=credit-pulse/backend",
-    "start:local:frontend": "npm run local --workspace=credit-pulse/frontend",
+    "start:local:frontend": "npm run dev --workspace=credit-pulse/frontend",
     "start:local": "concurrently \"npm run start:local:backend\" \"npm run start:local:frontend\"",
     "start:dev:backend": "npm run start:dev --workspace=credit-pulse/backend",
     "start:dev:frontend": "npm run dev --workspace=credit-pulse/frontend",
