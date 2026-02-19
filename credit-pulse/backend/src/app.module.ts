@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
-import configuration from 'config/configuration';
-
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { AuthModule } from './auth/auth.module';
-import { HealthController } from './health/health.controller';
-import { UsersModule } from './users/users.module';
+import configuration from '../config/configuration.js';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { AuthModule } from './auth/auth.module.js';
+import { HealthController } from './health/health.controller.js';
+import { PrismaService } from './prisma/prisma.service.js';
+import { UsersModule } from './users/users.module.js';
 
 @Module({
   imports: [
@@ -16,6 +16,6 @@ import { UsersModule } from './users/users.module';
     UsersModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService],
+  providers: [AppService, PrismaService],
 })
 export class AppModule {}
