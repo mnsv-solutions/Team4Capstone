@@ -1,7 +1,9 @@
-import { PrismaPostgresAdapter } from '@prisma/adapter-ppg';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+
+import { Pool } from 'pg';
 
 import { PrismaClient } from '../../generated/prisma/client.js';
 
@@ -11,7 +13,8 @@ export class PrismaService extends PrismaClient {
 
   constructor(private configService: ConfigService) {
     const url = PrismaService.getDatabaseUrl(configService);
-    const adapter = new PrismaPostgresAdapter({ connectionString: url });
+    const pool = new Pool({ connectionString: url });
+    const adapter = new PrismaPg(pool);
     super({ adapter });
   }
 
@@ -33,13 +36,11 @@ export class PrismaService extends PrismaClient {
   }
 
   async onModuleInit(): Promise<void> {
-    this.logger.log('Connecting to the database...');
     await this.$connect();
     this.logger.log('Database connected');
   }
 
   async onModuleDestroy(): Promise<void> {
-    this.logger.log('Disconnecting from the database...');
     await this.$disconnect();
     this.logger.log('Database disconnected');
   }
