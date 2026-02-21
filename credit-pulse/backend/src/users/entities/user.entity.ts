@@ -1,4 +1,4 @@
-import { Role } from './role.entity';
+import { Role } from './role.entity.js';
 
 export class User {
   user_id: string;
