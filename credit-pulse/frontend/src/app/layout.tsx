@@ -1,43 +1,52 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import "bootstrap/dist/css/bootstrap.min.css";
 import "./globals.css";
+import ThemeToggle from "../components/ThemeToggle";
 
 export const metadata: Metadata = {
   title: "CreditPulse",
-  description: "Sprint 0 UI",
+  description: "A Digital Loan Origination & Credit Assessment Platform",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" data-theme="dark">
       <body>
-        <header className="topbar">
+        <nav className="navbar navbar-expand-lg cp-topbar">
           <div className="container">
-            <div className="clearfix topbar-row">
-              <div className="logo-wrap">
-                <Link href="/" className="logo-box">
-                  Logo
-                </Link>
-              </div>
+            <Link className="cp-brand" href="/">
+              CreditPulse
+            </Link>
 
-              <nav className="nav" aria-label="Primary">
-                <Link href="/">Home</Link>
-                <Link href="/about">About Us</Link>
-                <Link href="/contact">Contact Us</Link>
-                <Link href="/signin">Sign In</Link>
-                <Link href="/signup" className="cta">
-                  Sign Up
-                </Link>
-              </nav>
+            <div className="navbar-nav ms-auto gap-2 align-items-lg-right">
+              <Link className="nav-link cp-navlink" href="/">
+                Home
+              </Link>
+              <Link className="nav-link cp-navlink" href="/about">
+                About Us
+              </Link>
+              <Link className="nav-link cp-navlink" href="/contact">
+                Contact Us
+              </Link>
+              <Link className="nav-link cp-navlink" href="/signin">
+                Sign In
+              </Link>
+              <Link className="btn btn-primary cp-navbtn" href="/signup">
+                Sign Up
+              </Link>
+              <ThemeToggle />
             </div>
           </div>
-        </header>
+        </nav>
 
-        <main className="page">
-          <div className="container">{children}</div>
-        </main>
+        <main className="container py-4">{children}</main>
 
-        <footer className="footer">Footer</footer>
+        <footer className="cp-footer">
+          <div className="container">
+            <small>© {new Date().getFullYear()} CreditPulse. All rights reserved.</small>
+          </div>
+        </footer>
       </body>
     </html>
   );
