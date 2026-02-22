@@ -27,7 +27,7 @@ export default function SignInPage() {
 
     try {
       // TODO: Build this URL dynamically from environment variables
-      await axios.post("http://localhost:8080/auth/signin", {
+      await axios.post("http://localhost:3001/auth/signin", {
           loginId,
           password,
       }, {
