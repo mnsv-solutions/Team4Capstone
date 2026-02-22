@@ -8,6 +8,7 @@ import {
   SignUpFormErrors,
   SignUpFormState,
 } from "../utils/signupValidation";
+import axios from "axios";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -16,21 +17,29 @@ export default function SignUpPage() {
     firstName: "",
     lastName: "",
     email: "",
-    mobile: "",
+    phone: "",
     password: "",
   });
 
   const [errors, setErrors] = useState<SignUpFormErrors>({});
-  const [touched, setTouched] = useState<Partial<Record<keyof SignUpFormState, boolean>>>({});
+  const [touched, setTouched] = useState<
+    Partial<Record<keyof SignUpFormState, boolean>>
+  >({});
   const [submitted, setSubmitted] = useState(false);
 
   const [successMsg, setSuccessMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // For button enable/disable only (doesn't show errors by itself)
-  const isValid = useMemo(() => Object.keys(validateSignUp(form)).length === 0, [form]);
+  const isValid = useMemo(
+    () => Object.keys(validateSignUp(form)).length === 0,
+    [form],
+  );
 
-  function setField<K extends keyof SignUpFormState>(key: K, value: SignUpFormState[K]) {
+  function setField<K extends keyof SignUpFormState>(
+    key: K,
+    value: SignUpFormState[K],
+  ) {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
 
@@ -48,7 +57,7 @@ export default function SignUpPage() {
     setErrors(validateSignUp(form));
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (isSubmitting) return;
 
@@ -61,6 +70,31 @@ export default function SignUpPage() {
     if (Object.keys(validationErrors).length > 0) return;
 
     setIsSubmitting(true);
+
+    try {
+      await axios.post("http://localhost:3001/auth/signup", form, {
+        headers: {
+          "Content-Type": "application/json",
+          "Allow-Control-Allow-Origin": "*",
+        },
+      });
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const apiMessage = error.response?.data?.message;
+        const errorMessage =
+          typeof apiMessage === "string"
+            ? apiMessage
+            : "Sign up failed. Please check your details and try again.";
+
+        setErrors({
+          email: errorMessage,
+        });
+      }
+
+      setIsSubmitting(false);
+      return;
+    }
+
     setSuccessMsg("Account created (dummy). Redirecting to Sign In...");
 
     setTimeout(() => {
@@ -81,7 +115,7 @@ export default function SignUpPage() {
     setSuccessMsg(
       provider === "google"
         ? "Google sign-up (dummy). Redirecting to Home..."
-        : "Apple sign-up (dummy). Redirecting to Home..."
+        : "Apple sign-up (dummy). Redirecting to Home...",
     );
 
     setTimeout(() => {
@@ -126,7 +160,10 @@ export default function SignUpPage() {
             Continue with Apple
           </button>
 
-          <div className="or-row clearfix" aria-label="Alternative signup options">
+          <div
+            className="or-row clearfix"
+            aria-label="Alternative signup options"
+          >
             <div className="or-line" aria-hidden="true" />
             <div className="or-text or-text-lower" aria-hidden="true">
               or
@@ -147,7 +184,9 @@ export default function SignUpPage() {
                 onChange={(e) => setField("firstName", e.target.value)}
                 onBlur={() => onBlurField("firstName")}
                 aria-invalid={!!errors.firstName}
-                aria-describedby={errors.firstName ? "firstName-error" : undefined}
+                aria-describedby={
+                  errors.firstName ? "firstName-error" : undefined
+                }
                 placeholder="Enter your first name"
                 disabled={isSubmitting}
                 required
@@ -171,7 +210,9 @@ export default function SignUpPage() {
                 onChange={(e) => setField("lastName", e.target.value)}
                 onBlur={() => onBlurField("lastName")}
                 aria-invalid={!!errors.lastName}
-                aria-describedby={errors.lastName ? "lastName-error" : undefined}
+                aria-describedby={
+                  errors.lastName ? "lastName-error" : undefined
+                }
                 placeholder="Enter your last name"
                 disabled={isSubmitting}
                 required
@@ -213,23 +254,25 @@ export default function SignUpPage() {
               </label>
               <input
                 id="mobile"
-                className={`input ${errors.mobile ? "input-error signup-error-bg" : ""}`}
+                className={`input ${errors.phone ? "input-error signup-error-bg" : ""}`}
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={10}
-                value={form.mobile}
-                onChange={(e) => setField("mobile", sanitizeMobile(e.target.value))}
-                onBlur={() => onBlurField("mobile")}
-                aria-invalid={!!errors.mobile}
-                aria-describedby={errors.mobile ? "mobile-error" : undefined}
+                value={form.phone}
+                onChange={(e) =>
+                  setField("phone", sanitizeMobile(e.target.value))
+                }
+                onBlur={() => onBlurField("phone")}
+                aria-invalid={!!errors.phone}
+                aria-describedby={errors.phone ? "phone-error" : undefined}
                 placeholder="1234567890"
                 disabled={isSubmitting}
                 required
               />
-              {errors.mobile && (
-                <p id="mobile-error" className="error-text" role="alert">
-                  {errors.mobile}
+              {errors.phone && (
+                <p id="phone-error" className="error-text" role="alert">
+                  {errors.phone}
                 </p>
               )}
             </div>
@@ -246,7 +289,9 @@ export default function SignUpPage() {
                 onChange={(e) => setField("password", e.target.value)}
                 onBlur={() => onBlurField("password")}
                 aria-invalid={!!errors.password}
-                aria-describedby={errors.password ? "password-error" : undefined}
+                aria-describedby={
+                  errors.password ? "password-error" : undefined
+                }
                 placeholder="Min 8 chars, Upper, Lower, Number, Symbol"
                 disabled={isSubmitting}
                 required
@@ -258,13 +303,18 @@ export default function SignUpPage() {
               )}
             </div>
 
-            <button type="submit" className="signup-submit-btn" disabled={isSubmitting || !isValid}>
+            <button
+              type="submit"
+              className="signup-submit-btn"
+              disabled={isSubmitting || !isValid}
+            >
               {isSubmitting ? "Creating..." : "Create Account"}
             </button>
           </form>
 
           <p className="signup-hint">
-            Mobile must be exactly 10 digits. Password must include uppercase, lowercase, a number, and a symbol.
+            Mobile must be exactly 10 digits. Password must include uppercase,
+            lowercase, a number, and a symbol.
           </p>
         </div>
       </section>
