@@ -6,15 +6,17 @@ import { UsersService } from '../users/users.service.js';
 @Injectable()
 export class AuthService {
   constructor(
-    private usersService: UsersService,
-    private jwtService: JwtService,
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
   ) {}
 
   private readonly logger = new Logger(AuthService.name);
 
   async signIn(loginId: string, password: string): Promise<any> {
     this.logger.log(`Attempting to sign in user: ${loginId}`);
-    const user = this.usersService.findOne(loginId);
+    const user = await this.usersService.user({
+      OR: [{ email: loginId }, { phone: loginId }],
+    });
 
     if (user?.password_hash !== password) {
       this.logger.error(`Failed sign in attempt for user: ${loginId}`);
