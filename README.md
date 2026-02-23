@@ -1,21 +1,21 @@
 # Credit Pulse
-A Digital Loan Origination &amp; Credit Assessment Platform.
 
+A Digital Loan Origination &amp; Credit Assessment Platform.
 
 ## Technologies
 
 - **Backend**:
-    - **[NestJS](https://nestjs.com/)**: JS/TS Framework.
-    - Postgres
-    - MongoDB
+  - **[NestJS](https://nestjs.com/)**: JS/TS Framework.
+  - Postgres
+  - MongoDB
 
 - **Frontend**:
-    - **[NextJS](https://nextjs.org/)**: React Framework.
-    - React Router
-    - Tailwind CSS
+  - **[NextJS](https://nextjs.org/)**: React Framework.
+  - React Router
+  - Tailwind CSS
 
 ## Initial Setup
- 
+
 ### Using NPM
 
 First, make sure that **[NodeJS](https://nodejs.org/en)** and **[NPM](https://www.npmjs.com/)** are installed and
@@ -64,6 +64,7 @@ Moreover, the `start:dev` script will initialize both project using
 By default, the `frontend` and `backend` run on ports `3000` and `3001`, respectively.
 
 Access these URLs in your browser and you should be able to see the applications running:
+
 - http://localhost:3000 for NextJS - frontend.
 - http://localhost:3001 for NestJS - backend.
 
@@ -101,12 +102,36 @@ docker run -p 3000:3000 -p 3001:3001 credit-pulse-dev
 
 # For production environment:
 docker run -p 3000:3000 -p 3001:3001 credit-pulse-prod
-``` 
+```
+
 By default, the `frontend` and `backend` run on ports `3000` and `3001`, respectively. The `-p` flag maps the container ports to your local machine ports.
 
 Access these URLs in your browser and you should be able to see the applications running:
+
 - http://localhost:3000 for NextJS - frontend.
 - http://localhost:3001 for NestJS - backend.
+
+## Development Guidelines
+
+- Follow the coding style and conventions used in the existing codebase.
+- Write clear and concise commit messages when pushing changes to the repository.
+- Ensure that all new code is properly tested and does not break existing functionality.
+- Communicate effectively with team members regarding any issues, questions, or updates related to the project
+
+### Backend
+
+- Use NestJS best practices for structuring modules, controllers, and services.
+  - It's recommended to use the Nest CLI tool to generate the necessary files and maintain a consistent structure. Example: `nest generate module users`.
+  - Files follows a lowercase naming convention with no hyphens or underscores. Example: `mycomponent.ts` instead of `my-component.ts` or `my_component.ts`.
+  - Variables, functions, and methods should be named using camelCase. Example: `myVariable`, `myFunction()`, `myMethod()`.
+  - Classes and interfaces should be named using PascalCase. Example: `MyClass`, `MyInterface`.
+- Implement proper error handling and logging mechanisms.
+- Write unit tests for critical components and services.
+  - Run backend tests using: `npm run test:backend`
+- Use environment variables for configuration and sensitive information. Use the `config-example.yaml` file inside `backend/config` as a reference.
+- Always run the linter and formatter before committing code to maintain code quality and consistency.
+  - Linting: `npm run lint:backend`
+  - Formatting: `npm run format:backend`
 
 ## Team
 
@@ -114,6 +139,7 @@ This project is part of the Capstone course (PROG8751-26W-Sec1-Capstone) for the
 **[Conestoga College](https://www.conestogac.on.ca/)**.
 
 Team members:
+
 - **[Victor Ferreira Araujo](https://github.com/vict-devv)**
 - **[Sukhpreet Singh](https://github.com/sukhpreet1616)**
 - **[Nirali Dineshkumar Patel](https://github.com/niralipatel2107)**

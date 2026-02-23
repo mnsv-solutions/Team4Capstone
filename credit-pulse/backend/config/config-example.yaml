@@ -1,0 +1,23 @@
+# This is an example configuration file for the Credit Pulse backend.
+
+# http: Configuration for the HTTP server.
+http:
+  port: 3001
+
+# db: Configuration for the database connection.
+db:
+  postgres:
+    host: your_postgres_host
+    port: 5432
+    username: your_postgres_username
+    password: your_postgres_password
+    database: your_postgres_database
+
+# jwt: Configuration for JSON Web Tokens (JWT) used for authentication.
+jwt:
+  secret: your_jwt_secret_key
+  expiresIn: 3600s
+
+# bcrypt: Configuration for bcrypt hashing.
+bcrypt:
+  saltRounds: 10
