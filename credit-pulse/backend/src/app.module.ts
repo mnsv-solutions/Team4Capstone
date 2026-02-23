@@ -8,14 +8,16 @@ import { AuthModule } from './auth/auth.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaService } from './prisma/prisma.service.js';
 import { UsersModule } from './users/users.module.js';
+import { ApplicationStatusModule } from './application-status/application-status.module.js';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ load: [configuration], isGlobal: true }),
     AuthModule,
     UsersModule,
+    ApplicationStatusModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, PrismaService],
 })
-export class AppModule {}
+export class AppModule { }

@@ -1,50 +1,402 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-model Role {
-  role_id    String  @id
-  role_code  String
-  role_name  String
-  created_at DateTime @default(now())
-  created_by String?
-  updated_at DateTime @updatedAt
-  updated_by String?
-  is_active  Boolean @default(true)
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model address_types {
+  address_type_id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  address_type_code                     String   @unique(map: "ux_address_types_code_active") @db.VarChar(30)
+  address_type_name                     String   @db.VarChar(80)
+  created_at                            DateTime @default(now()) @db.Timestamptz(6)
+  created_by                            String?  @db.Uuid
+  updated_at                            DateTime @default(now()) @db.Timestamptz(6)
+  updated_by                            String?  @db.Uuid
+  is_active                             Boolean  @default(true)
+  users_address_types_created_byTousers users?   @relation("address_types_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_address_types_created_by")
+  users_address_types_updated_byTousers users?   @relation("address_types_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_address_types_updated_by")
 
-  users User[]
+  @@index([is_active], map: "idx_address_types_is_active")
 }
 
-model User {
-  user_id                String   @id
-  role_id                String
-  first_name             String
-  last_name              String
-  email                  String   @unique
-  password_hash          String
-  phone                  String?
-  last_login_at          DateTime?
-  failed_login_attempts  Int      @default(0)
-  locked_until           DateTime?
-  password_changed_at    DateTime?
-  is_email_verified      Boolean  @default(false)
-  is_system_user         Boolean  @default(false)
-  is_active              Boolean  @default(true)
-  created_at             DateTime @default(now())
-  updated_at             DateTime @updatedAt
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model application_status {
+  status_id                                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status_code                                String             @unique(map: "ux_application_status_code_active") @db.VarChar(30)
+  status_name                                String             @db.VarChar(80)
+  created_at                                 DateTime           @default(now()) @db.Timestamptz(6)
+  created_by                                 String?            @db.Uuid
+  updated_at                                 DateTime           @default(now()) @db.Timestamptz(6)
+  updated_by                                 String?            @db.Uuid
+  is_active                                  Boolean            @default(true)
+  users_application_status_created_byTousers users?             @relation("application_status_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_application_status_created_by")
+  users_application_status_updated_byTousers users?             @relation("application_status_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_application_status_updated_by")
+  loan_application                           loan_application[]
 
-  role Role @relation(fields: [role_id], references: [role_id])
+  @@index([is_active], map: "idx_application_status_is_active")
+}
 
-  @@index([role_id])
+model application_status_audit {
+  audit_id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_number String   @db.VarChar(40)
+  dob_hash           String   @db.VarChar(128)
+  success            Boolean  @default(false)
+  reason_code        String   @default("UNKNOWN") @db.VarChar(30)
+  ip_address         String?  @db.VarChar(80)
+  user_agent         String?  @db.VarChar(255)
+  created_at         DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([application_number], map: "idx_status_audit_app_number")
+  @@index([created_at(sort: Desc)], map: "idx_status_audit_created_at")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model banks {
+  bank_id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  bank_code                     String   @unique(map: "ux_banks_code_active") @db.VarChar(30)
+  bank_name                     String   @db.VarChar(120)
+  created_at                    DateTime @default(now()) @db.Timestamptz(6)
+  created_by                    String?  @db.Uuid
+  updated_at                    DateTime @default(now()) @db.Timestamptz(6)
+  updated_by                    String?  @db.Uuid
+  is_active                     Boolean  @default(true)
+  users_banks_created_byTousers users?   @relation("banks_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_banks_created_by")
+  users_banks_updated_byTousers users?   @relation("banks_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_banks_updated_by")
+
+  @@index([is_active], map: "idx_banks_is_active")
+}
+
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model customer {
+  customer_id                      String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  first_name                       String     @db.VarChar(80)
+  last_name                        String     @db.VarChar(80)
+  date_of_birth                    DateTime   @db.Date
+  created_at                       DateTime   @default(now()) @db.Timestamptz(6)
+  created_by                       String     @db.Uuid
+  updated_at                       DateTime   @default(now()) @db.Timestamptz(6)
+  updated_by                       String?    @db.Uuid
+  is_active                        Boolean    @default(true)
+  users_customer_created_byTousers users      @relation("customer_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_customer_created_by")
+  users_customer_updated_byTousers users?     @relation("customer_updated_byTousers", fields: [updated_by], references: [user_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_customer_updated_by")
+  sub_loan                         sub_loan[]
+
+  @@index([is_active], map: "idx_customer_active")
+  @@index([date_of_birth], map: "idx_customer_dob")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model decision_types {
+  decision_type_id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  decision_code                          String   @unique(map: "ux_decision_types_code_active") @db.VarChar(20)
+  decision_name                          String   @db.VarChar(80)
+  created_at                             DateTime @default(now()) @db.Timestamptz(6)
+  created_by                             String?  @db.Uuid
+  updated_at                             DateTime @default(now()) @db.Timestamptz(6)
+  updated_by                             String?  @db.Uuid
+  is_active                              Boolean  @default(true)
+  users_decision_types_created_byTousers users?   @relation("decision_types_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_decision_types_created_by")
+  users_decision_types_updated_byTousers users?   @relation("decision_types_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_decision_types_updated_by")
+
+  @@index([is_active], map: "idx_decision_types_is_active")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model education_levels {
+  education_level_id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  level_code                               String   @unique(map: "ux_education_levels_code_active") @db.VarChar(30)
+  level_name                               String   @db.VarChar(80)
+  created_at                               DateTime @default(now()) @db.Timestamptz(6)
+  created_by                               String?  @db.Uuid
+  updated_at                               DateTime @default(now()) @db.Timestamptz(6)
+  updated_by                               String?  @db.Uuid
+  is_active                                Boolean  @default(true)
+  users_education_levels_created_byTousers users?   @relation("education_levels_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_education_levels_created_by")
+  users_education_levels_updated_byTousers users?   @relation("education_levels_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_education_levels_updated_by")
+
+  @@index([is_active], map: "idx_education_levels_is_active")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model employment_types {
+  employment_type_id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  employment_type_code                     String   @unique(map: "ux_employment_types_code_active") @db.VarChar(30)
+  employment_type_name                     String   @db.VarChar(80)
+  created_at                               DateTime @default(now()) @db.Timestamptz(6)
+  created_by                               String?  @db.Uuid
+  updated_at                               DateTime @default(now()) @db.Timestamptz(6)
+  updated_by                               String?  @db.Uuid
+  is_active                                Boolean  @default(true)
+  users_employment_types_created_byTousers users?   @relation("employment_types_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_employment_types_created_by")
+  users_employment_types_updated_byTousers users?   @relation("employment_types_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_employment_types_updated_by")
+
+  @@index([is_active], map: "idx_employment_types_is_active")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model institutions {
+  institution_id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  institution_name                     String   @unique(map: "ux_institutions_name_active") @db.VarChar(150)
+  city                                 String?  @db.VarChar(80)
+  country                              String?  @db.VarChar(80)
+  created_at                           DateTime @default(now()) @db.Timestamptz(6)
+  created_by                           String?  @db.Uuid
+  updated_at                           DateTime @default(now()) @db.Timestamptz(6)
+  updated_by                           String?  @db.Uuid
+  is_active                            Boolean  @default(true)
+  users_institutions_created_byTousers users?   @relation("institutions_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_institutions_created_by")
+  users_institutions_updated_byTousers users?   @relation("institutions_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_institutions_updated_by")
+
+  @@index([is_active], map: "idx_institutions_is_active")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model loan_application {
+  application_id                           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_number                       String             @unique(map: "uq_loan_application_number") @db.VarChar(40)
+  status_id                                String             @db.Uuid
+  loan_type_id                             String?            @db.Uuid
+  requested_amount                         Decimal?           @db.Decimal(12, 2)
+  tenure_months                            Int?
+  interest_rate                            Decimal?           @db.Decimal(5, 2)
+  created_at                               DateTime           @default(now()) @db.Timestamptz(6)
+  created_by                               String             @db.Uuid
+  updated_at                               DateTime           @default(now()) @db.Timestamptz(6)
+  updated_by                               String?            @db.Uuid
+  is_active                                Boolean            @default(true)
+  users_loan_application_created_byTousers users              @relation("loan_application_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_loan_application_created_by")
+  loan_types                               loan_types?        @relation(fields: [loan_type_id], references: [loan_type_id], onUpdate: NoAction, map: "fk_loan_application_loan_type")
+  application_status                       application_status @relation(fields: [status_id], references: [status_id], onUpdate: NoAction, map: "fk_loan_application_status")
+  users_loan_application_updated_byTousers users?             @relation("loan_application_updated_byTousers", fields: [updated_by], references: [user_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_loan_application_updated_by")
+  sub_loan                                 sub_loan?
+
+  @@index([is_active], map: "idx_loan_application_active")
+  @@index([status_id], map: "idx_loan_application_status")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model loan_types {
+  loan_type_id                       String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  loan_type_code                     String             @unique(map: "ux_loan_types_code_active") @db.VarChar(30)
+  loan_type_name                     String             @db.VarChar(80)
+  created_at                         DateTime           @default(now()) @db.Timestamptz(6)
+  created_by                         String?            @db.Uuid
+  updated_at                         DateTime           @default(now()) @db.Timestamptz(6)
+  updated_by                         String?            @db.Uuid
+  is_active                          Boolean            @default(true)
+  loan_application                   loan_application[]
+  users_loan_types_created_byTousers users?             @relation("loan_types_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_loan_types_created_by")
+  users_loan_types_updated_byTousers users?             @relation("loan_types_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_loan_types_updated_by")
+
+  @@index([is_active], map: "idx_loan_types_is_active")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model roles {
+  role_id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  role_code                     String   @unique(map: "ux_roles_role_code_active") @db.VarChar(30)
+  role_name                     String   @db.VarChar(80)
+  created_at                    DateTime @default(now()) @db.Timestamptz(6)
+  created_by                    String?  @db.Uuid
+  updated_at                    DateTime @default(now()) @db.Timestamptz(6)
+  updated_by                    String?  @db.Uuid
+  is_active                     Boolean  @default(true)
+  users_roles_created_byTousers users?   @relation("roles_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_roles_created_by")
+  users_roles_updated_byTousers users?   @relation("roles_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_roles_updated_by")
+
+  @@index([is_active], map: "idx_roles_is_active")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model sub_loan {
+  sub_loan_id                      String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id                   String           @unique(map: "ux_sub_loan_one_primary_per_application") @db.Uuid
+  customer_id                      String           @db.Uuid
+  applicant_type                   Int              @db.SmallInt
+  created_at                       DateTime         @default(now()) @db.Timestamptz(6)
+  created_by                       String           @db.Uuid
+  updated_at                       DateTime         @default(now()) @db.Timestamptz(6)
+  updated_by                       String?          @db.Uuid
+  is_active                        Boolean          @default(true)
+  loan_application                 loan_application @relation(fields: [application_id], references: [application_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sub_loan_application")
+  users_sub_loan_created_byTousers users            @relation("sub_loan_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_sub_loan_created_by")
+  customer                         customer         @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sub_loan_customer")
+  users_sub_loan_updated_byTousers users?           @relation("sub_loan_updated_byTousers", fields: [updated_by], references: [user_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_sub_loan_updated_by")
+
+  @@unique([application_id, customer_id], map: "ux_sub_loan_app_customer_active")
+  @@index([application_id, applicant_type, customer_id], map: "idx_sub_loan_lookup")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model user_address {
+  address_id      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id         String   @unique(map: "ux_user_address_one_primary_active") @db.Uuid
+  address_type_id String   @db.Uuid
+  line1           String   @db.VarChar(120)
+  line2           String?  @db.VarChar(120)
+  city            String   @db.VarChar(80)
+  state_province  String?  @db.VarChar(80)
+  postal_code     String?  @db.VarChar(20)
+  country         String   @db.VarChar(80)
+  is_primary      Boolean  @default(false)
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+  created_by      String?  @db.Uuid
+  updated_at      DateTime @default(now()) @db.Timestamptz(6)
+  updated_by      String?  @db.Uuid
+  is_active       Boolean  @default(true)
+
+  @@index([user_id, is_primary], map: "idx_user_address_primary")
+  @@index([user_id, is_active], map: "idx_user_address_user_active")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+/// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+model user_bank_account {
+  bank_account_id     String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String   @db.Uuid
+  bank_id             String   @db.Uuid
+  account_holder_name String   @db.VarChar(120)
+  account_number      String   @db.VarChar(40)
+  account_type        String?  @db.VarChar(30)
+  ifsc_routing_code   String?  @db.VarChar(30)
+  branch_name         String?  @db.VarChar(120)
+  created_at          DateTime @default(now()) @db.Timestamptz(6)
+  created_by          String?  @db.Uuid
+  updated_at          DateTime @default(now()) @db.Timestamptz(6)
+  updated_by          String?  @db.Uuid
+  is_active           Boolean  @default(true)
+  users               users    @relation(fields: [user_id], references: [user_id], onDelete: Cascade, onUpdate: NoAction, map: "fk_user_bank_accounts_user")
+
+  @@unique([user_id, account_number], map: "ux_user_bank_accounts_user_number_active")
+  @@index([user_id, is_active], map: "idx_user_bank_accounts_user_active")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model user_education {
+  user_education_id  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String    @db.Uuid
+  education_level_id String    @db.Uuid
+  institution_id     String?   @db.Uuid
+  program_name       String?   @db.VarChar(150)
+  start_date         DateTime? @db.Date
+  end_date           DateTime? @db.Date
+  grade_percent      Decimal?  @db.Decimal(5, 2)
+  created_at         DateTime  @default(now()) @db.Timestamptz(6)
+  created_by         String?   @db.Uuid
+  updated_at         DateTime  @default(now()) @db.Timestamptz(6)
+  updated_by         String?   @db.Uuid
+  is_active          Boolean   @default(true)
+
+  @@index([user_id, is_active], map: "idx_user_education_user_active")
+}
+
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model user_employment {
+  employment_id      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id            String    @db.Uuid
+  employment_type_id String?   @db.Uuid
+  employer_name      String?   @db.VarChar(150)
+  job_title          String?   @db.VarChar(120)
+  monthly_income     Decimal?  @db.Decimal(12, 2)
+  start_date         DateTime? @db.Date
+  end_date           DateTime? @db.Date
+  created_at         DateTime  @default(now()) @db.Timestamptz(6)
+  created_by         String?   @db.Uuid
+  updated_at         DateTime  @default(now()) @db.Timestamptz(6)
+  updated_by         String?   @db.Uuid
+  is_active          Boolean   @default(true)
+
+  @@index([user_id, is_active], map: "idx_user_employment_user_active")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model user_profile {
+  profile_id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id              String    @unique @db.Uuid
+  date_of_birth        DateTime? @db.Date
+  gender               String?   @db.VarChar(20)
+  marital_status       String?   @db.VarChar(20)
+  nationality          String?   @db.VarChar(80)
+  government_id_type   String?   @db.VarChar(30)
+  government_id_number String?   @db.VarChar(80)
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+  created_by           String?   @db.Uuid
+  updated_at           DateTime  @default(now()) @db.Timestamptz(6)
+  updated_by           String?   @db.Uuid
+  is_active            Boolean   @default(true)
+
+  @@unique([government_id_type, government_id_number], map: "ux_user_profile_govt_id_active")
+  @@index([is_active], map: "idx_user_profile_active")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
+model users {
+  user_id                                                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  role_id                                                 String               @db.Uuid
+  first_name                                              String               @db.VarChar(80)
+  last_name                                               String               @db.VarChar(80)
+  email                                                   String               @unique(map: "uq_users_email") @db.Citext
+  password_hash                                           String               @db.VarChar(255)
+  phone                                                   String?              @db.VarChar(20)
+  last_login_at                                           DateTime?            @db.Timestamptz(6)
+  failed_login_attempts                                   Int                  @default(0)
+  locked_until                                            DateTime?            @db.Timestamptz(6)
+  password_changed_at                                     DateTime?            @db.Timestamptz(6)
+  is_email_verified                                       Boolean              @default(false)
+  is_system_user                                          Boolean              @default(false)
+  is_active                                               Boolean              @default(true)
+  created_at                                              DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at                                              DateTime             @default(now()) @db.Timestamptz(6)
+  address_types_address_types_created_byTousers           address_types[]      @relation("address_types_created_byTousers")
+  address_types_address_types_updated_byTousers           address_types[]      @relation("address_types_updated_byTousers")
+  application_status_application_status_created_byTousers application_status[] @relation("application_status_created_byTousers")
+  application_status_application_status_updated_byTousers application_status[] @relation("application_status_updated_byTousers")
+  banks_banks_created_byTousers                           banks[]              @relation("banks_created_byTousers")
+  banks_banks_updated_byTousers                           banks[]              @relation("banks_updated_byTousers")
+  customer_customer_created_byTousers                     customer[]           @relation("customer_created_byTousers")
+  customer_customer_updated_byTousers                     customer[]           @relation("customer_updated_byTousers")
+  decision_types_decision_types_created_byTousers         decision_types[]     @relation("decision_types_created_byTousers")
+  decision_types_decision_types_updated_byTousers         decision_types[]     @relation("decision_types_updated_byTousers")
+  education_levels_education_levels_created_byTousers     education_levels[]   @relation("education_levels_created_byTousers")
+  education_levels_education_levels_updated_byTousers     education_levels[]   @relation("education_levels_updated_byTousers")
+  employment_types_employment_types_created_byTousers     employment_types[]   @relation("employment_types_created_byTousers")
+  employment_types_employment_types_updated_byTousers     employment_types[]   @relation("employment_types_updated_byTousers")
+  institutions_institutions_created_byTousers             institutions[]       @relation("institutions_created_byTousers")
+  institutions_institutions_updated_byTousers             institutions[]       @relation("institutions_updated_byTousers")
+  loan_application_loan_application_created_byTousers     loan_application[]   @relation("loan_application_created_byTousers")
+  loan_application_loan_application_updated_byTousers     loan_application[]   @relation("loan_application_updated_byTousers")
+  loan_types_loan_types_created_byTousers                 loan_types[]         @relation("loan_types_created_byTousers")
+  loan_types_loan_types_updated_byTousers                 loan_types[]         @relation("loan_types_updated_byTousers")
+  roles_roles_created_byTousers                           roles[]              @relation("roles_created_byTousers")
+  roles_roles_updated_byTousers                           roles[]              @relation("roles_updated_byTousers")
+  sub_loan_sub_loan_created_byTousers                     sub_loan[]           @relation("sub_loan_created_byTousers")
+  sub_loan_sub_loan_updated_byTousers                     sub_loan[]           @relation("sub_loan_updated_byTousers")
+  user_bank_account                                       user_bank_account[]
+
+  @@index([role_id, is_active], map: "idx_users_role_active")
 }
