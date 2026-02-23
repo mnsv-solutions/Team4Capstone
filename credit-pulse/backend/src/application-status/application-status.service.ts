@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
+
+import crypto from 'node:crypto';
+
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ApplicationStatusDto } from './dto/application-status.dto.js';
-import crypto from 'node:crypto';
 
 // Metadata captured for audit tracking (IP + browser info)
 type AuditMeta = {
@@ -11,9 +13,8 @@ type AuditMeta = {
 
 @Injectable()
 export class ApplicationStatusService {
-
   // Injecting PrismaService for database access
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Retrieves the application status for a given application number and date of birth.
@@ -27,7 +28,6 @@ export class ApplicationStatusService {
    * @returns An object containing the success status, application number, status code, and status name.
    */
   async getApplicationStatus(dto: ApplicationStatusDto, meta: AuditMeta = {}) {
-    
     // Trim application number to avoid accidental spaces
     const applicationNumber = dto.applicationNumber.trim();
 
@@ -58,7 +58,7 @@ export class ApplicationStatusService {
         },
       });
 
-      return { success: false, reasonCode: 'NOT_FOUND' };
+      throw new NotFoundException({ success: false, reasonCode: 'NOT_FOUND' });
     }
 
     // If the application status is not active, create an audit log with 'INACTIVE_STATUS' reason code

@@ -70,9 +70,7 @@ export class AuthService {
       email: signUpReqDto.email,
       phone: signUpReqDto.phone,
       password_hash: passwordHash,
-      role: {
-        connect: { role_id: '2' }, //ToDo: connect to actual role based on user type
-      },
+      role_id: '2', //ToDo: check the correct ID
     });
 
     this.logger.log(`User signed up successfully: ${signUpReqDto.email}`);

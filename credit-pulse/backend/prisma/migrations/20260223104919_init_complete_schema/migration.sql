@@ -293,7 +293,7 @@ CREATE TABLE "users" (
     "role_id" UUID NOT NULL,
     "first_name" VARCHAR(80) NOT NULL,
     "last_name" VARCHAR(80) NOT NULL,
-    "email" CITEXT NOT NULL,
+    "email" VARCHAR(255) NOT NULL,
     "password_hash" VARCHAR(255) NOT NULL,
     "phone" VARCHAR(20),
     "last_login_at" TIMESTAMPTZ(6),

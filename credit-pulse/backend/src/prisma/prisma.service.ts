@@ -6,7 +6,8 @@ import { ConfigService } from '@nestjs/config';
 import { Pool } from 'pg';
 
 //Importing the auto-generated database client based on the schema.
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '../../generated/prisma/client.js';
+
 @Injectable()
 export class PrismaService extends PrismaClient {
   private readonly logger = new Logger(PrismaService.name);
@@ -80,7 +81,7 @@ export class PrismaService extends PrismaClient {
 
   /**
    * Called after the module has been initialized.
-   * 
+   *
    * This lifecycle hook is used to establish a connection to the database.
    * The connection is established by calling the $connect() method on the PrismaService instance.
    * When the connection is successful, a log message is printed to indicate that the database connection has been established.
@@ -92,7 +93,7 @@ export class PrismaService extends PrismaClient {
 
   /**
    * Called after the module has been destroyed.
-   * 
+   *
    * This lifecycle hook is used to close the connection to the database.
    * The connection is closed by calling the $disconnect() method on the PrismaService instance.
    * When the connection is closed, a log message is printed to indicate that the database connection has been closed.

@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+
 import { PrismaService } from './prisma.service.js';
 
 /**
@@ -11,7 +12,6 @@ import { PrismaService } from './prisma.service.js';
  * and use it for database operations.
  */
 @Module({
-
   // Services created and managed by this module
   providers: [PrismaService],
 

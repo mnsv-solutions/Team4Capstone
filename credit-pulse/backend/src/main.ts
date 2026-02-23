@@ -9,7 +9,7 @@ async function bootstrap() {
   logger.log('Starting bootstrap Credit Pulse Backend...');
 
   const app = await NestFactory.create(AppModule, { cors: true });
-  
+
   /**
    * Global Validation Pipe
    *
@@ -18,9 +18,9 @@ async function bootstrap() {
    */
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,              // Removes properties not defined in DTO
-      forbidNonWhitelisted: true,   // Throws error if unknown properties are sent
-      transform: true,              // Automatically transforms payload to DTO class types
+      whitelist: true, // Removes properties not defined in DTO
+      forbidNonWhitelisted: true, // Throws error if unknown properties are sent
+      transform: true, // Automatically transforms payload to DTO class types
     }),
   );
 

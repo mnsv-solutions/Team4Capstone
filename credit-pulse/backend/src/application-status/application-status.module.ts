@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
+
+import { PrismaModule } from '../prisma/prisma.module.js';
 import { ApplicationStatusController } from './application-status.controller.js';
 import { ApplicationStatusService } from './application-status.service.js';
-import { PrismaModule } from '../prisma/prisma.module.js';
 
 /**
  * The Application Status Module.

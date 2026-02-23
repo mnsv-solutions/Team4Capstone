@@ -1,4 +1,5 @@
-import { IsDateString, IsNotEmpty, IsString, Matches, MaxDate, } from 'class-validator';
+import { IsDateString, IsNotEmpty, IsString, Matches } from 'class-validator';
+
 import { IsAdult } from '../../../src/common/validators/is-adult.validator.js';
 
 /**
@@ -20,8 +21,7 @@ export class ApplicationStatusDto {
   @IsString({ message: 'Application Number must be a string.' })
   @IsNotEmpty({ message: 'Application Number is required.' })
   @Matches(/^APPL\d{10}$/, {
-    message:
-      'Application Number must start with APPL followed by exactly 10 digits',
+    message: 'Application Number must start with APPL followed by exactly 10 digits',
   })
   applicationNumber: string;
 
