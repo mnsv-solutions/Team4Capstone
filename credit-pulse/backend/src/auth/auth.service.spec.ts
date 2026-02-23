@@ -1,6 +1,7 @@
 import { jest } from '@jest/globals';
 
 import { UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -26,14 +27,18 @@ describe('AuthService', () => {
       signAsync: jest.fn(),
     };
 
+    const configService = new ConfigService();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AuthService,
         { provide: UsersService, useValue: usersService },
         { provide: JwtService, useValue: jwtService },
+        { provide: ConfigService, useValue: configService },
       ],
     }).compile();
 
+    configService.get = jest.fn().mockReturnValue(10);
     service = module.get<AuthService>(AuthService);
     jest.clearAllMocks();
   });

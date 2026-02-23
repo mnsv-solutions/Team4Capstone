@@ -1,0 +1,23 @@
+const bcrypt = require('bcrypt');
+const { AuthService } = require('./auth.service');
+const { ConfigService } = require('@nestjs/config');
+
+jest.mock('@nestjs/config');
+
+describe('AuthService', () => {
+	let authService;
+	let configService;
+
+	beforeEach(() => {
+		configService = new ConfigService();
+		authService = new AuthService(configService);
+		configService.get = jest.fn().mockReturnValue(10); // Mocking bcrypt.saltRounds
+	});
+
+	it('should hash a password with the correct salt rounds', async () => {
+		const password = 'testPassword';
+		const hashedPassword = await authService.hashPassword(password);
+		expect(bcrypt.compareSync(password, hashedPassword)).toBe(true);
+		expect(configService.get).toHaveBeenCalledWith('bcrypt.saltRounds');
+	});
+});

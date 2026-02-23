@@ -1,4 +1,5 @@
 import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import * as bcrypt from 'bcrypt';
@@ -14,10 +15,10 @@ export class AuthService {
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
+    private readonly configService: ConfigService,
   ) {}
 
   private readonly logger = new Logger(AuthService.name);
-  private readonly hashSaltRounds = 10;
 
   async signIn(signInReqDto: SignInRequestDto): Promise<SignInResponseDto> {
     this.logger.log(`Attempting to sign in user: ${signInReqDto.loginId}`);
@@ -59,8 +60,8 @@ export class AuthService {
       this.logger.error(`Failed sign up attempt. User already exists`);
       throw new UnauthorizedException('User with given email or phone already exists');
     }
-
-    const passwordHash = await bcrypt.hash(signUpReqDto.password, this.hashSaltRounds);
+    const saltRounds = this.configService.get<number>('bcrypt.saltRounds', 10);
+    const passwordHash = await bcrypt.hash(signUpReqDto.password, saltRounds);
 
     const newUser = await this.usersService.createUser({
       user_id: randomUUID(),
