@@ -1,5 +1,4 @@
 import {
-  ValidationArguments,
   ValidationOptions,
   ValidatorConstraint,
   ValidatorConstraintInterface,
@@ -19,7 +18,7 @@ export class IsAdultConstraint implements ValidatorConstraintInterface {
    * @param dob - The date of birth of the applicant in the format "YYYY-MM-DD".
    * @param args - The validation arguments.
    */
-  validate(dob: string, args: ValidationArguments): boolean {
+  validate(dob: string): boolean {
     // Check if the date of birth is provided
     if (!dob) return false;
 
@@ -47,7 +46,7 @@ export class IsAdultConstraint implements ValidatorConstraintInterface {
    * The default error message is "Applicant must be at least 18 years old".
    * @param args - The validation arguments.
    */
-  defaultMessage(args: ValidationArguments) {
+  defaultMessage() {
     return 'Applicant must be at least 18 years old';
   }
 }
@@ -60,7 +59,7 @@ export class IsAdultConstraint implements ValidatorConstraintInterface {
  * @param validationOptions - The options for the validation.
  */
 export function IsAdult(validationOptions?: ValidationOptions) {
-  return function (object: Object, propertyName: string) {
+  return function (object: object, propertyName: string) {
     /**
      * Registers the decorator on the given object and property.
      * The decorator will validate whether the date of birth corresponds to an applicant being at least 18 years old.

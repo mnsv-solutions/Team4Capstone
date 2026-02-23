@@ -9,7 +9,7 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
   async user(userWhereInput: Prisma.usersWhereInput): Promise<users | null> {
-    return this.prisma.users.findFirst({
+    return await this.prisma.users.findFirst({
       where: userWhereInput,
     });
   }
@@ -22,7 +22,7 @@ export class UsersService {
     orderBy?: Prisma.usersOrderByWithRelationInput;
   }): Promise<users[]> {
     const { skip, take, cursor, where, orderBy } = params;
-    return this.prisma.users.findMany({
+    return await this.prisma.users.findMany({
       skip,
       take,
       cursor,
@@ -32,7 +32,7 @@ export class UsersService {
   }
 
   async createUser(data: Prisma.usersCreateInput): Promise<users> {
-    return this.prisma.users.create({
+    return await this.prisma.users.create({
       data,
     });
   }
@@ -42,14 +42,14 @@ export class UsersService {
     data: Prisma.usersUpdateInput;
   }): Promise<users> {
     const { where, data } = params;
-    return this.prisma.users.update({
+    return await this.prisma.users.update({
       data,
       where,
     });
   }
 
   async deleteUser(where: Prisma.usersWhereUniqueInput): Promise<users> {
-    return this.prisma.users.delete({
+    return await this.prisma.users.delete({
       where,
     });
   }

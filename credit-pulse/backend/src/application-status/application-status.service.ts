@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 
 import crypto from 'node:crypto';
 
@@ -74,7 +74,7 @@ export class ApplicationStatusService {
         },
       });
 
-      return { success: false, reasonCode: 'INACTIVE_STATUS' };
+      throw new BadRequestException({ success: false, reasonCode: 'INACTIVE_STATUS' });
     }
 
     // Find the primary applicant (applicant type 0) by application ID
@@ -102,7 +102,7 @@ export class ApplicationStatusService {
         },
       });
 
-      return { success: false, reasonCode: 'PRIMARY_NOT_FOUND' };
+      throw new BadRequestException({ success: false, reasonCode: 'PRIMARY_NOT_FOUND' });
     }
 
     // Check if the date of birth matches the primary applicant's date of birth
@@ -127,7 +127,7 @@ export class ApplicationStatusService {
         },
       });
 
-      return { success: false, reasonCode: 'DOB_MISMATCH' };
+      throw new BadRequestException({ success: false, reasonCode: 'DOB_MISMATCH' });
     }
 
     // If all checks pass, create an audit log with 'SUCCESS' reason code and return the application status
