@@ -9,9 +9,9 @@ import { PrismaClient } from '../../generated/prisma/client.js';
 
 @Injectable()
 export class PrismaService extends PrismaClient {
-  private logger = new Logger(PrismaService.name);
+  private readonly logger = new Logger(PrismaService.name);
 
-  constructor(private configService: ConfigService) {
+  constructor(private readonly configService: ConfigService) {
     const url = PrismaService.getDatabaseUrl(configService);
     const pool = new Pool({ connectionString: url });
     const adapter = new PrismaPg(pool);

@@ -17,3 +17,7 @@ db:
 jwt:
   secret: your_jwt_secret_key
   expiresIn: 3600s
+
+# bcrypt: Configuration for bcrypt hashing.
+bcrypt:
+  saltRounds: 10
