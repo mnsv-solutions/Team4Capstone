@@ -241,28 +241,28 @@ export default function SignUpPage() {
                     </div>
 
                     <div className="mb-3">
-                      <label htmlFor="mobile" className="form-label fw-semibold">
-                        Mobile No (10 digits)
+                      <label htmlFor="phone" className="form-label fw-semibold">
+                        phone No (10 digits)
                       </label>
                       <input
-                        id="mobile"
-                        className={`form-control ${errors.mobile ? "is-invalid" : ""}`}
+                        id="phone"
+                        className={`form-control ${errors.phone ? "is-invalid" : ""}`}
                         type="tel"
                         inputMode="numeric"
                         pattern="[0-9]*"
                         maxLength={10}
-                        value={form.mobile}
-                        onChange={(e) => setField("mobile", sanitizeMobile(e.target.value))}
-                        onBlur={() => onBlurField("mobile")}
-                        aria-invalid={!!errors.mobile}
-                        aria-describedby={errors.mobile ? "mobile-error" : undefined}
+                        value={form.phone}
+                        onChange={(e) => setField("phone", sanitizeMobile(e.target.value))}
+                        onBlur={() => onBlurField("phone")}
+                        aria-invalid={!!errors.phone}
+                        aria-describedby={errors.phone ? "mobile-error" : undefined}
                         placeholder="1234567890"
                         disabled={isSubmitting}
                         required
                       />
-                      {errors.mobile && (
-                        <div id="mobile-error" className="invalid-feedback">
-                          {errors.mobile}
+                      {errors.phone && (
+                        <div id="phone-error" className="invalid-feedback">
+                          {errors.phone}
                         </div>
                       )}
                     </div>
@@ -300,7 +300,7 @@ export default function SignUpPage() {
                     </button>
 
                     <p className="small auth-muted mt-3 mb-0">
-                      Mobile must be exactly 10 digits. Password must include uppercase, lowercase,
+                      phone must be exactly 10 digits. Password must include uppercase, lowercase,
                       a number, and a symbol.
                     </p>
 
