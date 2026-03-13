@@ -18,6 +18,7 @@
     "lint:backend": "npm run lint --workspace=credit-pulse/backend",
     "prisma:generate": "npm run prisma:generate --workspace=credit-pulse/backend",
     "prisma:migrate": "npm run prisma:migrate --workspace=credit-pulse/backend",
+    "prisma:seed": "npm run prisma:seed --workspace=credit-pulse/backend",
     "test:backend": "npm run test --workspace=credit-pulse/backend",
     "test:frontend": "npm run test --workspace=credit-pulse/frontend",
     "test": "npm run test:backend && npm run test:frontend",
