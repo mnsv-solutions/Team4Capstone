@@ -1,7 +1,7 @@
 export default function ContactPage() {
   return (
     <main className="d-flex flex-column gap-4">
-
+      {/* Top section: page title and introduction */}
       <section className="cp-hero-section">
         <h1 className="fw-bold mb-3">Contact Us</h1>
 
@@ -15,15 +15,17 @@ export default function ContactPage() {
         </p>
       </section>
 
+      {/* Middle section: form + contact info side by side */}
       <section className="cp-hero-section">
         <div className="row g-4">
 
+          {/* LEFT SIDE → Contact Form */}
           <div className="col-12 col-lg-6">
             <div className="cp-card h-100">
               <h2 className="h5 fw-bold mb-3">Send a Message</h2>
 
               <form>
-
+                {/* Name field */}
                 <div className="mb-3">
                   <label className="form-label">Full Name</label>
                   <input
@@ -33,6 +35,7 @@ export default function ContactPage() {
                   />
                 </div>
 
+                {/* Email field */}
                 <div className="mb-3">
                   <label className="form-label">Email Address</label>
                   <input
@@ -42,6 +45,7 @@ export default function ContactPage() {
                   />
                 </div>
 
+                {/* Subject field */}
                 <div className="mb-3">
                   <label className="form-label">Subject</label>
                   <input
@@ -51,6 +55,7 @@ export default function ContactPage() {
                   />
                 </div>
 
+                {/* Message field */}
                 <div className="mb-3">
                   <label className="form-label">Message</label>
                   <textarea
@@ -60,14 +65,15 @@ export default function ContactPage() {
                   ></textarea>
                 </div>
 
+                {/* Submit button */}
                 <button type="submit" className="btn btn-primary">
                   Submit
                 </button>
-
               </form>
             </div>
           </div>
 
+          {/* RIGHT SIDE → Contact details */}
           <div className="col-12 col-lg-6">
             <div className="cp-card h-100">
               <h2 className="h5 fw-bold mb-3">Get in Touch</h2>
@@ -93,11 +99,13 @@ export default function ContactPage() {
         </div>
       </section>
 
+      {/* Bottom section: Frequently Asked Questions */}
       <section className="cp-hero-section">
         <h2 className="fw-bold mb-3">Frequently Asked Questions</h2>
 
         <div className="row g-3">
 
+          {/* FAQ 1 */}
           <div className="col-12 col-md-6">
             <div className="cp-card h-100">
               <h3 className="h6 fw-bold mb-2">
@@ -110,6 +118,7 @@ export default function ContactPage() {
             </div>
           </div>
 
+          {/* FAQ 2 */}
           <div className="col-12 col-md-6">
             <div className="cp-card h-100">
               <h3 className="h6 fw-bold mb-2">
@@ -122,6 +131,7 @@ export default function ContactPage() {
             </div>
           </div>
 
+          {/* FAQ 3 */}
           <div className="col-12 col-md-6">
             <div className="cp-card h-100">
               <h3 className="h6 fw-bold mb-2">
@@ -134,6 +144,7 @@ export default function ContactPage() {
             </div>
           </div>
 
+          {/* FAQ 4 */}
           <div className="col-12 col-md-6">
             <div className="cp-card h-100">
               <h3 className="h6 fw-bold mb-2">

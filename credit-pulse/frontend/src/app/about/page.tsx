@@ -3,6 +3,7 @@ import Image from "next/image";
 export default function AboutPage() {
   return (
     <main className="d-flex flex-column gap-4">
+      {/* Intro section about the project */}
       <section className="cp-hero-section">
         <h1 className="fw-bold mb-3">About CreditPulse</h1>
 
@@ -18,10 +19,12 @@ export default function AboutPage() {
         </p>
       </section>
 
+      {/* This section explains the main benefits of the platform */}
       <section className="cp-hero-section">
         <h2 className="fw-bold mb-3">What the platform helps users do</h2>
 
         <div className="row g-3">
+          {/* Card 1 */}
           <div className="col-12 col-md-6">
             <div className="cp-card h-100">
               <h3 className="h5 fw-bold mb-2">Loan Application Tracking</h3>
@@ -32,6 +35,7 @@ export default function AboutPage() {
             </div>
           </div>
 
+          {/* Card 2 */}
           <div className="col-12 col-md-6">
             <div className="cp-card h-100">
               <h3 className="h5 fw-bold mb-2">Clear Next Steps</h3>
@@ -42,6 +46,7 @@ export default function AboutPage() {
             </div>
           </div>
 
+          {/* Card 3 */}
           <div className="col-12 col-md-6">
             <div className="cp-card h-100">
               <h3 className="h5 fw-bold mb-2">Document Readiness</h3>
@@ -52,6 +57,7 @@ export default function AboutPage() {
             </div>
           </div>
 
+          {/* Card 4 */}
           <div className="col-12 col-md-6">
             <div className="cp-card h-100">
               <h3 className="h5 fw-bold mb-2">Improved User Experience</h3>
@@ -64,10 +70,12 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* This section explains basic loan concepts in simple language */}
       <section className="cp-hero-section">
         <h2 className="fw-bold mb-3">Basic Loan Information</h2>
 
         <div className="row g-3">
+          {/* Loan origination explanation */}
           <div className="col-12 col-lg-6">
             <div className="cp-card h-100">
               <h3 className="h5 fw-bold mb-2">What is loan origination?</h3>
@@ -78,6 +86,7 @@ export default function AboutPage() {
             </div>
           </div>
 
+          {/* Credit assessment explanation */}
           <div className="col-12 col-lg-6">
             <div className="cp-card h-100">
               <h3 className="h5 fw-bold mb-2">What is credit assessment?</h3>
@@ -90,6 +99,7 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* Team section showing all project members */}
       <section className="cp-hero-section">
         <h2 className="fw-bold mb-3">Meet the Team</h2>
         <p className="mb-4">
@@ -97,6 +107,7 @@ export default function AboutPage() {
         </p>
 
         <div className="row g-3">
+          {/* Team member 1 */}
           <div className="col-12 col-sm-6 col-lg-3">
             <div className="cp-card text-center h-100">
               <div className="mb-3">
@@ -113,6 +124,7 @@ export default function AboutPage() {
             </div>
           </div>
 
+          {/* Team member 2 */}
           <div className="col-12 col-sm-6 col-lg-3">
             <div className="cp-card text-center h-100">
               <div className="mb-3">
@@ -129,6 +141,7 @@ export default function AboutPage() {
             </div>
           </div>
 
+          {/* Team member 3 */}
           <div className="col-12 col-sm-6 col-lg-3">
             <div className="cp-card text-center h-100">
               <div className="mb-3">
@@ -145,6 +158,7 @@ export default function AboutPage() {
             </div>
           </div>
 
+          {/* Team member 4 */}
           <div className="col-12 col-sm-6 col-lg-3">
             <div className="cp-card text-center h-100">
               <div className="mb-3">
@@ -161,14 +175,14 @@ export default function AboutPage() {
             </div>
           </div>
         </div>
-
-      
       </section>
 
+      {/* Final section gives short information about the project itself */}
       <section className="cp-hero-section">
         <h2 className="fw-bold mb-3">Project Details</h2>
 
         <div className="row g-3">
+          {/* Project type card */}
           <div className="col-12 col-lg-6">
             <div className="cp-card h-100">
               <h3 className="h5 fw-bold mb-2">Project Type</h3>
@@ -178,6 +192,7 @@ export default function AboutPage() {
             </div>
           </div>
 
+          {/* Goal card */}
           <div className="col-12 col-lg-6">
             <div className="cp-card h-100">
               <h3 className="h5 fw-bold mb-2">Goal</h3>
@@ -187,6 +202,7 @@ export default function AboutPage() {
             </div>
           </div>
 
+          {/* Website purpose card */}
           <div className="col-12">
             <div className="cp-card">
               <h3 className="h5 fw-bold mb-2">Website Purpose</h3>

@@ -3,34 +3,54 @@
 import { useState } from "react";
 
 export default function Home() {
+  // Stores the application number entered by the user
   const [applicationNo, setApplicationNo] = useState("");
+
+  // Stores the date of birth selected by the user
   const [dob, setDob] = useState("");
+
+  // Stores validation error messages for both fields
   const [errors, setErrors] = useState<{ applicationNo?: string; dob?: string }>({});
+
+  // Stores success message after valid form submission
   const [successMsg, setSuccessMsg] = useState("");
 
+  // This function checks if the given value has only letters and numbers
+  // It returns true if valid, otherwise false
   function isAlphaNumeric(value: string) {
     return /^[A-Za-z0-9]+$/.test(value);
   }
 
+  // This function checks whether the user is 18 years old or above
   function isAdult(dateString: string) {
     const today = new Date();
     const birthDate = new Date(dateString);
 
+    // First calculate age by subtracting years
     let age = today.getFullYear() - birthDate.getFullYear();
+
+    // Then check month difference to make age more accurate
     const monthDiff = today.getMonth() - birthDate.getMonth();
 
+    // If birthday has not happened yet this year, reduce age by 1
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
       age = age - 1;
     }
 
+    // Return true if age is 18 or more
     return age >= 18;
   }
 
+  // This function validates the whole form
+  // It checks both application number and date of birth
   function validate() {
+    // Create an empty object to store errors
     const nextErrors: { applicationNo?: string; dob?: string } = {};
 
+    // Remove extra spaces from start and end
     const value = applicationNo.trim();
 
+    // Application number validations
     if (!value) {
       nextErrors.applicationNo = "Please enter your application number.";
     } else if (value.includes(" ")) {
@@ -43,38 +63,56 @@ export default function Home() {
       nextErrors.applicationNo = "Only letters and numbers are allowed (no special characters).";
     }
 
+    // Date of birth validations
     if (!dob) {
       nextErrors.dob = "Please select your date of birth.";
     } else {
       const birthDate = new Date(dob);
       const today = new Date();
 
+      // Check if date is invalid
       if (Number.isNaN(birthDate.getTime())) {
         nextErrors.dob = "Please enter a valid date of birth.";
-      } else if (birthDate > today) {
+      }
+      // Check if user selected a future date
+      else if (birthDate > today) {
         nextErrors.dob = "Date of birth cannot be in the future.";
-      } else if (!isAdult(dob)) {
+      }
+      // Check if user is under 18
+      else if (!isAdult(dob)) {
         nextErrors.dob = "You must be at least 18 years old.";
       }
     }
 
+    // Return all validation errors
     return nextErrors;
   }
 
+  // This function runs when the form is submitted
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    // Prevent page refresh
     e.preventDefault();
+
+    // Clear old success message
     setSuccessMsg("");
 
+    // Run validation and store errors
     const nextErrors = validate();
     setErrors(nextErrors);
 
+    // If any error exists, stop submission
     if (Object.keys(nextErrors).length > 0) return;
 
+    // If no errors, show success message
     setSuccessMsg("Status check submitted (dummy). Backend will be connected in later sprint.");
   }
 
+  // This function formats application number while typing
   function handleAppNoChange(value: string) {
+    // Remove spaces from the value
     const noSpaces = value.replace(/\s+/g, "");
+
+    // Convert everything to uppercase and store it
     setApplicationNo(noSpaces.toUpperCase());
   }
 
@@ -101,12 +139,14 @@ export default function Home() {
               </a>
             </div>
 
+            {/* Show success message only when form is valid and submitted */}
             {successMsg && (
               <div className="alert alert-success" role="status" aria-live="polite">
                 {successMsg}
               </div>
             )}
 
+            {/* Status check form */}
             <form className="row g-2" onSubmit={handleSubmit} aria-label="Check application status">
               <div className="col-12 col-md-5">
                 <input
@@ -118,6 +158,8 @@ export default function Home() {
                   value={applicationNo}
                   onChange={(e) => handleAppNoChange(e.target.value)}
                 />
+
+                {/* Show application number error only if it exists */}
                 {errors.applicationNo && (
                   <div className="invalid-feedback">{errors.applicationNo}</div>
                 )}
@@ -132,6 +174,8 @@ export default function Home() {
                   value={dob}
                   onChange={(e) => setDob(e.target.value)}
                 />
+
+                {/* Show DOB error only if it exists */}
                 {errors.dob && <div className="invalid-feedback">{errors.dob}</div>}
               </div>
 
@@ -147,6 +191,7 @@ export default function Home() {
             </p>
           </div>
 
+          {/* Right side information card */}
           <div className="col-12 col-lg-5">
             <div className="cp-card p-4 rounded-4">
               <h2 className="h4 fw-bold mb-3">Why CreditPulse?</h2>
@@ -161,6 +206,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Steps section */}
       <section className="cp-hero-section p-4 p-md-5 rounded-4">
         <div className="text-center mb-4">
           <h2 className="fw-bold mb-2">Steps away from getting approved</h2>
@@ -198,6 +244,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Testimonial section */}
       <section className="cp-hero-section p-4 p-md-5 rounded-4">
         <div className="text-center mb-4">
           <h2 className="fw-bold mb-2">What users say</h2>
