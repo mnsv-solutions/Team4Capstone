@@ -10,7 +10,7 @@ import {
   Min,
 } from 'class-validator';
 
-export class CreateApplicationDto {
+export class CreateApplicationRequestDto {
   @IsString({ message: 'First Name must be a string.' })
   @IsNotEmpty({ message: 'First Name is required.' })
   firstName: string;

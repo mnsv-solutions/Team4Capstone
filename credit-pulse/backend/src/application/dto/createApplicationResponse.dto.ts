@@ -1,4 +1,4 @@
 export class CreateApplicationResponseDto {
-  applicationId: string;
+  application_id: string;
   message: string;
 }
