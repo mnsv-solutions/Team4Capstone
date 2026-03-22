@@ -8,6 +8,116 @@ datasource db {
   provider = "postgresql"
 }
 
+model genders {
+  gender_id   String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gender_code String     @unique @db.VarChar(20)
+  gender_name String     @unique @db.VarChar(50)
+  created_at  DateTime   @default(now()) @db.Timestamptz(6)
+  created_by  String?    @db.Uuid
+  updated_at  DateTime   @default(now()) @db.Timestamptz(6)
+  updated_by  String?    @db.Uuid
+  is_active   Boolean    @default(true)
+  customers   customer[]
+}
+
+model marital_statuses {
+  marital_status_id   String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  marital_status_code String     @unique @db.VarChar(20)
+  marital_status_name String     @unique @db.VarChar(50)
+  created_at          DateTime   @default(now()) @db.Timestamptz(6)
+  created_by          String?    @db.Uuid
+  updated_at          DateTime   @default(now()) @db.Timestamptz(6)
+  updated_by          String?    @db.Uuid
+  is_active           Boolean    @default(true)
+  customers           customer[]
+}
+
+model countries {
+  country_id       String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  country_code     String                     @unique @db.VarChar(3)
+  country_name     String                     @unique @db.VarChar(100)
+  nationality_name String                     @unique @db.VarChar(100)
+  created_at       DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by       String?                    @db.Uuid
+  updated_at       DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_by       String?                    @db.Uuid
+  is_active        Boolean                    @default(true)
+  customer_address customer_address_details[]
+  customers        customer[]                 @relation("customer_nationality")
+}
+
+model government_id_types {
+  government_id_type_id   String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  government_id_type_code String                   @unique @db.VarChar(30)
+  government_id_type_name String                   @unique @db.VarChar(80)
+  created_at              DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by              String?                  @db.Uuid
+  updated_at              DateTime                 @default(now()) @db.Timestamptz(6)
+  updated_by              String?                  @db.Uuid
+  is_active               Boolean                  @default(true)
+  customer_ids            customer_government_id[]
+}
+
+model contact_types {
+  contact_type_id   String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  contact_type_code String                     @unique @db.VarChar(30)
+  contact_type_name String                     @unique @db.VarChar(80)
+  created_at        DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by        String?                    @db.Uuid
+  updated_at        DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_by        String?                    @db.Uuid
+  is_active         Boolean                    @default(true)
+  contact_details   customer_contact_details[]
+}
+
+model income_source_types {
+  income_source_type_id   String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  income_source_type_code String                    @unique @db.VarChar(30)
+  income_source_type_name String                    @unique @db.VarChar(80)
+  created_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  created_by              String?                   @db.Uuid
+  updated_at              DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_by              String?                   @db.Uuid
+  is_active               Boolean                   @default(true)
+  income_sources          customer_income_sources[]
+}
+
+model liability_types {
+  liability_type_id   String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  liability_type_code String                 @unique @db.VarChar(30)
+  liability_type_name String                 @unique @db.VarChar(80)
+  created_at          DateTime               @default(now()) @db.Timestamptz(6)
+  created_by          String?                @db.Uuid
+  updated_at          DateTime               @default(now()) @db.Timestamptz(6)
+  updated_by          String?                @db.Uuid
+  is_active           Boolean                @default(true)
+  liabilities         customer_liabilities[]
+}
+
+model bank_account_types {
+  bank_account_type_id String                  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  account_type_code    String                  @unique @db.VarChar(20)
+  account_type_name    String                  @unique @db.VarChar(50)
+  created_at           DateTime                @default(now()) @db.Timestamptz(6)
+  created_by           String?                 @db.Uuid
+  updated_at           DateTime                @default(now()) @db.Timestamptz(6)
+  updated_by           String?                 @db.Uuid
+  is_active            Boolean                 @default(true)
+  bank_details         customer_bank_details[]
+}
+
+model document_types {
+  document_type_id   String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  document_type_code String                      @unique @db.VarChar(30)
+  document_type_name String                      @unique @db.VarChar(80)
+  created_at         DateTime                    @default(now()) @db.Timestamptz(6)
+  created_by         String?                     @db.Uuid
+  updated_at         DateTime                    @default(now()) @db.Timestamptz(6)
+  updated_by         String?                     @db.Uuid
+  is_active          Boolean                     @default(true)
+  documents          customer_document_details[]
+}
+
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
@@ -73,6 +183,7 @@ model banks {
   is_active                     Boolean  @default(true)
   users_banks_created_byTousers users?   @relation("banks_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_banks_created_by")
   users_banks_updated_byTousers users?   @relation("banks_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_banks_updated_by")
+  customer_banking              customer_bank_details[]
 
   @@index([is_active], map: "idx_banks_is_active")
 }
@@ -182,21 +293,192 @@ model cibil_risk_indicators {
 }
 
 model customer {
-  customer_id                      String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  first_name                       String     @db.VarChar(80)
-  last_name                        String     @db.VarChar(80)
-  date_of_birth                    DateTime   @db.Date
-  created_at                       DateTime   @default(now()) @db.Timestamptz(6)
-  created_by                       String     @db.Uuid
-  updated_at                       DateTime   @default(now()) @db.Timestamptz(6)
-  updated_by                       String?    @db.Uuid
-  is_active                        Boolean    @default(true)
-  users_customer_created_byTousers users      @relation("customer_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_customer_created_by")
-  users_customer_updated_byTousers users?     @relation("customer_updated_byTousers", fields: [updated_by], references: [user_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_customer_updated_by")
-  sub_loan                         sub_loan[]
+  customer_id                    String                        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  first_name                     String                        @db.VarChar(80)
+  last_name                      String                        @db.VarChar(80)
+  date_of_birth                  DateTime                      @db.Date
+  gender_id                      String?                       @db.Uuid
+  marital_status_id              String?                       @db.Uuid
+  nationality_country_id         String?                       @db.Uuid
+  sin_tax_id_masked              String?                       @db.VarChar(30)
+  sin_tax_id_encrypted           Bytes?                        @db.ByteA
+  created_at                     DateTime                      @default(now()) @db.Timestamptz(6)
+  created_by                     String                        @db.Uuid
+  updated_at                     DateTime                      @default(now()) @db.Timestamptz(6)
+  updated_by                     String?                       @db.Uuid
+  is_active                      Boolean                       @default(true)
+  
+  // Relations
+  gender                         genders?                      @relation(fields: [gender_id], references: [gender_id], onUpdate: NoAction)
+  marital_status                 marital_statuses?             @relation(fields: [marital_status_id], references: [marital_status_id], onUpdate: NoAction)
+  nationality                    countries?                    @relation("customer_nationality", fields: [nationality_country_id], references: [country_id], onUpdate: NoAction)
+  users_customer_created_byTousers users                       @relation("customer_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction)
+  users_customer_updated_byTousers users?                      @relation("customer_updated_byTousers", fields: [updated_by], references: [user_id], onDelete: Restrict, onUpdate: NoAction)
+  
+  sub_loan                       sub_loan[]
+  contact_details                customer_contact_details[]
+  address_details                customer_address_details[]
+  education_details              customer_education_details[]
+  employment_details             customer_employment_details?
+  income_sources                 customer_income_sources[]
+  liabilities                    customer_liabilities[]
+  government_ids                 customer_government_id[]
+  bank_details                   customer_bank_details[]
+  documents                      customer_document_details[]
 
   @@index([is_active], map: "idx_customer_active")
   @@index([date_of_birth], map: "idx_customer_dob")
+  @@index([gender_id], map: "idx_customer_gender")
+  @@index([marital_status_id], map: "idx_customer_marital_status")
+  @@index([nationality_country_id], map: "idx_customer_nationality_country")
+}
+
+model customer_contact_details {
+  customer_contact_id String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id         String        @db.Uuid
+  contact_type_id     String        @db.Uuid
+  contact_value       String        @db.VarChar(255)
+  is_primary          Boolean       @default(false)
+  is_verified         Boolean       @default(false)
+  created_at          DateTime      @default(now()) @db.Timestamptz(6)
+  created_by          String?       @db.Uuid
+  updated_at          DateTime      @default(now()) @db.Timestamptz(6)
+  updated_by          String?       @db.Uuid
+  is_active           Boolean       @default(true)
+  
+  customer            customer      @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  contact_type        contact_types @relation(fields: [contact_type_id], references: [contact_type_id])
+
+  @@unique([contact_type_id, contact_value], map: "ux_customer_contact_value_active")
+  @@index([customer_id, is_active], map: "idx_customer_contact_customer_active")
+}
+
+model customer_address_details {
+  customer_address_id String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id         String        @db.Uuid
+  address_type_id     String        @db.Uuid
+  line1               String        @db.VarChar(120)
+  line2               String?       @db.VarChar(120)
+  city                String        @db.VarChar(80)
+  state_province      String?       @db.VarChar(80)
+  postal_code         String?       @db.VarChar(20)
+  country_id          String        @db.Uuid
+  is_primary          Boolean       @default(false)
+  created_at          DateTime      @default(now()) @db.Timestamptz(6)
+  is_active           Boolean       @default(true)
+  
+  customer            customer      @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  country             countries     @relation(fields: [country_id], references: [country_id])
+
+  @@index([customer_id, is_active], map: "idx_customer_address_customer_active")
+}
+
+model customer_employment_details {
+  customer_employment_id String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id            String           @unique @db.Uuid
+  employment_type_id     String           @db.Uuid
+  employer_name          String?          @db.VarChar(150)
+  job_title              String?          @db.VarChar(120)
+  work_experience_years  Decimal?         @db.Decimal(5, 2)
+  monthly_income         Decimal?         @db.Decimal(12, 2)
+  is_active              Boolean          @default(true)
+  
+  customer               customer         @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  employment_type        employment_types @relation(fields: [employment_type_id], references: [employment_type_id])
+}
+
+model customer_liabilities {
+  customer_liability_id    String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id              String          @db.Uuid
+  liability_type_id        String          @db.Uuid
+  lender_name              String?         @db.VarChar(150)
+  account_reference_masked String?         @db.VarChar(60)
+  monthly_payment          Decimal         @default(0) @db.Decimal(12, 2)
+  outstanding_balance      Decimal?        @db.Decimal(14, 2)
+  is_active                Boolean         @default(true)
+  
+  customer                 customer        @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  liability_type           liability_types @relation(fields: [liability_type_id], references: [liability_type_id])
+
+  @@index([customer_id, is_active], map: "idx_customer_liabilities_customer_active")
+}
+
+model customer_government_id {
+  customer_government_id_id      String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id                    String              @db.Uuid
+  government_id_type_id          String              @db.Uuid
+  government_id_number_masked    String              @db.VarChar(80)
+  government_id_number_encrypted Bytes               @db.ByteA
+  is_primary                     Boolean             @default(true)
+  is_active                      Boolean             @default(true)
+  
+  customer                       customer            @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  id_type                        government_id_types @relation(fields: [government_id_type_id], references: [government_id_type_id])
+
+  @@index([customer_id, is_active], map: "idx_customer_government_id_customer_active")
+}
+
+model customer_bank_details {
+  customer_bank_detail_id  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id              String             @db.Uuid
+  bank_id                  String             @db.Uuid
+  bank_account_type_id     String             @db.Uuid
+  account_number_masked    String             @db.VarChar(40)
+  account_number_encrypted Bytes?             @db.ByteA
+  is_primary               Boolean            @default(true)
+  is_active                Boolean            @default(true)
+  
+  customer                 customer           @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  bank                     banks              @relation(fields: [bank_id], references: [bank_id])
+  account_type             bank_account_types @relation(fields: [bank_account_type_id], references: [bank_account_type_id])
+
+  @@index([customer_id, is_active], map: "idx_customer_bank_customer_active")
+}
+
+model customer_document_details {
+  customer_document_id String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id          String         @db.Uuid
+  document_type_id     String         @db.Uuid
+  document_name        String         @db.VarChar(255)
+  document_path        String         @db.VarChar(500)
+  mime_type            String?        @db.VarChar(100)
+  file_size_bytes      BigInt?
+  is_active            Boolean        @default(true)
+  
+  customer             customer       @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  document_type        document_types @relation(fields: [document_type_id], references: [document_type_id])
+
+  @@index([customer_id, is_active], map: "idx_customer_document_customer_active")
+}
+
+model customer_education_details {
+  customer_education_id String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id           String           @db.Uuid
+  education_level_id    String           @db.Uuid
+  institution_id        String?          @db.Uuid
+  field_of_study        String?          @db.VarChar(150)
+  graduation_year       Int?
+  is_active             Boolean          @default(true)
+  
+  customer              customer         @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  education_level       education_levels @relation(fields: [education_level_id], references: [education_level_id])
+  institution           institutions?    @relation(fields: [institution_id], references: [institution_id])
+
+  @@index([customer_id, is_active], map: "idx_customer_education_customer_active")
+}
+
+model customer_income_sources {
+  customer_income_source_id String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  customer_id               String              @db.Uuid
+  income_source_type_id     String              @db.Uuid
+  monthly_amount            Decimal?            @db.Decimal(12, 2)
+  description               String?             @db.VarChar(255)
+  is_active                 Boolean             @default(true)
+  
+  customer                  customer            @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
+  income_type               income_source_types @relation(fields: [income_source_type_id], references: [income_source_type_id])
+
+  @@index([customer_id, is_active], map: "idx_customer_income_source_customer_active")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -231,6 +513,7 @@ model education_levels {
   is_active                                Boolean  @default(true)
   users_education_levels_created_byTousers users?   @relation("education_levels_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_education_levels_created_by")
   users_education_levels_updated_byTousers users?   @relation("education_levels_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_education_levels_updated_by")
+  customer_edu                             customer_education_details[]
 
   @@index([is_active], map: "idx_education_levels_is_active")
 }
@@ -249,6 +532,7 @@ model employment_types {
   is_active                                Boolean  @default(true)
   users_employment_types_created_byTousers users?   @relation("employment_types_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_employment_types_created_by")
   users_employment_types_updated_byTousers users?   @relation("employment_types_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_employment_types_updated_by")
+  customer_emp                             customer_employment_details[]
 
   @@index([is_active], map: "idx_employment_types_is_active")
 }
@@ -267,6 +551,7 @@ model institutions {
   is_active                            Boolean  @default(true)
   users_institutions_created_byTousers users?   @relation("institutions_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_institutions_created_by")
   users_institutions_updated_byTousers users?   @relation("institutions_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_institutions_updated_by")
+  customer_edu                         customer_education_details[]
 
   @@index([is_active], map: "idx_institutions_is_active")
 }
