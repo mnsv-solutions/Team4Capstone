@@ -12,7 +12,7 @@ A Digital Loan Origination &amp; Credit Assessment Platform.
 - **Frontend**:
   - **[NextJS](https://nextjs.org/)**: React Framework.
   - React Router
-  - Tailwind CSS
+  - Bootstrap
 
 ## Initial Setup
 
