@@ -5,7 +5,6 @@ import {
   IsDateString,
   IsEmail,
   IsNotEmpty,
-  IsNumber,
   IsOptional,
   IsString,
   ValidateNested,
