@@ -1,11 +1,12 @@
 import { Controller, Get, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+
 import { Request } from 'express';
 
 // Local imports for the Dashboard Controller
 import { AuthGuard } from '../auth/auth.guard.js';
-import { JwtPayload } from '../types/jwtpayload.js';
-import { DashboardDto } from './dto/dashboard.dto.js';
+import { JwtPayload } from '../common/types/jwtpayload.js';
 import { DashboardService } from './dashboard.service.js';
+import { DashboardDto } from './dto/dashboard.dto.js';
 
 /**
  * Type representing an Express Request object with an optional user property.
@@ -24,7 +25,7 @@ type AuthenticatedRequest = Request & {
 @Controller('dashboard')
 @UseGuards(AuthGuard)
 export class DashboardController {
-  constructor(private readonly dashboardService: DashboardService) { }
+  constructor(private readonly dashboardService: DashboardService) {}
   @Get('applications')
   /**
    * Retrieves the applications created by a user.
@@ -35,9 +36,7 @@ export class DashboardController {
    * @returns An array of Dashboard Dto objects, representing the applications
    * created by the user.
    */
-  async getApplications(
-    @Req() req: AuthenticatedRequest,
-  ): Promise<DashboardDto[]> {
+  async getApplications(@Req() req: AuthenticatedRequest): Promise<DashboardDto[]> {
     const userId = req.user?.sub;
 
     // If the user ID is not present, the user is not authenticated.
