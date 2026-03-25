@@ -2,9 +2,9 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import * as bcrypt from 'bcrypt';
-import { PrismaService } from '../prisma/prisma.service.js';
 
 import { JwtPayload } from '../common/types/jwtpayload.js';
+import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
 import { CreateApplicationResponseDto } from './dto/createApplicationResponse.dto.js';
 

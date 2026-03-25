@@ -10,6 +10,7 @@ import { AuthModule } from './auth/auth.module.js';
 import { CreditScoreCheckModule } from './credit-score-check/credit-score-check.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { AwsService } from './aws/aws.service.js';
+import { DashboardModule } from './dashboard/dashboard.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaService } from './prisma/prisma.service.js';
 import { UsersModule } from './users/users.module.js';
