@@ -14,7 +14,10 @@ export class ApplicationController {
 
   @Post('create')
   @HttpCode(HttpStatus.CREATED)
-  async createApplication(@Body() createApplicationDto: CreateApplicationRequestDto, @Req() req: Request) {
+  async createApplication(
+    @Body() createApplicationDto: CreateApplicationRequestDto,
+    @Req() req: Request,
+  ) {
     return await this.applicationService.createApplication(
       createApplicationDto,
       req.user as JwtPayload,
