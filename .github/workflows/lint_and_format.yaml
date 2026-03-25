@@ -39,3 +39,4 @@ jobs:
       - name: Run Formatting
         run: |
           npm run format:backend
+          git diff --exit-code
