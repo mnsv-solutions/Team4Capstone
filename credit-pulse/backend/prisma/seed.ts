@@ -1,7 +1,6 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 
 import * as bcrypt from 'bcrypt';
-import { Pool } from 'pg';
 
 import configuration from '../config/configuration.js';
 import { PrismaClient } from '../generated/prisma/client.js';
@@ -26,19 +25,19 @@ function getDatabaseUrl(): string {
 
 const databaseUrl = getDatabaseUrl();
 
-const pool = new Pool({ connectionString: databaseUrl });
-const adapter = new PrismaPg(pool);
+// Create a new PrismaPg adapter for the database, passing in the connection pool.
+const adapter = new PrismaPg({ connectionString: databaseUrl });
+
 const prisma = new PrismaClient({ adapter });
 
-
 function addMonths(date: Date, months: number) {
-  const d = new Date(date)
-  d.setMonth(d.getMonth() + months)
-  return d
+  const d = new Date(date);
+  d.setMonth(d.getMonth() + months);
+  return d;
 }
 
 function round2(value: number) {
-  return Number(value.toFixed(2))
+  return Number(value.toFixed(2));
 }
 
 function buildRepaymentSchedule(
@@ -49,24 +48,22 @@ function buildRepaymentSchedule(
   startDate: Date,
   createdBy?: string,
 ) {
-  const monthlyRate = annualRate / 12 / 100
+  const monthlyRate = annualRate / 12 / 100;
   const emi =
     monthlyRate === 0
       ? principal / tenureMonths
       : (principal * monthlyRate * Math.pow(1 + monthlyRate, tenureMonths)) /
-      (Math.pow(1 + monthlyRate, tenureMonths) - 1)
+        (Math.pow(1 + monthlyRate, tenureMonths) - 1);
 
-  let openingBalance = principal
+  let openingBalance = principal;
 
   return Array.from({ length: tenureMonths }, (_, index) => {
-    const installmentNumber = index + 1
-    const interestComponent = round2(openingBalance * monthlyRate)
-    const principalComponent = round2(emi - interestComponent)
-    const installmentAmount = round2(principalComponent + interestComponent)
+    const installmentNumber = index + 1;
+    const interestComponent = round2(openingBalance * monthlyRate);
+    const principalComponent = round2(emi - interestComponent);
+    const installmentAmount = round2(principalComponent + interestComponent);
     const closingBalance =
-      installmentNumber === tenureMonths
-        ? 0
-        : round2(openingBalance - principalComponent)
+      installmentNumber === tenureMonths ? 0 : round2(openingBalance - principalComponent);
 
     const row = {
       application_id: applicationId,
@@ -82,42 +79,42 @@ function buildRepaymentSchedule(
       created_by: createdBy ?? null,
       updated_by: createdBy ?? null,
       is_active: true,
-    }
+    };
 
-    openingBalance = closingBalance
-    return row
-  })
+    openingBalance = closingBalance;
+    return row;
+  });
 }
 
 async function main() {
-  console.log('Starting seed...')
+  console.log('Starting seed...');
 
-  const victorPassword = await bcrypt.hash('Victor@123', 10)
-  const miswaPassword = await bcrypt.hash('Miswa@123', 10)
-  const niraliPassword = await bcrypt.hash('Nirali@123', 10)
-  const sukhPassword = await bcrypt.hash('Sukh@123', 10)
+  const victorPassword = await bcrypt.hash('Victor@123', 10);
+  const miswaPassword = await bcrypt.hash('Miswa@123', 10);
+  const niraliPassword = await bcrypt.hash('Nirali@123', 10);
+  const sukhPassword = await bcrypt.hash('Sukh@123', 10);
 
-  await prisma.loan_payment.deleteMany()
-  await prisma.repayment_schedule.deleteMany()
-  await prisma.sub_loan.deleteMany()
-  await prisma.loan_application.deleteMany()
-  await prisma.application_status_audit.deleteMany()
-  await prisma.customer.deleteMany()
-  await prisma.user_employment.deleteMany()
-  await prisma.user_education.deleteMany()
-  await prisma.user_bank_account.deleteMany()
-  await prisma.user_address.deleteMany()
-  await prisma.user_profile.deleteMany()
-  await prisma.users.deleteMany()
-  await prisma.loan_types.deleteMany()
-  await prisma.institutions.deleteMany()
-  await prisma.employment_types.deleteMany()
-  await prisma.education_levels.deleteMany()
-  await prisma.decision_types.deleteMany()
-  await prisma.banks.deleteMany()
-  await prisma.application_status.deleteMany()
-  await prisma.address_types.deleteMany()
-  await prisma.roles.deleteMany()
+  await prisma.loan_payment.deleteMany();
+  await prisma.repayment_schedule.deleteMany();
+  await prisma.sub_loan.deleteMany();
+  await prisma.loan_application.deleteMany();
+  await prisma.application_status_audit.deleteMany();
+  await prisma.customer.deleteMany();
+  await prisma.user_employment.deleteMany();
+  await prisma.user_education.deleteMany();
+  await prisma.user_bank_account.deleteMany();
+  await prisma.user_address.deleteMany();
+  await prisma.user_profile.deleteMany();
+  await prisma.users.deleteMany();
+  await prisma.loan_types.deleteMany();
+  await prisma.institutions.deleteMany();
+  await prisma.employment_types.deleteMany();
+  await prisma.education_levels.deleteMany();
+  await prisma.decision_types.deleteMany();
+  await prisma.banks.deleteMany();
+  await prisma.application_status.deleteMany();
+  await prisma.address_types.deleteMany();
+  await prisma.roles.deleteMany();
 
   const roleAdmin = await prisma.roles.create({
     data: {
@@ -125,7 +122,7 @@ async function main() {
       role_name: 'Administrator',
       is_active: true,
     },
-  })
+  });
 
   const roleAnalyst = await prisma.roles.create({
     data: {
@@ -133,7 +130,7 @@ async function main() {
       role_name: 'Credit Analyst',
       is_active: true,
     },
-  })
+  });
 
   const roleOps = await prisma.roles.create({
     data: {
@@ -141,7 +138,7 @@ async function main() {
       role_name: 'Operations Officer',
       is_active: true,
     },
-  })
+  });
 
   const victor = await prisma.users.create({
     data: {
@@ -155,7 +152,7 @@ async function main() {
       is_system_user: true,
       is_active: true,
     },
-  })
+  });
 
   const miswa = await prisma.users.create({
     data: {
@@ -169,7 +166,7 @@ async function main() {
       is_system_user: true,
       is_active: true,
     },
-  })
+  });
 
   const nirali = await prisma.users.create({
     data: {
@@ -183,7 +180,7 @@ async function main() {
       is_system_user: true,
       is_active: true,
     },
-  })
+  });
 
   const sukh = await prisma.users.create({
     data: {
@@ -197,17 +194,17 @@ async function main() {
       is_system_user: true,
       is_active: true,
     },
-  })
+  });
 
-  const createdBy = victor.user_id
-  const updatedBy = victor.user_id
+  const createdBy = victor.user_id;
+  const updatedBy = victor.user_id;
 
   await prisma.roles.updateMany({
     data: {
       created_by: createdBy,
       updated_by: updatedBy,
     },
-  })
+  });
 
   const homeAddressType = await prisma.address_types.create({
     data: {
@@ -217,7 +214,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const workAddressType = await prisma.address_types.create({
     data: {
@@ -227,7 +224,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const submittedStatus = await prisma.application_status.create({
     data: {
@@ -237,7 +234,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const underReviewStatus = await prisma.application_status.create({
     data: {
@@ -247,7 +244,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const approvedStatus = await prisma.application_status.create({
     data: {
@@ -257,7 +254,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const rejectedStatus = await prisma.application_status.create({
     data: {
@@ -267,7 +264,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const disbursedStatus = await prisma.application_status.create({
     data: {
@@ -277,7 +274,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const bank1 = await prisma.banks.create({
     data: {
@@ -287,7 +284,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const bank2 = await prisma.banks.create({
     data: {
@@ -297,7 +294,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const bank3 = await prisma.banks.create({
     data: {
@@ -307,7 +304,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   await prisma.decision_types.createMany({
     data: [
@@ -333,7 +330,7 @@ async function main() {
         is_active: true,
       },
     ],
-  })
+  });
 
   const eduBachelors = await prisma.education_levels.create({
     data: {
@@ -343,7 +340,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const eduMasters = await prisma.education_levels.create({
     data: {
@@ -353,7 +350,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const employmentFullTime = await prisma.employment_types.create({
     data: {
@@ -363,7 +360,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const employmentPartTime = await prisma.employment_types.create({
     data: {
@@ -373,7 +370,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const institution1 = await prisma.institutions.create({
     data: {
@@ -384,7 +381,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const institution2 = await prisma.institutions.create({
     data: {
@@ -395,7 +392,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const institution3 = await prisma.institutions.create({
     data: {
@@ -406,7 +403,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const personalLoanType = await prisma.loan_types.create({
     data: {
@@ -416,7 +413,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const educationLoanType = await prisma.loan_types.create({
     data: {
@@ -426,7 +423,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const businessLoanType = await prisma.loan_types.create({
     data: {
@@ -436,7 +433,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   const mortgageLoanType = await prisma.loan_types.create({
     data: {
@@ -446,7 +443,7 @@ async function main() {
       updated_by: updatedBy,
       is_active: true,
     },
-  })
+  });
 
   await prisma.user_profile.createMany({
     data: [
@@ -499,7 +496,7 @@ async function main() {
         is_active: true,
       },
     ],
-  })
+  });
 
   await prisma.user_address.createMany({
     data: [
@@ -556,7 +553,7 @@ async function main() {
         is_active: true,
       },
     ],
-  })
+  });
 
   await prisma.user_bank_account.createMany({
     data: [
@@ -609,7 +606,7 @@ async function main() {
         is_active: true,
       },
     ],
-  })
+  });
 
   await prisma.user_education.createMany({
     data: [
@@ -662,7 +659,7 @@ async function main() {
         is_active: true,
       },
     ],
-  })
+  });
 
   await prisma.user_employment.createMany({
     data: [
@@ -711,7 +708,7 @@ async function main() {
         is_active: true,
       },
     ],
-  })
+  });
 
   const customer1 = await prisma.customer.create({
     data: {
@@ -722,7 +719,7 @@ async function main() {
       updated_by: nirali.user_id,
       is_active: true,
     },
-  })
+  });
 
   const customer2 = await prisma.customer.create({
     data: {
@@ -733,7 +730,7 @@ async function main() {
       updated_by: sukh.user_id,
       is_active: true,
     },
-  })
+  });
 
   const customer3 = await prisma.customer.create({
     data: {
@@ -744,7 +741,7 @@ async function main() {
       updated_by: miswa.user_id,
       is_active: true,
     },
-  })
+  });
 
   const customer4 = await prisma.customer.create({
     data: {
@@ -755,7 +752,7 @@ async function main() {
       updated_by: nirali.user_id,
       is_active: true,
     },
-  })
+  });
 
   const app1 = await prisma.loan_application.create({
     data: {
@@ -769,7 +766,7 @@ async function main() {
       updated_by: nirali.user_id,
       is_active: true,
     },
-  })
+  });
 
   const app2 = await prisma.loan_application.create({
     data: {
@@ -783,7 +780,7 @@ async function main() {
       updated_by: miswa.user_id,
       is_active: true,
     },
-  })
+  });
 
   const app3 = await prisma.loan_application.create({
     data: {
@@ -797,7 +794,7 @@ async function main() {
       updated_by: victor.user_id,
       is_active: true,
     },
-  })
+  });
 
   const app4 = await prisma.loan_application.create({
     data: {
@@ -811,7 +808,7 @@ async function main() {
       updated_by: victor.user_id,
       is_active: true,
     },
-  })
+  });
 
   const app5 = await prisma.loan_application.create({
     data: {
@@ -825,7 +822,7 @@ async function main() {
       updated_by: sukh.user_id,
       is_active: true,
     },
-  })
+  });
 
   await prisma.sub_loan.createMany({
     data: [
@@ -878,7 +875,7 @@ async function main() {
         is_active: true,
       },
     ],
-  })
+  });
 
   const app3SchedulesData = buildRepaymentSchedule(
     app3.application_id,
@@ -887,7 +884,7 @@ async function main() {
     18,
     new Date('2026-04-01'),
     victor.user_id,
-  )
+  );
 
   const app4SchedulesData = buildRepaymentSchedule(
     app4.application_id,
@@ -896,21 +893,21 @@ async function main() {
     36,
     new Date('2026-03-15'),
     victor.user_id,
-  )
+  );
 
   await prisma.repayment_schedule.createMany({
     data: [...app3SchedulesData, ...app4SchedulesData],
-  })
+  });
 
   const app3Schedules = await prisma.repayment_schedule.findMany({
     where: { application_id: app3.application_id },
     orderBy: { installment_number: 'asc' },
-  })
+  });
 
   const app4Schedules = await prisma.repayment_schedule.findMany({
     where: { application_id: app4.application_id },
     orderBy: { installment_number: 'asc' },
-  })
+  });
 
   if (app3Schedules.length >= 2) {
     await prisma.loan_payment.create({
@@ -928,7 +925,7 @@ async function main() {
         updated_by: victor.user_id,
         is_active: true,
       },
-    })
+    });
 
     await prisma.repayment_schedule.update({
       where: { schedule_id: app3Schedules[0].schedule_id },
@@ -938,7 +935,7 @@ async function main() {
         paid_date: new Date('2026-05-01T10:30:00Z'),
         updated_by: victor.user_id,
       },
-    })
+    });
 
     await prisma.loan_payment.create({
       data: {
@@ -955,7 +952,7 @@ async function main() {
         updated_by: victor.user_id,
         is_active: true,
       },
-    })
+    });
 
     await prisma.repayment_schedule.update({
       where: { schedule_id: app3Schedules[1].schedule_id },
@@ -965,7 +962,7 @@ async function main() {
         paid_date: new Date('2026-06-01T11:00:00Z'),
         updated_by: victor.user_id,
       },
-    })
+    });
   }
 
   if (app4Schedules.length >= 1) {
@@ -984,7 +981,7 @@ async function main() {
         updated_by: victor.user_id,
         is_active: true,
       },
-    })
+    });
 
     await prisma.repayment_schedule.update({
       where: { schedule_id: app4Schedules[0].schedule_id },
@@ -994,7 +991,7 @@ async function main() {
         paid_date: new Date('2026-04-15T09:15:00Z'),
         updated_by: victor.user_id,
       },
-    })
+    });
   }
 
   await prisma.application_status_audit.createMany({
@@ -1024,14 +1021,14 @@ async function main() {
         user_agent: 'Seed Script / Negative Test',
       },
     ],
-  })
+  });
 
-  console.log('Seed completed successfully.')
-  console.log('System users:')
-  console.log('Victor  -> victor@creditpulse.com / Victor@123')
-  console.log('Miswa   -> miswa@creditpulse.com / Miswa@123')
-  console.log('Nirali  -> nirali@creditpulse.com / Nirali@123')
-  console.log('Sukh    -> sukh@creditpulse.com / Sukh@123')
+  console.log('Seed completed successfully.');
+  console.log('System users:');
+  console.log('Victor  -> victor@creditpulse.com / Victor@123');
+  console.log('Miswa   -> miswa@creditpulse.com / Miswa@123');
+  console.log('Nirali  -> nirali@creditpulse.com / Nirali@123');
+  console.log('Sukh    -> sukh@creditpulse.com / Sukh@123');
 }
 
 main()
@@ -1041,5 +1038,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-    await pool.end();
   });

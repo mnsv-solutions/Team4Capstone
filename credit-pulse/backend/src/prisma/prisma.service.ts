@@ -3,8 +3,6 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { Pool } from 'pg';
-
 //Importing the auto-generated database client based on the schema.
 import { PrismaClient } from '../../generated/prisma/client.js';
 
@@ -25,11 +23,8 @@ export class PrismaService extends PrismaClient {
     // Get the connection string for the database from the configuration service.
     const url = PrismaService.getDatabaseUrl(configService);
 
-    // Create a connection pool to the database using the connection string.
-    const pool = new Pool({ connectionString: url });
-
     // Create a new PrismaPg adapter for the database, passing in the connection pool.
-    const adapter = new PrismaPg(pool);
+    const adapter = new PrismaPg({ connectionString: url });
 
     // Initialize the PrismaService with the adapter.
     super({ adapter });
