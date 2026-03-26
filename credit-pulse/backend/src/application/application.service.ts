@@ -45,7 +45,7 @@ export class ApplicationService {
           this.createGovernmentIdDetails(tx, customerId, createApplicationDto, references),
         ]);
 
-        const applicationId = await this.createLoanApplication(
+        const application = await this.createLoanApplication(
           tx,
           customerId,
           userId,
@@ -53,7 +53,8 @@ export class ApplicationService {
         );
 
         return {
-          application_id: applicationId,
+          application_id: application.application_id,
+          application_number: application.application_number,
           message: 'Application created successfully.',
         };
       });
@@ -642,7 +643,10 @@ export class ApplicationService {
       },
     });
 
-    return loanApplication.application_id;
+    return {
+      application_id: loanApplication.application_id,
+      application_number: applicationNumber,
+    };
   }
 
   private generateReferenceCode(prefix: string, source: string): string {
