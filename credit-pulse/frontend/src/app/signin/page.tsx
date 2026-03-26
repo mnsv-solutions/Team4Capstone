@@ -29,10 +29,10 @@ export default function SignInPage() {
     try {
       await axios.post("/api/auth/signin", { loginId, password });
 
-      setSuccessMsg("Signed in successfully. Redirecting to Home...");
-      setTimeout(() => {
-        router.push("/");
-      }, 900);
+setSuccessMsg("Signed in successfully. Redirecting to dashboard Page...");   
+   setTimeout(() => {
+router.push("/dashboard");  
+    }, 900);
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const apiMessage = error.response?.data?.message;
@@ -62,12 +62,12 @@ export default function SignInPage() {
     setIsSubmitting(true);
     setSuccessMsg(
       provider === "google"
-        ? "Google sign-in (dummy). Redirecting to Home..."
-        : "Apple sign-in (dummy). Redirecting to Home..."
+        ? "Google sign-in (dummy). Redirecting to dashboard Page..."
+        : "Apple sign-in (dummy). Redirecting to dashboard Page..."
     );
 
     setTimeout(() => {
-      router.push("/");
+     router.push("/dashboard");
     }, 900);
   };
 

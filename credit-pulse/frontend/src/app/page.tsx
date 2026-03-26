@@ -198,7 +198,7 @@ export default function HomePage() {
         {
           applicationNumber: applicationNo.trim(),
           dob: dob,
-        }
+        },
       );
 
       // Saves successful backend response data.
@@ -222,7 +222,7 @@ export default function HomePage() {
 
       // Handles general connection or unexpected errors.
       setApiError(
-        "Could not connect to the backend. Please make sure the backend server is running."
+        "Could not connect to the backend. Please make sure the backend server is running.",
       );
 
       // Stops loading state.
@@ -445,7 +445,9 @@ export default function HomePage() {
         <section className="cp-hero-section p-4 p-md-5 rounded-4">
           <div className="text-center mb-4">
             <h2 className="fw-bold mb-2">Application Progress</h2>
-            <p className="mb-0">Dashboard view based on the live API response.</p>
+            <p className="mb-0">
+              Dashboard view based on the live API response.
+            </p>
           </div>
 
           <div className="row g-3">
