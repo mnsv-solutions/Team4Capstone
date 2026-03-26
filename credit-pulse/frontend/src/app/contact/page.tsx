@@ -1,7 +1,6 @@
 export default function ContactPage() {
   return (
     <main className="d-flex flex-column gap-4">
-
       <section className="cp-hero-section">
         <h1 className="fw-bold mb-3">Contact Us</h1>
 
@@ -17,13 +16,11 @@ export default function ContactPage() {
 
       <section className="cp-hero-section">
         <div className="row g-4">
-
           <div className="col-12 col-lg-6">
             <div className="cp-card h-100">
               <h2 className="h5 fw-bold mb-3">Send a Message</h2>
 
               <form>
-
                 <div className="mb-3">
                   <label className="form-label">Full Name</label>
                   <input
@@ -63,7 +60,6 @@ export default function ContactPage() {
                 <button type="submit" className="btn btn-primary">
                   Submit
                 </button>
-
               </form>
             </div>
           </div>
@@ -76,20 +72,13 @@ export default function ContactPage() {
                 Our support team is available during regular business hours.
               </p>
 
-              <p className="mb-2">
-                Email: support@creditpulse.com
-              </p>
+              <p className="mb-2">Email: support@creditpulse.com</p>
 
-              <p className="mb-2">
-                Phone: +1 (000) 123-4567
-              </p>
+              <p className="mb-2">Phone: +1 (000) 123-4567</p>
 
-              <p className="mb-0">
-                We aim to respond within 24–48 hours.
-              </p>
+              <p className="mb-0">We aim to respond within 24–48 hours.</p>
             </div>
           </div>
-
         </div>
       </section>
 
@@ -97,12 +86,9 @@ export default function ContactPage() {
         <h2 className="fw-bold mb-3">Frequently Asked Questions</h2>
 
         <div className="row g-3">
-
           <div className="col-12 col-md-6">
             <div className="cp-card h-100">
-              <h3 className="h6 fw-bold mb-2">
-                How can I check my loan status?
-              </h3>
+              <h3 className="h6 fw-bold mb-2">How can I check my loan status?</h3>
               <p className="mb-0">
                 You can use the status check feature on the homepage by entering
                 your mobile number or application number.
@@ -112,9 +98,7 @@ export default function ContactPage() {
 
           <div className="col-12 col-md-6">
             <div className="cp-card h-100">
-              <h3 className="h6 fw-bold mb-2">
-                How long does approval take?
-              </h3>
+              <h3 className="h6 fw-bold mb-2">How long does approval take?</h3>
               <p className="mb-0">
                 Processing times vary depending on verification and documentation.
                 You will receive updates as your application progresses.
@@ -124,9 +108,7 @@ export default function ContactPage() {
 
           <div className="col-12 col-md-6">
             <div className="cp-card h-100">
-              <h3 className="h6 fw-bold mb-2">
-                What documents are required?
-              </h3>
+              <h3 className="h6 fw-bold mb-2">What documents are required?</h3>
               <p className="mb-0">
                 Required documents may include ID proof, income verification,
                 and address details depending on the loan type.
