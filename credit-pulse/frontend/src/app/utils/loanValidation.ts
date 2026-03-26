@@ -48,6 +48,7 @@ export type LoanApplicationForm = {
   otherIncomeSources: string;
   existingLoans: string;
   totalMonthlyLoanPayments: string;
+  tenureMonths: string;
 
   bankAccounts: BankAccount[];
 
@@ -253,6 +254,16 @@ export function validateLoanStep(
 
     if (!form.monthlyIncome.trim()) {
       nextErrors.monthlyIncome = "Monthly income is required.";
+    }
+
+    if (!form.tenureMonths.trim()) {
+      nextErrors.tenureMonths = "Loan tenure is required.";
+    } else if (!/^\d+$/.test(form.tenureMonths)) {
+      nextErrors.tenureMonths = "Tenure must be a number.";
+    } else if (Number(form.tenureMonths) <= 0) {
+      nextErrors.tenureMonths = "Tenure must be greater than 0.";
+    } else if (Number(form.tenureMonths) > 360) {
+      nextErrors.tenureMonths = "Tenure cannot exceed 360 months.";
     }
 
     if (!form.existingLoans) {
