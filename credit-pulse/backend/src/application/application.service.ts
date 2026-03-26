@@ -1,8 +1,9 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import * as bcrypt from 'bcrypt';
 
+import { Prisma } from '../../generated/prisma/client.js';
 import { JwtPayload } from '../common/types/jwtpayload.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
@@ -21,40 +22,58 @@ export class ApplicationService {
     createApplicationDto: CreateApplicationRequestDto,
     currentUser: JwtPayload,
   ): Promise<CreateApplicationResponseDto> {
-    return await this.prisma.$transaction(async (tx) => {
-      const userId = currentUser.sub;
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const userId = currentUser.sub;
 
-      const references = await this.resolveReferenceData(tx, createApplicationDto);
+        const references = await this.resolveReferenceData(tx, createApplicationDto);
 
-      const customerId = await this.createCustomerRecord(
-        tx,
-        createApplicationDto,
-        userId,
-        references,
-      );
+        const customerId = await this.createCustomerRecord(
+          tx,
+          createApplicationDto,
+          userId,
+          references,
+        );
 
-      await Promise.all([
-        this.createAddressDetails(tx, customerId, createApplicationDto, references),
-        this.createEducationAndEmployment(tx, customerId, createApplicationDto, references),
-        this.createFinancialDetails(tx, customerId, createApplicationDto),
-        this.createContactDetails(tx, customerId, createApplicationDto),
-        this.createBankDetails(tx, customerId, createApplicationDto),
-        this.saveCustomerDocuments(tx, customerId, createApplicationDto),
-        this.createGovernmentIdDetails(tx, customerId, createApplicationDto, references),
-      ]);
+        await Promise.all([
+          this.createAddressDetails(tx, customerId, createApplicationDto, references),
+          this.createEducationAndEmployment(tx, customerId, createApplicationDto, references),
+          this.createFinancialDetails(tx, customerId, createApplicationDto),
+          this.createContactDetails(tx, customerId, createApplicationDto),
+          this.createBankDetails(tx, customerId, createApplicationDto),
+          this.saveCustomerDocuments(tx, customerId, createApplicationDto),
+          this.createGovernmentIdDetails(tx, customerId, createApplicationDto, references),
+        ]);
 
-      const applicationId = await this.createLoanApplication(
-        tx,
-        customerId,
-        userId,
-        references.statusId,
-      );
+        const applicationId = await this.createLoanApplication(
+          tx,
+          customerId,
+          userId,
+          references.statusId,
+        );
 
-      return {
-        application_id: applicationId,
-        message: 'Application created successfully.',
-      };
-    });
+        return {
+          application_id: applicationId,
+          message: 'Application created successfully.',
+        };
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') {
+          const target = error.meta?.target as Array<string> | string | undefined;
+          let fields = 'unique fields';
+          if (Array.isArray(target)) {
+            fields = target.join(', ');
+          } else if (typeof target === 'string') {
+            fields = target;
+          }
+          throw new BadRequestException(
+            `Application creation failed: Duplicate values found for ${fields}. Please ensure your contact details or identifier are unique.`,
+          );
+        }
+      }
+      throw error;
+    }
   }
 
   private async resolveReferenceData(tx: PrismaTransaction, dto: CreateApplicationRequestDto) {
@@ -625,7 +644,6 @@ export class ApplicationService {
 
     return loanApplication.application_id;
   }
-
 
   private generateReferenceCode(prefix: string, source: string): string {
     const normalized = source
