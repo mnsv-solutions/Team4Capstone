@@ -4,4 +4,6 @@ node_modules
 
 /generated/prisma
 
-config.*.yaml
+config.local.yaml
+config.dev.yaml
+config.prod.yaml
