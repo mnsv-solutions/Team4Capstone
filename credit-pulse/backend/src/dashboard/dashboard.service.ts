@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DashboardDto } from './dto/dashboard.dto.js';
 
@@ -35,12 +36,11 @@ type DashboardApplicationRow = {
   applicationCreationDate: Date;
 };
 
-// Dashboard service class for handling dashboard-related operations such as retrieving applications created by a user. 
+// Dashboard service class for handling dashboard-related operations such as retrieving applications created by a user.
 @Injectable()
 export class DashboardService {
-
-  // Constructor for the DashboardService class which injects the PrismaService for database access. 
-  constructor(private readonly prisma: PrismaService) { }
+  // Constructor for the DashboardService class which injects the PrismaService for database access.
+  constructor(private readonly prisma: PrismaService) {}
 
   /**
    * Retrieves the applications created by a user.
@@ -51,9 +51,7 @@ export class DashboardService {
    * @param userId - The ID of the user.
    * @returns An array of Dashboard Dto objects, representing the applications created by the user.
    */
-  async getApplicationsCreatedByUser(
-    userId: string,
-  ): Promise<DashboardDto[]> {
+  async getApplicationsCreatedByUser(userId: string): Promise<DashboardDto[]> {
     // Query the database to retrieve the applications created by the user.
     // The query retrieves the following information for each application:
     // - application ID
@@ -144,16 +142,15 @@ export class DashboardService {
 
   /**
    * Converts an unknown value to a number.
-   * 
+   *
    * If the value is null or undefined, returns 0.
    * This is because null and undefined are "falsy" values in JavaScript, so they should be treated as 0 in a numerical context.
-   * 
+   *
    * Otherwise, returns the value converted to a number.
    * This is done using the built-in Number() function, which will attempt to convert the value to a number.
    * If the conversion is successful, the resulting number is returned. If the conversion fails (e.g. because the value is a string that can't be parsed as a number), the resulting value will be NaN (Not a Number).
    */
   private toNumber(value: unknown): number {
-    
     // If the value is null or undefined, return 0.
     if (value === null || value === undefined) {
       return 0;
@@ -165,16 +162,15 @@ export class DashboardService {
 
   /**
    * Converts an unknown value to a number if it can be parsed, otherwise returns null.
-   * 
+   *
    * This function is used to handle cases where a value may be null or undefined, or it may be a string that can't be parsed as a number.
-   * 
+   *
    * If the value is null or undefined, returns null.
-   * 
+   *
    * Otherwise, attempts to convert the value to a number using the built-in Number() function.
    * If the conversion is successful, the resulting number is returned. If the conversion fails (e.g. because the value is a string that can't be parsed as a number), the resulting value will be NaN (Not a Number), and null is returned.
    */
   private toNumberOrNull(value: unknown): number | null {
-
     // If the value is null or undefined, return null.
     if (value === null || value === undefined) {
       return null;

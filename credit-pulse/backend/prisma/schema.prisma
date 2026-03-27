@@ -78,6 +78,109 @@ model banks {
 }
 
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
+
+model cibil_reports {
+  cibil_report_id           String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id            String                     @unique(map: "uq_cibil_reports_application_id") @db.Uuid
+  request_id                String                     @unique(map: "uq_cibil_reports_request_id") @db.VarChar(50)
+  reference_id              String                     @unique(map: "uq_cibil_reports_reference_id") @db.VarChar(50)
+  bureau                    String                     @default("CIBIL") @db.VarChar(20)
+  report_date               DateTime                   @db.Timestamptz(6)
+  status                    String                     @db.VarChar(20)
+  cibil_score               Int
+  score_band                String                     @db.VarChar(20)
+  risk_level                String                     @db.VarChar(20)
+  score_version             String                     @db.VarChar(20)
+  total_accounts            Int
+  active_accounts           Int
+  closed_accounts           Int
+  total_outstanding_balance Decimal                    @db.Decimal(14, 2)
+  secured_loan_accounts     Int
+  unsecured_loan_accounts   Int
+  total_missed_payments     Int                        @default(0)
+  recent_delinquency        Boolean                    @default(false)
+  credit_utilization_ratio  Decimal                    @db.Decimal(5, 2)
+  average_account_age_years Decimal                    @db.Decimal(5, 2)
+  debt_to_income_estimate   Decimal                    @db.Decimal(5, 2)
+  created_at                DateTime                   @default(now()) @db.Timestamptz(6)
+  cibil_applicants          cibil_applicants?
+  cibil_accounts            cibil_accounts[]
+  cibil_enquiries           cibil_enquiries[]
+  cibil_payment_history     cibil_payment_history[]
+  cibil_risk_indicators     cibil_risk_indicators?
+  application_credit_check  application_credit_check[]
+  loan_application          loan_application           @relation(fields: [application_id], references: [application_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([report_date], map: "idx_cibil_reports_report_date")
+  @@index([cibil_score], map: "idx_cibil_reports_cibil_score")
+  @@index([risk_level], map: "idx_cibil_reports_risk_level")
+}
+
+model cibil_applicants {
+  cibil_applicant_id String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cibil_report_id    String        @unique(map: "uq_cibil_applicants_report_id") @db.Uuid
+  first_name         String        @db.VarChar(100)
+  last_name          String        @db.VarChar(100)
+  date_of_birth      DateTime      @db.Date
+  sin_number         String        @db.VarChar(20)
+  mobile_number      String        @db.VarChar(15)
+  cibil_reports      cibil_reports @relation(fields: [cibil_report_id], references: [cibil_report_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([sin_number], map: "idx_cibil_applicants_sin_number")
+  @@index([mobile_number], map: "idx_cibil_applicants_mobile_number")
+  @@index([date_of_birth], map: "idx_cibil_applicants_date_of_birth")
+}
+
+model cibil_accounts {
+  cibil_account_id      String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cibil_report_id       String        @db.Uuid
+  account_type          String        @db.VarChar(50)
+  lender_name           String        @db.VarChar(100)
+  account_number_masked String        @db.VarChar(20)
+  ownership_type        String        @db.VarChar(50)
+  open_date             DateTime      @db.Date
+  current_balance       Decimal       @db.Decimal(14, 2)
+  credit_limit          Decimal?      @db.Decimal(14, 2)
+  payment_status        String        @db.VarChar(20)
+  days_past_due         Int           @default(0)
+  cibil_reports         cibil_reports @relation(fields: [cibil_report_id], references: [cibil_report_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([cibil_report_id], map: "idx_cibil_accounts_report_id")
+  @@index([lender_name], map: "idx_cibil_accounts_lender_name")
+}
+
+model cibil_payment_history {
+  cibil_payment_history_id String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cibil_report_id          String        @db.Uuid
+  month_index              Int
+  status_code              String        @db.VarChar(10)
+  cibil_reports            cibil_reports @relation(fields: [cibil_report_id], references: [cibil_report_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([cibil_report_id, month_index], map: "uq_cibil_payment_history_report_month")
+  @@index([cibil_report_id], map: "idx_cibil_payment_history_report_id")
+}
+
+model cibil_enquiries {
+  cibil_enquiry_id String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cibil_report_id  String        @db.Uuid
+  enquiry_date     DateTime      @db.Date
+  institution      String        @db.VarChar(100)
+  enquiry_type     String        @db.VarChar(50)
+  cibil_reports    cibil_reports @relation(fields: [cibil_report_id], references: [cibil_report_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([cibil_report_id, enquiry_date], map: "idx_cibil_enquiries_report_date")
+}
+
+model cibil_risk_indicators {
+  cibil_risk_indicator_id String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  cibil_report_id         String        @unique(map: "uq_cibil_risk_indicators_report_id") @db.Uuid
+  high_credit_utilization Boolean       @default(false)
+  recent_hard_enquiries   Boolean       @default(false)
+  thin_file               Boolean       @default(false)
+  credit_mix_healthy      Boolean       @default(true)
+  cibil_reports           cibil_reports @relation(fields: [cibil_report_id], references: [cibil_report_id], onDelete: Cascade, onUpdate: NoAction)
+}
+
 model customer {
   customer_id                      String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   first_name                       String     @db.VarChar(80)
@@ -171,22 +274,24 @@ model institutions {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model loan_application {
-  application_id                           String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  application_number                       String               @unique(map: "uq_loan_application_number") @db.VarChar(40)
-  status_id                                String               @db.Uuid
-  loan_type_id                             String?              @db.Uuid
-  requested_amount                         Decimal?             @db.Decimal(12, 2)
+  application_id                           String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_number                       String                     @unique(map: "uq_loan_application_number") @db.VarChar(40)
+  status_id                                String                     @db.Uuid
+  loan_type_id                             String?                    @db.Uuid
+  requested_amount                         Decimal?                   @db.Decimal(12, 2)
   tenure_months                            Int?
-  interest_rate                            Decimal?             @db.Decimal(5, 2)
-  created_at                               DateTime             @default(now()) @db.Timestamptz(6)
-  created_by                               String               @db.Uuid
-  updated_at                               DateTime             @default(now()) @db.Timestamptz(6)
-  updated_by                               String?              @db.Uuid
-  is_active                                Boolean              @default(true)
-  users_loan_application_created_byTousers users                @relation("loan_application_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_loan_application_created_by")
-  loan_types                               loan_types?          @relation(fields: [loan_type_id], references: [loan_type_id], onUpdate: NoAction, map: "fk_loan_application_loan_type")
-  application_status                       application_status   @relation(fields: [status_id], references: [status_id], onUpdate: NoAction, map: "fk_loan_application_status")
-  users_loan_application_updated_byTousers users?               @relation("loan_application_updated_byTousers", fields: [updated_by], references: [user_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_loan_application_updated_by")
+  interest_rate                            Decimal?                   @db.Decimal(5, 2)
+  created_at                               DateTime                   @default(now()) @db.Timestamptz(6)
+  created_by                               String                     @db.Uuid
+  updated_at                               DateTime                   @default(now()) @db.Timestamptz(6)
+  updated_by                               String?                    @db.Uuid
+  is_active                                Boolean                    @default(true)
+  users_loan_application_created_byTousers users                      @relation("loan_application_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_loan_application_created_by")
+  loan_types                               loan_types?                @relation(fields: [loan_type_id], references: [loan_type_id], onUpdate: NoAction, map: "fk_loan_application_loan_type")
+  application_status                       application_status         @relation(fields: [status_id], references: [status_id], onUpdate: NoAction, map: "fk_loan_application_status")
+  users_loan_application_updated_byTousers users?                     @relation("loan_application_updated_byTousers", fields: [updated_by], references: [user_id], onDelete: Restrict, onUpdate: NoAction, map: "fk_loan_application_updated_by")
+  cibil_reports                            cibil_reports?
+  application_credit_check                 application_credit_check[]
   loan_payment                             loan_payment[]
   repayment_schedule                       repayment_schedule[]
   sub_loan                                 sub_loan[]
@@ -462,4 +567,35 @@ model users {
   user_bank_account                                       user_bank_account[]
 
   @@index([role_id, is_active], map: "idx_users_role_active")
+}
+
+model application_credit_check {
+  credit_check_id String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id  String  @db.Uuid
+  cibil_report_id String? @db.Uuid
+
+  request_id          String? @db.VarChar(50)
+  bureau_name         String  @default("CIBIL") @db.VarChar(20)
+  bureau_reference_id String? @db.VarChar(50)
+  bureau_status       String  @db.VarChar(20)
+
+  credit_score Int?
+  score_band   String? @db.VarChar(20)
+  risk_level   String? @db.VarChar(20)
+
+  checked_at   DateTime @default(now()) @db.Timestamptz(6)
+  checked_by   String?  @db.Uuid
+  remarks      String?
+  raw_response Json?
+  is_latest    Boolean  @default(true)
+
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  loan_application loan_application @relation(fields: [application_id], references: [application_id])
+  cibil_report     cibil_reports?   @relation(fields: [cibil_report_id], references: [cibil_report_id])
+
+  @@index([application_id], map: "idx_application_credit_check_application_id")
+  @@index([checked_at], map: "idx_application_credit_check_checked_at")
+  @@index([bureau_status], map: "idx_application_credit_check_bureau_status")
 }
