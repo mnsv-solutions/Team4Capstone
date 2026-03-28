@@ -5,7 +5,9 @@ import configuration from '../config/configuration.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { ApplicationStatusModule } from './application-status/application-status.module.js';
+import { ApplicationModule } from './application/application.module.js';
 import { AuthModule } from './auth/auth.module.js';
+import { AwsService } from './aws/aws.service.js';
 import { CreditScoreCheckModule } from './credit-score-check/credit-score-check.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { HealthController } from './health/health.controller.js';
@@ -20,8 +22,9 @@ import { UsersModule } from './users/users.module.js';
     ApplicationStatusModule,
     DashboardModule,
     CreditScoreCheckModule,
+    ApplicationModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService, PrismaService],
+  providers: [AppService, PrismaService, AwsService],
 })
 export class AppModule {}

@@ -18,6 +18,13 @@ jwt:
   secret: your_jwt_secret_key
   expiresIn: 3600s
 
+# aws: Configuration for AWS services.
+aws:
+  region: your_aws_region
+  profile: your_aws_profile
+  s3:
+    bucketName: your_s3_bucket_name
+
 # bcrypt: Configuration for bcrypt hashing.
 bcrypt:
   saltRounds: 10

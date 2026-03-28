@@ -8,7 +8,6 @@ import {
   SignUpFormErrors,
   SignUpFormState,
 } from "../utils/signupValidation";
-import axios from "axios";
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -17,7 +16,7 @@ export default function SignUpPage() {
     firstName: "",
     lastName: "",
     email: "",
-    phone: "",
+    mobile: "",
     password: "",
   });
 
@@ -51,7 +50,7 @@ export default function SignUpPage() {
     setErrors(validateSignUp(form));
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (isSubmitting) return;
 
@@ -64,31 +63,6 @@ export default function SignUpPage() {
     if (Object.keys(validationErrors).length > 0) return;
 
     setIsSubmitting(true);
-
-    try {
-      await axios.post("http://localhost:3001/auth/signup", form, {
-        headers: {
-          "Content-Type": "application/json",
-          "Allow-Control-Allow-Origin": "*",
-        },
-      });
-    } catch (error) {
-      if (axios.isAxiosError(error)) {
-        const apiMessage = error.response?.data?.message;
-        const errorMessage =
-          typeof apiMessage === "string"
-            ? apiMessage
-            : "Sign up failed. Please check your details and try again.";
-
-        setErrors({
-          email: errorMessage,
-        });
-      }
-
-      setIsSubmitting(false);
-      return;
-    }
-
     setSuccessMsg("Account created (dummy). Redirecting to Sign In...");
 
     setTimeout(() => router.push("/signin"), 900);
@@ -107,7 +81,7 @@ export default function SignUpPage() {
     setSuccessMsg(
       provider === "google"
         ? "Google sign-up (dummy). Redirecting to Home..."
-        : "Apple sign-up (dummy). Redirecting to Home...",
+        : "Apple sign-up (dummy). Redirecting to Home..."
     );
 
     setTimeout(() => router.push("/"), 900);
@@ -241,28 +215,28 @@ export default function SignUpPage() {
                     </div>
 
                     <div className="mb-3">
-                      <label htmlFor="phone" className="form-label fw-semibold">
-                        phone No (10 digits)
+                      <label htmlFor="mobile" className="form-label fw-semibold">
+                        Mobile No (10 digits)
                       </label>
                       <input
-                        id="phone"
-                        className={`form-control ${errors.phone ? "is-invalid" : ""}`}
+                        id="mobile"
+                        className={`form-control ${errors.mobile ? "is-invalid" : ""}`}
                         type="tel"
                         inputMode="numeric"
                         pattern="[0-9]*"
                         maxLength={10}
-                        value={form.phone}
-                        onChange={(e) => setField("phone", sanitizeMobile(e.target.value))}
-                        onBlur={() => onBlurField("phone")}
-                        aria-invalid={!!errors.phone}
-                        aria-describedby={errors.phone ? "mobile-error" : undefined}
+                        value={form.mobile}
+                        onChange={(e) => setField("mobile", sanitizeMobile(e.target.value))}
+                        onBlur={() => onBlurField("mobile")}
+                        aria-invalid={!!errors.mobile}
+                        aria-describedby={errors.mobile ? "mobile-error" : undefined}
                         placeholder="1234567890"
                         disabled={isSubmitting}
                         required
                       />
-                      {errors.phone && (
-                        <div id="phone-error" className="invalid-feedback">
-                          {errors.phone}
+                      {errors.mobile && (
+                        <div id="mobile-error" className="invalid-feedback">
+                          {errors.mobile}
                         </div>
                       )}
                     </div>
@@ -300,7 +274,7 @@ export default function SignUpPage() {
                     </button>
 
                     <p className="small auth-muted mt-3 mb-0">
-                      phone must be exactly 10 digits. Password must include uppercase, lowercase,
+                      Mobile must be exactly 10 digits. Password must include uppercase, lowercase,
                       a number, and a symbol.
                     </p>
 

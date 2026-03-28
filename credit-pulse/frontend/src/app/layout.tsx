@@ -9,7 +9,11 @@ export const metadata: Metadata = {
   description: "A Digital Loan Origination & Credit Assessment Platform",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en" data-theme="dark">
       <body>
@@ -23,18 +27,27 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Link className="nav-link cp-navlink" href="/">
                 Home
               </Link>
+
               <Link className="nav-link cp-navlink" href="/about">
                 About Us
               </Link>
+
               <Link className="nav-link cp-navlink" href="/contact">
                 Contact Us
               </Link>
+
+              <Link className="nav-link cp-navlink" href="/loan-application">
+                Loan Application
+              </Link>
+
               <Link className="nav-link cp-navlink" href="/signin">
                 Sign In
               </Link>
+
               <Link className="btn btn-primary cp-navbtn" href="/signup">
                 Sign Up
               </Link>
+
               <ThemeToggle />
             </div>
           </div>
@@ -44,7 +57,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
         <footer className="cp-footer">
           <div className="container">
-            <small>© {new Date().getFullYear()} CreditPulse. All rights reserved.</small>
+            <small>
+              © {new Date().getFullYear()} CreditPulse. All rights reserved.
+            </small>
           </div>
         </footer>
       </body>

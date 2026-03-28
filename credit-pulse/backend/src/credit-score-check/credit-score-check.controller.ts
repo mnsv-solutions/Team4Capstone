@@ -3,7 +3,7 @@ import { Body, Controller, Post, Req, UnauthorizedException, UseGuards } from '@
 import { Request } from 'express';
 
 import { AuthGuard } from '../auth/auth.guard.js';
-import { JwtPayload } from '../types/jwtpayload.js';
+import { JwtPayload } from '../common/types/jwtpayload.js';
 import { CreditScoreCheckService } from './credit-score-check.service.js';
 import { CreditScoreCheckRequestDto } from './dto/credit-score-check-request.dto.js';
 import { CreditScoreCheckResponseDto } from './dto/credit-score-check-response.dto.js';

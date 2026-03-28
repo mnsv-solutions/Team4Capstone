@@ -5,7 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 
-import { JwtPayload } from '../types/jwtpayload.js';
+import { JwtPayload } from '../common/types/jwtpayload.js';
 import { UsersService } from '../users/users.service.js';
 import { SignInRequestDto, SignInResponseDto } from './dto/signIn.dto.js';
 import { SignUpRequestDto, SignUpResponseDto } from './dto/signup.dto.js';
