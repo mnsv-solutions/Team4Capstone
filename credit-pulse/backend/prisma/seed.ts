@@ -1,6 +1,8 @@
 import { PrismaPg } from '@prisma/adapter-pg';
 
 import * as bcrypt from 'bcrypt';
+import { Buffer } from 'node:buffer';
+import process from 'node:process';
 
 import configuration from '../config/configuration.js';
 import { PrismaClient } from '../generated/prisma/client.js';
@@ -84,7 +86,182 @@ function buildRepaymentSchedule(
   });
 }
 
-async function main() {
+function maskValue(value: string, visibleDigits = 4): string {
+  if (value.length <= visibleDigits) {
+    return value;
+  }
+
+  const hiddenLength = value.length - visibleDigits;
+  return `${'X'.repeat(hiddenLength)}${value.slice(-visibleDigits)}`;
+}
+
+async function getRequiredUser(email: string) {
+  const user = await prisma.users.findUnique({
+    where: { email },
+    select: {
+      user_id: true,
+      first_name: true,
+      last_name: true,
+      email: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error(`Required seeded user not found: ${email}`);
+  }
+
+  return user;
+}
+
+async function getRequiredCustomer(firstName: string, lastName: string, dob: string) {
+  const customer = await prisma.customer.findFirst({
+    where: {
+      first_name: firstName,
+      last_name: lastName,
+      date_of_birth: new Date(dob),
+    },
+    select: {
+      customer_id: true,
+      first_name: true,
+      last_name: true,
+    },
+  });
+
+  if (!customer) {
+    throw new Error(`Required seeded customer not found: ${firstName} ${lastName}`);
+  }
+
+  return customer;
+}
+
+async function findOrCreateAddressType(
+  addressTypeCode: string,
+  addressTypeName: string,
+  createdBy: string,
+  updatedBy: string,
+) {
+  const existing = await prisma.address_types.findFirst({
+    where: { address_type_code: addressTypeCode },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.address_types.create({
+    data: {
+      address_type_code: addressTypeCode,
+      address_type_name: addressTypeName,
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+}
+
+async function findOrCreateBank(
+  bankCode: string,
+  bankName: string,
+  createdBy: string,
+  updatedBy: string,
+) {
+  const existing = await prisma.banks.findFirst({
+    where: { bank_code: bankCode },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.banks.create({
+    data: {
+      bank_code: bankCode,
+      bank_name: bankName,
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+}
+
+async function findOrCreateEmploymentType(
+  employmentTypeCode: string,
+  employmentTypeName: string,
+  createdBy: string,
+  updatedBy: string,
+) {
+  const existing = await prisma.employment_types.findFirst({
+    where: { employment_type_code: employmentTypeCode },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.employment_types.create({
+    data: {
+      employment_type_code: employmentTypeCode,
+      employment_type_name: employmentTypeName,
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+}
+
+async function findOrCreateEducationLevel(
+  levelCode: string,
+  levelName: string,
+  createdBy: string,
+  updatedBy: string,
+) {
+  const existing = await prisma.education_levels.findFirst({
+    where: { level_code: levelCode },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.education_levels.create({
+    data: {
+      level_code: levelCode,
+      level_name: levelName,
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+}
+
+async function findOrCreateInstitution(
+  institutionName: string,
+  city: string,
+  country: string,
+  createdBy: string,
+  updatedBy: string,
+) {
+  const existing = await prisma.institutions.findFirst({
+    where: { institution_name: institutionName },
+  });
+
+  if (existing) {
+    return existing;
+  }
+
+  return prisma.institutions.create({
+    data: {
+      institution_name: institutionName,
+      city,
+      country,
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+}
+
+async function seedBase() {
   console.log('Starting seed...');
 
   const victorPassword = await bcrypt.hash('Victor@123', 10);
@@ -110,15 +287,6 @@ async function main() {
   await prisma.user_bank_account.deleteMany();
   await prisma.user_address.deleteMany();
   await prisma.user_profile.deleteMany();
-  await prisma.loan_types.updateMany({ data: { created_by: null, updated_by: null } });
-  await prisma.institutions.updateMany({ data: { created_by: null, updated_by: null } });
-  await prisma.employment_types.updateMany({ data: { created_by: null, updated_by: null } });
-  await prisma.education_levels.updateMany({ data: { created_by: null, updated_by: null } });
-  await prisma.decision_types.updateMany({ data: { created_by: null, updated_by: null } });
-  await prisma.banks.updateMany({ data: { created_by: null, updated_by: null } });
-  await prisma.application_status.updateMany({ data: { created_by: null, updated_by: null } });
-  await prisma.address_types.updateMany({ data: { created_by: null, updated_by: null } });
-  await prisma.roles.updateMany({ data: { created_by: null, updated_by: null } });
   await prisma.users.deleteMany();
   await prisma.loan_types.deleteMany();
   await prisma.institutions.deleteMany();
@@ -1121,7 +1289,7 @@ async function main() {
       {
         application_id: app1.application_id,
         customer_id: customer1.customer_id,
-        applicant_type: 1,
+        applicant_type: 0,
         created_by: nirali.user_id,
         updated_by: nirali.user_id,
         is_active: true,
@@ -1129,7 +1297,7 @@ async function main() {
       {
         application_id: app2.application_id,
         customer_id: customer2.customer_id,
-        applicant_type: 1,
+        applicant_type: 0,
         created_by: miswa.user_id,
         updated_by: miswa.user_id,
         is_active: true,
@@ -1137,7 +1305,7 @@ async function main() {
       {
         application_id: app3.application_id,
         customer_id: customer3.customer_id,
-        applicant_type: 1,
+        applicant_type: 0,
         created_by: victor.user_id,
         updated_by: victor.user_id,
         is_active: true,
@@ -1145,7 +1313,7 @@ async function main() {
       {
         application_id: app4.application_id,
         customer_id: customer4.customer_id,
-        applicant_type: 1,
+        applicant_type: 0,
         created_by: victor.user_id,
         updated_by: victor.user_id,
         is_active: true,
@@ -1153,7 +1321,7 @@ async function main() {
       {
         application_id: app4.application_id,
         customer_id: customer2.customer_id,
-        applicant_type: 2,
+        applicant_type: 1,
         created_by: victor.user_id,
         updated_by: victor.user_id,
         is_active: true,
@@ -1161,7 +1329,7 @@ async function main() {
       {
         application_id: app5.application_id,
         customer_id: customer1.customer_id,
-        applicant_type: 1,
+        applicant_type: 0,
         created_by: sukh.user_id,
         updated_by: sukh.user_id,
         is_active: true,
@@ -1178,7 +1346,7 @@ async function main() {
           {
             application_id: application.application_id,
             customer_id: customer.customer_id,
-            applicant_type: 1,
+            applicant_type: 0,
             created_by: applicationConfig.created_by,
             updated_by: applicationConfig.created_by,
             is_active: true,
@@ -1343,7 +1511,7 @@ async function main() {
         first_name: 'Nirali',
         last_name: 'Patel',
         date_of_birth: new Date('2000-05-12'),
-        sin_number: '900000101',
+        sin_number: 'ABCDE1234F',
         mobile_number: '9876543210',
       },
       accounts: [
@@ -1427,7 +1595,7 @@ async function main() {
         first_name: 'Sukhpreet',
         last_name: 'Singh',
         date_of_birth: new Date('1998-09-21'),
-        sin_number: '900000102',
+        sin_number: 'BCDEF2345G',
         mobile_number: '9876543211',
       },
       accounts: [
@@ -1511,7 +1679,7 @@ async function main() {
         first_name: 'Victor',
         last_name: 'Dsouza',
         date_of_birth: new Date('1995-11-03'),
-        sin_number: '900000103',
+        sin_number: 'CDEFG3456H',
         mobile_number: '9876543212',
       },
       accounts: [
@@ -1595,7 +1763,7 @@ async function main() {
         first_name: 'Miswa',
         last_name: 'Ahmed',
         date_of_birth: new Date('1997-02-18'),
-        sin_number: '900000104',
+        sin_number: 'DEFGH4567I',
         mobile_number: '9876543213',
       },
       accounts: [
@@ -1679,7 +1847,7 @@ async function main() {
         first_name: 'Aarav',
         last_name: 'Sharma',
         date_of_birth: new Date('1999-07-07'),
-        sin_number: '900000105',
+        sin_number: 'EFGHI5678J',
         mobile_number: '9876543214',
       },
       accounts: [
@@ -1763,7 +1931,7 @@ async function main() {
         first_name: 'Priya',
         last_name: 'Mehta',
         date_of_birth: new Date('1996-04-25'),
-        sin_number: '900000106',
+        sin_number: 'FGHIJ6789K',
         mobile_number: '9876543215',
       },
       accounts: [
@@ -1847,7 +2015,7 @@ async function main() {
         first_name: 'Rohan',
         last_name: 'Gupta',
         date_of_birth: new Date('1994-12-14'),
-        sin_number: '900000107',
+        sin_number: 'GHIJK7890L',
         mobile_number: '9876543216',
       },
       accounts: [
@@ -1931,7 +2099,7 @@ async function main() {
         first_name: 'Ananya',
         last_name: 'Iyer',
         date_of_birth: new Date('2001-01-30'),
-        sin_number: '900000108',
+        sin_number: 'HIJKL8901M',
         mobile_number: '9876543217',
       },
       accounts: [
@@ -2015,7 +2183,7 @@ async function main() {
         first_name: 'Karan',
         last_name: 'Malhotra',
         date_of_birth: new Date('1993-06-11'),
-        sin_number: '900000109',
+        sin_number: 'IJKLM9012N',
         mobile_number: '9876543218',
       },
       accounts: [
@@ -2099,7 +2267,7 @@ async function main() {
         first_name: 'Diya',
         last_name: 'Kapoor',
         date_of_birth: new Date('1998-08-09'),
-        sin_number: '900000110',
+        sin_number: 'JKLMN0123P',
         mobile_number: '9876543219',
       },
       accounts: [
@@ -2285,9 +2453,1911 @@ async function main() {
   console.log('Sukh    -> sukh@creditpulse.com / Sukh@123');
 }
 
+async function seedSupplemental() {
+  console.log('Starting supplemental seed for previously uncovered tables...');
+
+  const victor = await getRequiredUser('victor@creditpulse.com');
+  const miswa = await getRequiredUser('miswa@creditpulse.com');
+  const nirali = await getRequiredUser('nirali@creditpulse.com');
+  const sukh = await getRequiredUser('sukh@creditpulse.com');
+
+  const createdBy = victor.user_id;
+  const updatedBy = victor.user_id;
+
+  const male = await prisma.genders.upsert({
+    where: { gender_code: 'MALE' },
+    update: {
+      gender_name: 'Male',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      gender_code: 'MALE',
+      gender_name: 'Male',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const female = await prisma.genders.upsert({
+    where: { gender_code: 'FEMALE' },
+    update: {
+      gender_name: 'Female',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      gender_code: 'FEMALE',
+      gender_name: 'Female',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const otherGender = await prisma.genders.upsert({
+    where: { gender_code: 'OTHER' },
+    update: {
+      gender_name: 'Other',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      gender_code: 'OTHER',
+      gender_name: 'Other',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const singleStatus = await prisma.marital_statuses.upsert({
+    where: { marital_status_code: 'SINGLE' },
+    update: {
+      marital_status_name: 'Single',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      marital_status_code: 'SINGLE',
+      marital_status_name: 'Single',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const marriedStatus = await prisma.marital_statuses.upsert({
+    where: { marital_status_code: 'MARRIED' },
+    update: {
+      marital_status_name: 'Married',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      marital_status_code: 'MARRIED',
+      marital_status_name: 'Married',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const divorcedStatus = await prisma.marital_statuses.upsert({
+    where: { marital_status_code: 'DIVORCED' },
+    update: {
+      marital_status_name: 'Divorced',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      marital_status_code: 'DIVORCED',
+      marital_status_name: 'Divorced',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const canada = await prisma.countries.upsert({
+    where: { country_code: 'CAN' },
+    update: {
+      country_name: 'Canada',
+      nationality_name: 'Canadian',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      country_code: 'CAN',
+      country_name: 'Canada',
+      nationality_name: 'Canadian',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const india = await prisma.countries.upsert({
+    where: { country_code: 'IND' },
+    update: {
+      country_name: 'India',
+      nationality_name: 'Indian',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      country_code: 'IND',
+      country_name: 'India',
+      nationality_name: 'Indian',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const usa = await prisma.countries.upsert({
+    where: { country_code: 'USA' },
+    update: {
+      country_name: 'United States',
+      nationality_name: 'American',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      country_code: 'USA',
+      country_name: 'United States',
+      nationality_name: 'American',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const sinType = await prisma.government_id_types.upsert({
+    where: { government_id_type_code: 'SIN' },
+    update: {
+      government_id_type_name: 'Social Insurance Number',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      government_id_type_code: 'SIN',
+      government_id_type_name: 'Social Insurance Number',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const passportType = await prisma.government_id_types.upsert({
+    where: { government_id_type_code: 'PASSPORT' },
+    update: {
+      government_id_type_name: 'Passport',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      government_id_type_code: 'PASSPORT',
+      government_id_type_name: 'Passport',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const drivingLicenceType = await prisma.government_id_types.upsert({
+    where: { government_id_type_code: 'DRIVING_LICENSE' },
+    update: {
+      government_id_type_name: 'Driving License',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      government_id_type_code: 'DRIVING_LICENSE',
+      government_id_type_name: 'Driving License',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const mobileContactType = await prisma.contact_types.upsert({
+    where: { contact_type_code: 'MOBILE' },
+    update: {
+      contact_type_name: 'Mobile Number',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      contact_type_code: 'MOBILE',
+      contact_type_name: 'Mobile Number',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const emailContactType = await prisma.contact_types.upsert({
+    where: { contact_type_code: 'EMAIL' },
+    update: {
+      contact_type_name: 'Email Address',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      contact_type_code: 'EMAIL',
+      contact_type_name: 'Email Address',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const workPhoneContactType = await prisma.contact_types.upsert({
+    where: { contact_type_code: 'WORK_PHONE' },
+    update: {
+      contact_type_name: 'Work Phone',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      contact_type_code: 'WORK_PHONE',
+      contact_type_name: 'Work Phone',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const salaryIncomeType = await prisma.income_source_types.upsert({
+    where: { income_source_type_code: 'SALARY' },
+    update: {
+      income_source_type_name: 'Salary',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      income_source_type_code: 'SALARY',
+      income_source_type_name: 'Salary',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const businessIncomeType = await prisma.income_source_types.upsert({
+    where: { income_source_type_code: 'BUSINESS' },
+    update: {
+      income_source_type_name: 'Business Income',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      income_source_type_code: 'BUSINESS',
+      income_source_type_name: 'Business Income',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const rentalIncomeType = await prisma.income_source_types.upsert({
+    where: { income_source_type_code: 'RENTAL' },
+    update: {
+      income_source_type_name: 'Rental Income',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      income_source_type_code: 'RENTAL',
+      income_source_type_name: 'Rental Income',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const freelanceIncomeType = await prisma.income_source_types.upsert({
+    where: { income_source_type_code: 'FREELANCE' },
+    update: {
+      income_source_type_name: 'Freelance Income',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      income_source_type_code: 'FREELANCE',
+      income_source_type_name: 'Freelance Income',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const pensionIncomeType = await prisma.income_source_types.upsert({
+    where: { income_source_type_code: 'PENSION' },
+    update: {
+      income_source_type_name: 'Pension Income',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      income_source_type_code: 'PENSION',
+      income_source_type_name: 'Pension Income',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const personalLoanLiabilityType = await prisma.liability_types.upsert({
+    where: { liability_type_code: 'PERSONAL_LOAN' },
+    update: {
+      liability_type_name: 'Personal Loan',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      liability_type_code: 'PERSONAL_LOAN',
+      liability_type_name: 'Personal Loan',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const creditCardLiabilityType = await prisma.liability_types.upsert({
+    where: { liability_type_code: 'CREDIT_CARD' },
+    update: {
+      liability_type_name: 'Credit Card',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      liability_type_code: 'CREDIT_CARD',
+      liability_type_name: 'Credit Card',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const autoLoanLiabilityType = await prisma.liability_types.upsert({
+    where: { liability_type_code: 'AUTO_LOAN' },
+    update: {
+      liability_type_name: 'Auto Loan',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      liability_type_code: 'AUTO_LOAN',
+      liability_type_name: 'Auto Loan',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const homeLoanLiabilityType = await prisma.liability_types.upsert({
+    where: { liability_type_code: 'HOME_LOAN' },
+    update: {
+      liability_type_name: 'Home Loan',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      liability_type_code: 'HOME_LOAN',
+      liability_type_name: 'Home Loan',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const chequingAccountType = await prisma.bank_account_types.upsert({
+    where: { account_type_code: 'CHEQUING' },
+    update: {
+      account_type_name: 'Chequing Account',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      account_type_code: 'CHEQUING',
+      account_type_name: 'Chequing Account',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const savingsAccountType = await prisma.bank_account_types.upsert({
+    where: { account_type_code: 'SAVINGS' },
+    update: {
+      account_type_name: 'Savings Account',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      account_type_code: 'SAVINGS',
+      account_type_name: 'Savings Account',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const currentAccountType = await prisma.bank_account_types.upsert({
+    where: { account_type_code: 'CURRENT' },
+    update: {
+      account_type_name: 'Current Account',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      account_type_code: 'CURRENT',
+      account_type_name: 'Current Account',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const governmentIdDocumentType = await prisma.document_types.upsert({
+    where: { document_type_code: 'GOVERNMENT_ID' },
+    update: {
+      document_type_name: 'Government ID',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      document_type_code: 'GOVERNMENT_ID',
+      document_type_name: 'Government ID',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const payslipDocumentType = await prisma.document_types.upsert({
+    where: { document_type_code: 'PAYSLIP' },
+    update: {
+      document_type_name: 'Payslip',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      document_type_code: 'PAYSLIP',
+      document_type_name: 'Payslip',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const bankStatementDocumentType = await prisma.document_types.upsert({
+    where: { document_type_code: 'BANK_STATEMENT' },
+    update: {
+      document_type_name: 'Bank Statement',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      document_type_code: 'BANK_STATEMENT',
+      document_type_name: 'Bank Statement',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const addressProofDocumentType = await prisma.document_types.upsert({
+    where: { document_type_code: 'ADDRESS_PROOF' },
+    update: {
+      document_type_name: 'Address Proof',
+      updated_by: updatedBy,
+      is_active: true,
+    },
+    create: {
+      document_type_code: 'ADDRESS_PROOF',
+      document_type_name: 'Address Proof',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
+  const homeAddressType = await findOrCreateAddressType(
+    'HOME',
+    'Home Address',
+    createdBy,
+    updatedBy,
+  );
+  const workAddressType = await findOrCreateAddressType(
+    'WORK',
+    'Work Address',
+    createdBy,
+    updatedBy,
+  );
+  const fullTimeEmployment = await findOrCreateEmploymentType(
+    'FULL_TIME',
+    'Full Time',
+    createdBy,
+    updatedBy,
+  );
+  const partTimeEmployment = await findOrCreateEmploymentType(
+    'PART_TIME',
+    'Part Time',
+    createdBy,
+    updatedBy,
+  );
+  const bachelorsEducation = await findOrCreateEducationLevel(
+    'BACHELORS',
+    'Bachelors',
+    createdBy,
+    updatedBy,
+  );
+  const mastersEducation = await findOrCreateEducationLevel(
+    'MASTERS',
+    'Masters',
+    createdBy,
+    updatedBy,
+  );
+  const conestoga = await findOrCreateInstitution(
+    'Conestoga College',
+    'Kitchener',
+    'Canada',
+    createdBy,
+    updatedBy,
+  );
+  const uoft = await findOrCreateInstitution(
+    'University of Toronto',
+    'Toronto',
+    'Canada',
+    createdBy,
+    updatedBy,
+  );
+  const mcmaster = await findOrCreateInstitution(
+    'McMaster University',
+    'Hamilton',
+    'Canada',
+    createdBy,
+    updatedBy,
+  );
+  const rbc = await findOrCreateBank('RBC', 'Royal Bank of Canada', createdBy, updatedBy);
+  const td = await findOrCreateBank('TD', 'Toronto-Dominion Bank', createdBy, updatedBy);
+  const cibc = await findOrCreateBank(
+    'CIBC',
+    'Canadian Imperial Bank of Commerce',
+    createdBy,
+    updatedBy,
+  );
+
+  const amanSharma = await getRequiredCustomer('Aman', 'Sharma', '1997-02-14');
+  const priyaVerma = await getRequiredCustomer('Priya', 'Verma', '1995-11-03');
+  const rahulSingh = await getRequiredCustomer('Rahul', 'Singh', '1992-07-28');
+  const simranKaur = await getRequiredCustomer('Simran', 'Kaur', '2000-05-19');
+  const amanJoshi = await getRequiredCustomer('Aman', 'Joshi', '1991-03-14');
+  const nehaShah = await getRequiredCustomer('Neha', 'Shah', '1997-09-08');
+  const devPatel = await getRequiredCustomer('Dev', 'Patel', '1990-12-22');
+  const ishaNair = await getRequiredCustomer('Isha', 'Nair', '1998-04-17');
+
+  const targetCustomers = [
+    amanSharma,
+    priyaVerma,
+    rahulSingh,
+    simranKaur,
+    amanJoshi,
+    nehaShah,
+    devPatel,
+    ishaNair,
+  ];
+
+  const targetCustomerIds = targetCustomers.map((customer) => customer.customer_id);
+
+  const customerProfileUpdates = [
+    {
+      customerId: amanSharma.customer_id,
+      genderId: male.gender_id,
+      maritalStatusId: marriedStatus.marital_status_id,
+      nationalityCountryId: india.country_id,
+      sinTaxId: 'SIN00001001',
+      updatedBy: nirali.user_id,
+    },
+    {
+      customerId: priyaVerma.customer_id,
+      genderId: female.gender_id,
+      maritalStatusId: singleStatus.marital_status_id,
+      nationalityCountryId: india.country_id,
+      sinTaxId: 'SIN00001002',
+      updatedBy: sukh.user_id,
+    },
+    {
+      customerId: rahulSingh.customer_id,
+      genderId: male.gender_id,
+      maritalStatusId: marriedStatus.marital_status_id,
+      nationalityCountryId: india.country_id,
+      sinTaxId: 'SIN00001003',
+      updatedBy: miswa.user_id,
+    },
+    {
+      customerId: simranKaur.customer_id,
+      genderId: female.gender_id,
+      maritalStatusId: singleStatus.marital_status_id,
+      nationalityCountryId: canada.country_id,
+      sinTaxId: 'SIN00001004',
+      updatedBy: nirali.user_id,
+    },
+    {
+      customerId: amanJoshi.customer_id,
+      genderId: male.gender_id,
+      maritalStatusId: marriedStatus.marital_status_id,
+      nationalityCountryId: canada.country_id,
+      sinTaxId: 'SIN00001005',
+      updatedBy: sukh.user_id,
+    },
+    {
+      customerId: nehaShah.customer_id,
+      genderId: female.gender_id,
+      maritalStatusId: singleStatus.marital_status_id,
+      nationalityCountryId: india.country_id,
+      sinTaxId: 'SIN00001006',
+      updatedBy: nirali.user_id,
+    },
+    {
+      customerId: devPatel.customer_id,
+      genderId: male.gender_id,
+      maritalStatusId: marriedStatus.marital_status_id,
+      nationalityCountryId: usa.country_id,
+      sinTaxId: 'SIN00001007',
+      updatedBy: victor.user_id,
+    },
+    {
+      customerId: ishaNair.customer_id,
+      genderId: otherGender.gender_id,
+      maritalStatusId: divorcedStatus.marital_status_id,
+      nationalityCountryId: india.country_id,
+      sinTaxId: 'SIN00001008',
+      updatedBy: miswa.user_id,
+    },
+  ];
+
+  for (const profileUpdate of customerProfileUpdates) {
+    await prisma.customer.update({
+      where: { customer_id: profileUpdate.customerId },
+      data: {
+        gender_id: profileUpdate.genderId,
+        marital_status_id: profileUpdate.maritalStatusId,
+        nationality_country_id: profileUpdate.nationalityCountryId,
+        sin_tax_id_masked: maskValue(profileUpdate.sinTaxId),
+        sin_tax_id_encrypted: Buffer.from(profileUpdate.sinTaxId, 'utf8'),
+        updated_by: profileUpdate.updatedBy,
+      },
+    });
+  }
+
+  await prisma.customer_document_details.deleteMany({
+    where: { customer_id: { in: targetCustomerIds } },
+  });
+
+  await prisma.customer_bank_details.deleteMany({
+    where: { customer_id: { in: targetCustomerIds } },
+  });
+
+  await prisma.customer_government_id.deleteMany({
+    where: { customer_id: { in: targetCustomerIds } },
+  });
+
+  await prisma.customer_liabilities.deleteMany({
+    where: { customer_id: { in: targetCustomerIds } },
+  });
+
+  await prisma.customer_income_sources.deleteMany({
+    where: { customer_id: { in: targetCustomerIds } },
+  });
+
+  await prisma.customer_employment_details.deleteMany({
+    where: { customer_id: { in: targetCustomerIds } },
+  });
+
+  await prisma.customer_education_details.deleteMany({
+    where: { customer_id: { in: targetCustomerIds } },
+  });
+
+  await prisma.customer_address_details.deleteMany({
+    where: { customer_id: { in: targetCustomerIds } },
+  });
+
+  await prisma.customer_contact_details.deleteMany({
+    where: { customer_id: { in: targetCustomerIds } },
+  });
+
+  await prisma.customer_contact_details.createMany({
+    data: [
+      {
+        customer_id: amanSharma.customer_id,
+        contact_type_id: mobileContactType.contact_type_id,
+        contact_value: '+1-519-555-2001',
+        is_primary: true,
+        is_verified: true,
+        created_by: nirali.user_id,
+        updated_by: nirali.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: amanSharma.customer_id,
+        contact_type_id: emailContactType.contact_type_id,
+        contact_value: 'aman.sharma@demo.creditpulse.com',
+        is_primary: false,
+        is_verified: true,
+        created_by: nirali.user_id,
+        updated_by: nirali.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: priyaVerma.customer_id,
+        contact_type_id: mobileContactType.contact_type_id,
+        contact_value: '+1-519-555-2002',
+        is_primary: true,
+        is_verified: true,
+        created_by: sukh.user_id,
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: priyaVerma.customer_id,
+        contact_type_id: emailContactType.contact_type_id,
+        contact_value: 'priya.verma@demo.creditpulse.com',
+        is_primary: false,
+        is_verified: true,
+        created_by: sukh.user_id,
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: rahulSingh.customer_id,
+        contact_type_id: mobileContactType.contact_type_id,
+        contact_value: '+1-519-555-2003',
+        is_primary: true,
+        is_verified: true,
+        created_by: miswa.user_id,
+        updated_by: miswa.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: rahulSingh.customer_id,
+        contact_type_id: workPhoneContactType.contact_type_id,
+        contact_value: '+1-519-555-3003',
+        is_primary: false,
+        is_verified: false,
+        created_by: miswa.user_id,
+        updated_by: miswa.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: simranKaur.customer_id,
+        contact_type_id: mobileContactType.contact_type_id,
+        contact_value: '+1-519-555-2004',
+        is_primary: true,
+        is_verified: true,
+        created_by: nirali.user_id,
+        updated_by: nirali.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: simranKaur.customer_id,
+        contact_type_id: emailContactType.contact_type_id,
+        contact_value: 'simran.kaur@demo.creditpulse.com',
+        is_primary: false,
+        is_verified: true,
+        created_by: nirali.user_id,
+        updated_by: nirali.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: amanJoshi.customer_id,
+        contact_type_id: mobileContactType.contact_type_id,
+        contact_value: '+1-519-555-2005',
+        is_primary: true,
+        is_verified: true,
+        created_by: sukh.user_id,
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: amanJoshi.customer_id,
+        contact_type_id: emailContactType.contact_type_id,
+        contact_value: 'aman.joshi@demo.creditpulse.com',
+        is_primary: false,
+        is_verified: true,
+        created_by: sukh.user_id,
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: nehaShah.customer_id,
+        contact_type_id: mobileContactType.contact_type_id,
+        contact_value: '+1-519-555-2006',
+        is_primary: true,
+        is_verified: true,
+        created_by: nirali.user_id,
+        updated_by: nirali.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: nehaShah.customer_id,
+        contact_type_id: emailContactType.contact_type_id,
+        contact_value: 'neha.shah@demo.creditpulse.com',
+        is_primary: false,
+        is_verified: true,
+        created_by: nirali.user_id,
+        updated_by: nirali.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: devPatel.customer_id,
+        contact_type_id: mobileContactType.contact_type_id,
+        contact_value: '+1-519-555-2007',
+        is_primary: true,
+        is_verified: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: devPatel.customer_id,
+        contact_type_id: emailContactType.contact_type_id,
+        contact_value: 'dev.patel@demo.creditpulse.com',
+        is_primary: false,
+        is_verified: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: ishaNair.customer_id,
+        contact_type_id: mobileContactType.contact_type_id,
+        contact_value: '+1-519-555-2008',
+        is_primary: true,
+        is_verified: true,
+        created_by: miswa.user_id,
+        updated_by: miswa.user_id,
+        is_active: true,
+      },
+      {
+        customer_id: ishaNair.customer_id,
+        contact_type_id: emailContactType.contact_type_id,
+        contact_value: 'isha.nair@demo.creditpulse.com',
+        is_primary: false,
+        is_verified: true,
+        created_by: miswa.user_id,
+        updated_by: miswa.user_id,
+        is_active: true,
+      },
+    ],
+  });
+
+  await prisma.customer_address_details.createMany({
+    data: [
+      {
+        customer_id: amanSharma.customer_id,
+        address_type_id: homeAddressType.address_type_id,
+        line1: '24 Benton Street',
+        line2: 'Unit 2B',
+        city: 'Kitchener',
+        state_province: 'ON',
+        postal_code: 'N2G 3H2',
+        country_id: canada.country_id,
+        is_primary: true,
+        is_active: true,
+      },
+      {
+        customer_id: priyaVerma.customer_id,
+        address_type_id: homeAddressType.address_type_id,
+        line1: '88 King Street East',
+        line2: 'Apartment 705',
+        city: 'Kitchener',
+        state_province: 'ON',
+        postal_code: 'N2G 2K2',
+        country_id: canada.country_id,
+        is_primary: true,
+        is_active: true,
+      },
+      {
+        customer_id: rahulSingh.customer_id,
+        address_type_id: homeAddressType.address_type_id,
+        line1: '51 College Street',
+        line2: null,
+        city: 'Waterloo',
+        state_province: 'ON',
+        postal_code: 'N2L 3Z3',
+        country_id: canada.country_id,
+        is_primary: true,
+        is_active: true,
+      },
+      {
+        customer_id: simranKaur.customer_id,
+        address_type_id: homeAddressType.address_type_id,
+        line1: '109 Queen Street South',
+        line2: 'Basement Unit',
+        city: 'Kitchener',
+        state_province: 'ON',
+        postal_code: 'N2G 1W1',
+        country_id: canada.country_id,
+        is_primary: true,
+        is_active: true,
+      },
+      {
+        customer_id: amanJoshi.customer_id,
+        address_type_id: workAddressType.address_type_id,
+        line1: '355 Hagey Boulevard',
+        line2: 'Suite 410',
+        city: 'Waterloo',
+        state_province: 'ON',
+        postal_code: 'N2L 0A7',
+        country_id: canada.country_id,
+        is_primary: true,
+        is_active: true,
+      },
+      {
+        customer_id: nehaShah.customer_id,
+        address_type_id: homeAddressType.address_type_id,
+        line1: '11 Wellington Street North',
+        line2: 'Unit 1204',
+        city: 'Kitchener',
+        state_province: 'ON',
+        postal_code: 'N2H 5J3',
+        country_id: canada.country_id,
+        is_primary: true,
+        is_active: true,
+      },
+      {
+        customer_id: devPatel.customer_id,
+        address_type_id: workAddressType.address_type_id,
+        line1: '560 University Avenue West',
+        line2: 'Floor 6',
+        city: 'Waterloo',
+        state_province: 'ON',
+        postal_code: 'N2L 6J8',
+        country_id: canada.country_id,
+        is_primary: true,
+        is_active: true,
+      },
+      {
+        customer_id: ishaNair.customer_id,
+        address_type_id: homeAddressType.address_type_id,
+        line1: '7 Duke Street West',
+        line2: 'Unit 909',
+        city: 'Kitchener',
+        state_province: 'ON',
+        postal_code: 'N2H 3W8',
+        country_id: canada.country_id,
+        is_primary: true,
+        is_active: true,
+      },
+    ],
+  });
+
+  await prisma.customer_employment_details.createMany({
+    data: [
+      {
+        customer_id: amanSharma.customer_id,
+        employment_type_id: fullTimeEmployment.employment_type_id,
+        employer_name: 'TechBridge Solutions',
+        job_title: 'Implementation Specialist',
+        work_experience_years: '4.50',
+        monthly_income: '6200.00',
+        is_active: true,
+      },
+      {
+        customer_id: priyaVerma.customer_id,
+        employment_type_id: fullTimeEmployment.employment_type_id,
+        employer_name: 'Maple Health Group',
+        job_title: 'Operations Coordinator',
+        work_experience_years: '5.25',
+        monthly_income: '7100.00',
+        is_active: true,
+      },
+      {
+        customer_id: rahulSingh.customer_id,
+        employment_type_id: fullTimeEmployment.employment_type_id,
+        employer_name: 'Northfield Logistics',
+        job_title: 'Warehouse Supervisor',
+        work_experience_years: '7.00',
+        monthly_income: '6800.00',
+        is_active: true,
+      },
+      {
+        customer_id: simranKaur.customer_id,
+        employment_type_id: partTimeEmployment.employment_type_id,
+        employer_name: 'Conestoga College',
+        job_title: 'Student Services Assistant',
+        work_experience_years: '1.80',
+        monthly_income: '2400.00',
+        is_active: true,
+      },
+      {
+        customer_id: amanJoshi.customer_id,
+        employment_type_id: fullTimeEmployment.employment_type_id,
+        employer_name: 'Velocity Auto Finance',
+        job_title: 'Relationship Manager',
+        work_experience_years: '6.20',
+        monthly_income: '7600.00',
+        is_active: true,
+      },
+      {
+        customer_id: nehaShah.customer_id,
+        employment_type_id: partTimeEmployment.employment_type_id,
+        employer_name: 'RetailHub Canada',
+        job_title: 'Shift Lead',
+        work_experience_years: '2.40',
+        monthly_income: '2900.00',
+        is_active: true,
+      },
+      {
+        customer_id: devPatel.customer_id,
+        employment_type_id: fullTimeEmployment.employment_type_id,
+        employer_name: 'ClearStone Consulting',
+        job_title: 'Business Analyst',
+        work_experience_years: '8.10',
+        monthly_income: '8400.00',
+        is_active: true,
+      },
+      {
+        customer_id: ishaNair.customer_id,
+        employment_type_id: fullTimeEmployment.employment_type_id,
+        employer_name: 'InsightCare Inc.',
+        job_title: 'Case Manager',
+        work_experience_years: '3.60',
+        monthly_income: '5900.00',
+        is_active: true,
+      },
+    ],
+  });
+
+  await prisma.customer_liabilities.createMany({
+    data: [
+      {
+        customer_id: amanSharma.customer_id,
+        liability_type_id: personalLoanLiabilityType.liability_type_id,
+        lender_name: 'Axis Bank',
+        account_reference_masked: 'PL-AXIS-1101',
+        monthly_payment: '450.00',
+        outstanding_balance: '7800.00',
+        is_active: true,
+      },
+      {
+        customer_id: priyaVerma.customer_id,
+        liability_type_id: creditCardLiabilityType.liability_type_id,
+        lender_name: 'RBC',
+        account_reference_masked: 'CC-RBC-2202',
+        monthly_payment: '220.00',
+        outstanding_balance: '3100.00',
+        is_active: true,
+      },
+      {
+        customer_id: rahulSingh.customer_id,
+        liability_type_id: homeLoanLiabilityType.liability_type_id,
+        lender_name: 'TD',
+        account_reference_masked: 'HL-TD-3303',
+        monthly_payment: '1650.00',
+        outstanding_balance: '182000.00',
+        is_active: true,
+      },
+      {
+        customer_id: simranKaur.customer_id,
+        liability_type_id: creditCardLiabilityType.liability_type_id,
+        lender_name: 'CIBC',
+        account_reference_masked: 'CC-CIBC-4404',
+        monthly_payment: '125.00',
+        outstanding_balance: '1800.00',
+        is_active: true,
+      },
+      {
+        customer_id: amanJoshi.customer_id,
+        liability_type_id: autoLoanLiabilityType.liability_type_id,
+        lender_name: 'Scotiabank',
+        account_reference_masked: 'AL-SCOTIA-5505',
+        monthly_payment: '540.00',
+        outstanding_balance: '12900.00',
+        is_active: true,
+      },
+      {
+        customer_id: nehaShah.customer_id,
+        liability_type_id: creditCardLiabilityType.liability_type_id,
+        lender_name: 'American Express',
+        account_reference_masked: 'CC-AMEX-6606',
+        monthly_payment: '160.00',
+        outstanding_balance: '2400.00',
+        is_active: true,
+      },
+      {
+        customer_id: devPatel.customer_id,
+        liability_type_id: personalLoanLiabilityType.liability_type_id,
+        lender_name: 'RBC',
+        account_reference_masked: 'PL-RBC-7707',
+        monthly_payment: '610.00',
+        outstanding_balance: '9400.00',
+        is_active: true,
+      },
+      {
+        customer_id: ishaNair.customer_id,
+        liability_type_id: autoLoanLiabilityType.liability_type_id,
+        lender_name: 'CIBC',
+        account_reference_masked: 'AL-CIBC-8808',
+        monthly_payment: '430.00',
+        outstanding_balance: '8600.00',
+        is_active: true,
+      },
+    ],
+  });
+
+  const governmentIdRows = [
+    {
+      customer_id: amanSharma.customer_id,
+      government_id_type_id: sinType.government_id_type_id,
+      value: 'SIN00001001',
+    },
+    {
+      customer_id: priyaVerma.customer_id,
+      government_id_type_id: passportType.government_id_type_id,
+      value: 'P12345002',
+    },
+    {
+      customer_id: rahulSingh.customer_id,
+      government_id_type_id: sinType.government_id_type_id,
+      value: 'SIN00001003',
+    },
+    {
+      customer_id: simranKaur.customer_id,
+      government_id_type_id: drivingLicenceType.government_id_type_id,
+      value: 'DLK-44004',
+    },
+    {
+      customer_id: amanJoshi.customer_id,
+      government_id_type_id: sinType.government_id_type_id,
+      value: 'SIN00001005',
+    },
+    {
+      customer_id: nehaShah.customer_id,
+      government_id_type_id: passportType.government_id_type_id,
+      value: 'P12345006',
+    },
+    {
+      customer_id: devPatel.customer_id,
+      government_id_type_id: sinType.government_id_type_id,
+      value: 'SIN00001007',
+    },
+    {
+      customer_id: ishaNair.customer_id,
+      government_id_type_id: drivingLicenceType.government_id_type_id,
+      value: 'DLK-88008',
+    },
+  ];
+
+  for (const governmentIdRow of governmentIdRows) {
+    await prisma.customer_government_id.create({
+      data: {
+        customer_id: governmentIdRow.customer_id,
+        government_id_type_id: governmentIdRow.government_id_type_id,
+        government_id_number_masked: maskValue(governmentIdRow.value),
+        government_id_number_encrypted: Buffer.from(governmentIdRow.value, 'utf8'),
+        is_primary: true,
+        is_active: true,
+      },
+    });
+  }
+
+  const bankDetailRows = [
+    {
+      customer_id: amanSharma.customer_id,
+      bank_id: rbc.bank_id,
+      bank_account_type_id: chequingAccountType.bank_account_type_id,
+      value: 'RBC50010001',
+    },
+    {
+      customer_id: priyaVerma.customer_id,
+      bank_id: td.bank_id,
+      bank_account_type_id: savingsAccountType.bank_account_type_id,
+      value: 'TD50010002',
+    },
+    {
+      customer_id: rahulSingh.customer_id,
+      bank_id: cibc.bank_id,
+      bank_account_type_id: currentAccountType.bank_account_type_id,
+      value: 'CIBC50010003',
+    },
+    {
+      customer_id: simranKaur.customer_id,
+      bank_id: rbc.bank_id,
+      bank_account_type_id: chequingAccountType.bank_account_type_id,
+      value: 'RBC50010004',
+    },
+    {
+      customer_id: amanJoshi.customer_id,
+      bank_id: td.bank_id,
+      bank_account_type_id: chequingAccountType.bank_account_type_id,
+      value: 'TD50010005',
+    },
+    {
+      customer_id: nehaShah.customer_id,
+      bank_id: cibc.bank_id,
+      bank_account_type_id: savingsAccountType.bank_account_type_id,
+      value: 'CIBC50010006',
+    },
+    {
+      customer_id: devPatel.customer_id,
+      bank_id: rbc.bank_id,
+      bank_account_type_id: currentAccountType.bank_account_type_id,
+      value: 'RBC50010007',
+    },
+    {
+      customer_id: ishaNair.customer_id,
+      bank_id: td.bank_id,
+      bank_account_type_id: chequingAccountType.bank_account_type_id,
+      value: 'TD50010008',
+    },
+  ];
+
+  for (const bankDetailRow of bankDetailRows) {
+    await prisma.customer_bank_details.create({
+      data: {
+        customer_id: bankDetailRow.customer_id,
+        bank_id: bankDetailRow.bank_id,
+        bank_account_type_id: bankDetailRow.bank_account_type_id,
+        account_number_masked: maskValue(bankDetailRow.value),
+        account_number_encrypted: Buffer.from(bankDetailRow.value, 'utf8'),
+        is_primary: true,
+        is_active: true,
+      },
+    });
+  }
+
+  await prisma.customer_document_details.createMany({
+    data: [
+      {
+        customer_id: amanSharma.customer_id,
+        document_type_id: governmentIdDocumentType.document_type_id,
+        document_name: 'aman-sharma-government-id.pdf',
+        document_path: '/seed/customer-documents/aman-sharma-government-id.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(248120),
+        is_active: true,
+      },
+      {
+        customer_id: priyaVerma.customer_id,
+        document_type_id: bankStatementDocumentType.document_type_id,
+        document_name: 'priya-verma-bank-statement.pdf',
+        document_path: '/seed/customer-documents/priya-verma-bank-statement.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(312560),
+        is_active: true,
+      },
+      {
+        customer_id: rahulSingh.customer_id,
+        document_type_id: payslipDocumentType.document_type_id,
+        document_name: 'rahul-singh-payslip-march.pdf',
+        document_path: '/seed/customer-documents/rahul-singh-payslip-march.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(201455),
+        is_active: true,
+      },
+      {
+        customer_id: simranKaur.customer_id,
+        document_type_id: addressProofDocumentType.document_type_id,
+        document_name: 'simran-kaur-address-proof.pdf',
+        document_path: '/seed/customer-documents/simran-kaur-address-proof.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(176890),
+        is_active: true,
+      },
+      {
+        customer_id: amanJoshi.customer_id,
+        document_type_id: bankStatementDocumentType.document_type_id,
+        document_name: 'aman-joshi-bank-statement.pdf',
+        document_path: '/seed/customer-documents/aman-joshi-bank-statement.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(286030),
+        is_active: true,
+      },
+      {
+        customer_id: nehaShah.customer_id,
+        document_type_id: governmentIdDocumentType.document_type_id,
+        document_name: 'neha-shah-passport.pdf',
+        document_path: '/seed/customer-documents/neha-shah-passport.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(192450),
+        is_active: true,
+      },
+      {
+        customer_id: devPatel.customer_id,
+        document_type_id: payslipDocumentType.document_type_id,
+        document_name: 'dev-patel-salary-slip.pdf',
+        document_path: '/seed/customer-documents/dev-patel-salary-slip.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(214300),
+        is_active: true,
+      },
+      {
+        customer_id: ishaNair.customer_id,
+        document_type_id: addressProofDocumentType.document_type_id,
+        document_name: 'isha-nair-address-proof.pdf',
+        document_path: '/seed/customer-documents/isha-nair-address-proof.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(181780),
+        is_active: true,
+      },
+    ],
+  });
+
+  await prisma.customer_education_details.createMany({
+    data: [
+      {
+        customer_id: amanSharma.customer_id,
+        education_level_id: bachelorsEducation.education_level_id,
+        institution_id: uoft.institution_id,
+        field_of_study: 'Computer Science',
+        graduation_year: 2020,
+        is_active: true,
+      },
+      {
+        customer_id: priyaVerma.customer_id,
+        education_level_id: mastersEducation.education_level_id,
+        institution_id: mcmaster.institution_id,
+        field_of_study: 'Finance',
+        graduation_year: 2019,
+        is_active: true,
+      },
+      {
+        customer_id: rahulSingh.customer_id,
+        education_level_id: bachelorsEducation.education_level_id,
+        institution_id: conestoga.institution_id,
+        field_of_study: 'Supply Chain Management',
+        graduation_year: 2017,
+        is_active: true,
+      },
+      {
+        customer_id: simranKaur.customer_id,
+        education_level_id: bachelorsEducation.education_level_id,
+        institution_id: conestoga.institution_id,
+        field_of_study: 'Business Administration',
+        graduation_year: 2024,
+        is_active: true,
+      },
+      {
+        customer_id: amanJoshi.customer_id,
+        education_level_id: mastersEducation.education_level_id,
+        institution_id: uoft.institution_id,
+        field_of_study: 'Marketing',
+        graduation_year: 2018,
+        is_active: true,
+      },
+      {
+        customer_id: nehaShah.customer_id,
+        education_level_id: bachelorsEducation.education_level_id,
+        institution_id: conestoga.institution_id,
+        field_of_study: 'Hospitality Management',
+        graduation_year: 2023,
+        is_active: true,
+      },
+      {
+        customer_id: devPatel.customer_id,
+        education_level_id: mastersEducation.education_level_id,
+        institution_id: mcmaster.institution_id,
+        field_of_study: 'Business Analytics',
+        graduation_year: 2016,
+        is_active: true,
+      },
+      {
+        customer_id: ishaNair.customer_id,
+        education_level_id: bachelorsEducation.education_level_id,
+        institution_id: uoft.institution_id,
+        field_of_study: 'Psychology',
+        graduation_year: 2020,
+        is_active: true,
+      },
+    ],
+  });
+
+  await prisma.customer_income_sources.createMany({
+    data: [
+      {
+        customer_id: amanSharma.customer_id,
+        income_source_type_id: salaryIncomeType.income_source_type_id,
+        monthly_amount: '6200.00',
+        description: 'Primary salary from TechBridge Solutions',
+        is_active: true,
+      },
+      {
+        customer_id: priyaVerma.customer_id,
+        income_source_type_id: salaryIncomeType.income_source_type_id,
+        monthly_amount: '7100.00',
+        description: 'Operations salary',
+        is_active: true,
+      },
+      {
+        customer_id: rahulSingh.customer_id,
+        income_source_type_id: salaryIncomeType.income_source_type_id,
+        monthly_amount: '6800.00',
+        description: 'Warehouse supervisor salary',
+        is_active: true,
+      },
+      {
+        customer_id: simranKaur.customer_id,
+        income_source_type_id: freelanceIncomeType.income_source_type_id,
+        monthly_amount: '900.00',
+        description: 'Freelance design projects',
+        is_active: true,
+      },
+      {
+        customer_id: amanJoshi.customer_id,
+        income_source_type_id: businessIncomeType.income_source_type_id,
+        monthly_amount: '7600.00',
+        description: 'Relationship management incentive income',
+        is_active: true,
+      },
+      {
+        customer_id: nehaShah.customer_id,
+        income_source_type_id: salaryIncomeType.income_source_type_id,
+        monthly_amount: '2900.00',
+        description: 'Retail salary',
+        is_active: true,
+      },
+      {
+        customer_id: devPatel.customer_id,
+        income_source_type_id: rentalIncomeType.income_source_type_id,
+        monthly_amount: '1400.00',
+        description: 'Basement rental income',
+        is_active: true,
+      },
+      {
+        customer_id: devPatel.customer_id,
+        income_source_type_id: salaryIncomeType.income_source_type_id,
+        monthly_amount: '8400.00',
+        description: 'Consulting salary',
+        is_active: true,
+      },
+      {
+        customer_id: ishaNair.customer_id,
+        income_source_type_id: salaryIncomeType.income_source_type_id,
+        monthly_amount: '5900.00',
+        description: 'Case manager salary',
+        is_active: true,
+      },
+      {
+        customer_id: ishaNair.customer_id,
+        income_source_type_id: pensionIncomeType.income_source_type_id,
+        monthly_amount: '450.00',
+        description: 'Family survivor benefit',
+        is_active: true,
+      },
+    ],
+  });
+
+  const cibilReports = await prisma.cibil_reports.findMany({
+    include: {
+      loan_application: {
+        select: {
+          application_id: true,
+          application_number: true,
+        },
+      },
+    },
+    orderBy: {
+      report_date: 'desc',
+    },
+  });
+
+  const reportApplicationIds = cibilReports.map((report) => report.application_id);
+
+  if (reportApplicationIds.length > 0) {
+    await prisma.application_credit_check.deleteMany({
+      where: {
+        application_id: {
+          in: reportApplicationIds,
+        },
+      },
+    });
+
+    const reviewerIds = [nirali.user_id, miswa.user_id, victor.user_id, sukh.user_id];
+
+    await prisma.application_credit_check.createMany({
+      data: cibilReports.map((report, index) => ({
+        application_id: report.application_id,
+        cibil_report_id: report.cibil_report_id,
+        request_id: report.request_id,
+        bureau_name: report.bureau,
+        bureau_reference_id: report.reference_id,
+        bureau_status: report.status,
+        credit_score: report.cibil_score,
+        score_band: report.score_band,
+        risk_level: report.risk_level,
+        checked_at: report.report_date,
+        checked_by: reviewerIds[index % reviewerIds.length],
+        remarks:
+          report.risk_level === 'VERY_LOW' || report.risk_level === 'LOW'
+            ? 'Credit bureau response received with acceptable risk profile.'
+            : report.risk_level === 'MEDIUM'
+              ? 'Credit bureau response received and marked for manual underwriting review.'
+              : 'Credit bureau response received with elevated risk indicators requiring tighter review.',
+        raw_response: {
+          application_number: report.loan_application.application_number,
+          bureau: report.bureau,
+          request_id: report.request_id,
+          reference_id: report.reference_id,
+          score: report.cibil_score,
+          score_band: report.score_band,
+          risk_level: report.risk_level,
+          report_date: report.report_date.toISOString(),
+          total_accounts: report.total_accounts,
+          active_accounts: report.active_accounts,
+          closed_accounts: report.closed_accounts,
+          total_outstanding_balance: report.total_outstanding_balance.toString(),
+          recent_delinquency: report.recent_delinquency,
+          credit_utilization_ratio: report.credit_utilization_ratio.toString(),
+          average_account_age_years: report.average_account_age_years.toString(),
+          debt_to_income_estimate: report.debt_to_income_estimate.toString(),
+        },
+        is_latest: true,
+      })),
+    });
+  }
+
+  console.log('Supplemental seed completed successfully.');
+  console.log('Covered tables:');
+  console.log('- genders');
+  console.log('- marital_statuses');
+  console.log('- countries');
+  console.log('- government_id_types');
+  console.log('- contact_types');
+  console.log('- income_source_types');
+  console.log('- liability_types');
+  console.log('- bank_account_types');
+  console.log('- document_types');
+  console.log('- customer_contact_details');
+  console.log('- customer_address_details');
+  console.log('- customer_employment_details');
+  console.log('- customer_liabilities');
+  console.log('- customer_government_id');
+  console.log('- customer_bank_details');
+  console.log('- customer_document_details');
+  console.log('- customer_education_details');
+  console.log('- customer_income_sources');
+  console.log('- application_credit_check');
+}
+
+async function getRequiredApplication(applicationNumber: string) {
+  const application = await prisma.loan_application.findFirst({
+    where: { application_number: applicationNumber },
+    select: {
+      application_id: true,
+      application_number: true,
+    },
+  });
+
+  if (!application) {
+    throw new Error(`Required seeded application not found: ${applicationNumber}`);
+  }
+
+  return application;
+}
+
+async function seedApplicationCommunication() {
+  console.log('Starting seed for application communication history...');
+
+  const victor = await getRequiredUser('victor@creditpulse.com');
+  const miswa = await getRequiredUser('miswa@creditpulse.com');
+  const nirali = await getRequiredUser('nirali@creditpulse.com');
+  const sukh = await getRequiredUser('sukh@creditpulse.com');
+
+  const amanSharma = await getRequiredCustomer('Aman', 'Sharma', '1997-02-14');
+  const priyaVerma = await getRequiredCustomer('Priya', 'Verma', '1995-11-03');
+  const rahulSingh = await getRequiredCustomer('Rahul', 'Singh', '1992-07-28');
+  const simranKaur = await getRequiredCustomer('Simran', 'Kaur', '2000-05-19');
+
+  const app1 = await getRequiredApplication('APPL0000000001');
+  const app2 = await getRequiredApplication('APPL0000000002');
+  const app3 = await getRequiredApplication('APPL0000000003');
+  const app4 = await getRequiredApplication('APPL0000000004');
+
+  await prisma.application_message_attachment.deleteMany({
+    where: {
+      application_id: {
+        in: [app1.application_id, app2.application_id, app3.application_id, app4.application_id],
+      },
+    },
+  });
+
+  await prisma.application_communication_history.deleteMany({
+    where: {
+      application_id: {
+        in: [app1.application_id, app2.application_id, app3.application_id, app4.application_id],
+      },
+    },
+  });
+
+  const app1Message1 = await prisma.application_communication_history.create({
+    data: {
+      application_id: app1.application_id,
+      sender_user_id: nirali.user_id,
+      sender_type: 'SOURCING_OFFICER',
+      recipient_user_id: amanSharma.customer_id,
+      recipient_type: 'CUSTOMER',
+      message_text:
+        'Welcome to Credit Pulse. Please upload your last 3 months bank statements and one government ID proof.',
+      message_category: 'DOCUMENT_REQUEST',
+      is_internal: false,
+      send_email: true,
+      send_sms: true,
+      email_status: 'QUEUED',
+      sms_status: 'QUEUED',
+      has_attachment: true,
+      created_by: nirali.user_id,
+      updated_by: nirali.user_id,
+      is_deleted: false,
+    },
+  });
+
+  await prisma.application_message_attachment.createMany({
+    data: [
+      {
+        message_id: app1Message1.message_id,
+        application_id: app1.application_id,
+        document_name: 'msg-app1-doc-request-checklist.pdf',
+        original_file_name: 'document-checklist.pdf',
+        document_path:
+          's3://creditpulse/application-messages/APPL0000000001/msg-app1-doc-request-checklist.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(184320),
+        uploaded_by: nirali.user_id,
+        is_active: true,
+        is_deleted: false,
+      },
+      {
+        message_id: app1Message1.message_id,
+        application_id: app1.application_id,
+        document_name: 'msg-app1-kyc-guidelines.pdf',
+        original_file_name: 'kyc-guidelines.pdf',
+        document_path:
+          's3://creditpulse/application-messages/APPL0000000001/msg-app1-kyc-guidelines.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(223560),
+        uploaded_by: nirali.user_id,
+        is_active: true,
+        is_deleted: false,
+      },
+    ],
+  });
+
+  const app1Message2 = await prisma.application_communication_history.create({
+    data: {
+      application_id: app1.application_id,
+      sender_user_id: amanSharma.customer_id,
+      sender_type: 'CUSTOMER',
+      recipient_user_id: nirali.user_id,
+      recipient_type: 'SOURCING_OFFICER',
+      message_text:
+        'I have reviewed the checklist. I will upload my bank statements by today evening.',
+      message_category: 'TEXT',
+      is_internal: false,
+      send_email: false,
+      send_sms: false,
+      email_status: 'NOT_REQUESTED',
+      sms_status: 'NOT_REQUESTED',
+      has_attachment: false,
+      created_by: amanSharma.customer_id,
+      updated_by: amanSharma.customer_id,
+      is_deleted: false,
+    },
+  });
+
+  const app2Message1 = await prisma.application_communication_history.create({
+    data: {
+      application_id: app2.application_id,
+      sender_user_id: miswa.user_id,
+      sender_type: 'UNDERWRITER',
+      recipient_user_id: sukh.user_id,
+      recipient_type: 'DISBURSAL_OFFICER',
+      message_text:
+        'Income documents verified. File can move to the next underwriting checkpoint after final risk note review.',
+      message_category: 'INTERNAL_NOTE',
+      is_internal: true,
+      send_email: false,
+      send_sms: false,
+      email_status: 'NOT_REQUESTED',
+      sms_status: 'NOT_REQUESTED',
+      has_attachment: true,
+      created_by: miswa.user_id,
+      updated_by: miswa.user_id,
+      is_deleted: false,
+    },
+  });
+
+  await prisma.application_message_attachment.create({
+    data: {
+      message_id: app2Message1.message_id,
+      application_id: app2.application_id,
+      document_name: 'msg-app2-underwriter-note.pdf',
+      original_file_name: 'underwriter-note.pdf',
+      document_path:
+        's3://creditpulse/application-messages/APPL0000000002/msg-app2-underwriter-note.pdf',
+      mime_type: 'application/pdf',
+      file_size_bytes: BigInt(156780),
+      uploaded_by: miswa.user_id,
+      is_active: true,
+      is_deleted: false,
+    },
+  });
+
+  const app2Message2 = await prisma.application_communication_history.create({
+    data: {
+      application_id: app2.application_id,
+      sender_user_id: sukh.user_id,
+      sender_type: 'DISBURSAL_OFFICER',
+      recipient_user_id: priyaVerma.customer_id,
+      recipient_type: 'CUSTOMER',
+      message_text:
+        'Your application is under review. We may contact you if any additional documents are required.',
+      message_category: 'STATUS_UPDATE',
+      is_internal: false,
+      send_email: true,
+      send_sms: false,
+      email_status: 'QUEUED',
+      sms_status: 'NOT_REQUESTED',
+      has_attachment: false,
+      created_by: sukh.user_id,
+      updated_by: sukh.user_id,
+      is_deleted: false,
+    },
+  });
+
+  const app3Message1 = await prisma.application_communication_history.create({
+    data: {
+      application_id: app3.application_id,
+      sender_user_id: victor.user_id,
+      sender_type: 'UNDERWRITER',
+      recipient_user_id: rahulSingh.customer_id,
+      recipient_type: 'CUSTOMER',
+      message_text:
+        'Your business loan has been approved. Please review the attached sanction letter and repayment summary.',
+      message_category: 'STATUS_UPDATE',
+      is_internal: false,
+      send_email: true,
+      send_sms: true,
+      email_status: 'SENT',
+      sms_status: 'SENT',
+      has_attachment: true,
+      created_by: victor.user_id,
+      updated_by: victor.user_id,
+      is_deleted: false,
+    },
+  });
+
+  await prisma.application_message_attachment.createMany({
+    data: [
+      {
+        message_id: app3Message1.message_id,
+        application_id: app3.application_id,
+        document_name: 'msg-app3-sanction-letter.pdf',
+        original_file_name: 'sanction-letter.pdf',
+        document_path:
+          's3://creditpulse/application-messages/APPL0000000003/msg-app3-sanction-letter.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(261442),
+        uploaded_by: victor.user_id,
+        is_active: true,
+        is_deleted: false,
+      },
+      {
+        message_id: app3Message1.message_id,
+        application_id: app3.application_id,
+        document_name: 'msg-app3-repayment-summary.pdf',
+        original_file_name: 'repayment-summary.pdf',
+        document_path:
+          's3://creditpulse/application-messages/APPL0000000003/msg-app3-repayment-summary.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(197804),
+        uploaded_by: victor.user_id,
+        is_active: true,
+        is_deleted: false,
+      },
+    ],
+  });
+
+  const app4Message1 = await prisma.application_communication_history.create({
+    data: {
+      application_id: app4.application_id,
+      sender_user_id: sukh.user_id,
+      sender_type: 'DISBURSAL_OFFICER',
+      recipient_user_id: victor.user_id,
+      recipient_type: 'UNDERWRITER',
+      message_text:
+        'Disbursal completed successfully. Customer acknowledgment and transfer proof have been attached for audit.',
+      message_category: 'INTERNAL_NOTE',
+      is_internal: true,
+      send_email: false,
+      send_sms: false,
+      email_status: 'NOT_REQUESTED',
+      sms_status: 'NOT_REQUESTED',
+      has_attachment: true,
+      created_by: sukh.user_id,
+      updated_by: sukh.user_id,
+      is_deleted: false,
+    },
+  });
+
+  await prisma.application_message_attachment.createMany({
+    data: [
+      {
+        message_id: app4Message1.message_id,
+        application_id: app4.application_id,
+        document_name: 'msg-app4-disbursal-proof.pdf',
+        original_file_name: 'disbursal-proof.pdf',
+        document_path:
+          's3://creditpulse/application-messages/APPL0000000004/msg-app4-disbursal-proof.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(208540),
+        uploaded_by: sukh.user_id,
+        is_active: true,
+        is_deleted: false,
+      },
+      {
+        message_id: app4Message1.message_id,
+        application_id: app4.application_id,
+        document_name: 'msg-app4-customer-acknowledgement.pdf',
+        original_file_name: 'customer-acknowledgement.pdf',
+        document_path:
+          's3://creditpulse/application-messages/APPL0000000004/msg-app4-customer-acknowledgement.pdf',
+        mime_type: 'application/pdf',
+        file_size_bytes: BigInt(143990),
+        uploaded_by: sukh.user_id,
+        is_active: true,
+        is_deleted: false,
+      },
+    ],
+  });
+
+  const app4Message2 = await prisma.application_communication_history.create({
+    data: {
+      application_id: app4.application_id,
+      sender_user_id: simranKaur.customer_id,
+      sender_type: 'CUSTOMER',
+      recipient_user_id: sukh.user_id,
+      recipient_type: 'DISBURSAL_OFFICER',
+      message_text: 'Thank you. I confirm the funds have been received in my account.',
+      message_category: 'TEXT',
+      is_internal: false,
+      send_email: false,
+      send_sms: false,
+      email_status: 'NOT_REQUESTED',
+      sms_status: 'NOT_REQUESTED',
+      has_attachment: false,
+      created_by: simranKaur.customer_id,
+      updated_by: simranKaur.customer_id,
+      is_deleted: false,
+    },
+  });
+
+  console.log('Application communication history seeded successfully.');
+  console.log('Seeded message ids:');
+  console.log(app1Message1.message_id);
+  console.log(app1Message2.message_id);
+  console.log(app2Message1.message_id);
+  console.log(app2Message2.message_id);
+  console.log(app3Message1.message_id);
+  console.log(app4Message1.message_id);
+  console.log(app4Message2.message_id);
+}
+
+async function main() {
+  await seedBase();
+  await seedSupplemental();
+  await seedApplicationCommunication();
+  console.log('Merged seed completed successfully.');
+}
+
 main()
   .catch((error) => {
-    console.error('Seed failed.', error);
+    console.error('Merged seed failed.', error);
     process.exit(1);
   })
   .finally(async () => {
