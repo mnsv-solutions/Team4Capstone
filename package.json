@@ -33,12 +33,6 @@
     "start:prod": "concurrently \"npm run start:prod:backend\" \"npm run start:prod:frontend\""
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.4.1",
-    "@prisma/client": "^7.4.1",
-    "concurrently": "^9.2.1",
-    "pg": "^8.18.0"
-  },
-  "devDependencies": {
-    "@types/pg": "^8.16.0"
+    "concurrently": "^9.2.1"
   }
 }
