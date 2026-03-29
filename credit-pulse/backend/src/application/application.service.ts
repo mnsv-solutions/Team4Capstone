@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 
 import { Prisma } from '../../generated/prisma/client.js';
+import { AwsService } from '../aws/aws.service.js';
 import { JwtPayload } from '../common/types/jwtpayload.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
@@ -16,7 +17,61 @@ export class ApplicationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly awsService: AwsService,
   ) {}
+
+  async uploadFiles(
+    applicationId: string,
+    files: {
+      governmentIdProof?: any[];
+      incomeProof?: any[];
+      bankStatement?: any[];
+    },
+  ) {
+    const bucket = this.configService.get<string>('aws.s3.bucketName') || 'credit-pulse-bucket';
+    const projectId = applicationId;
+
+    const uploadedPaths: any = {};
+
+    if (files?.governmentIdProof && files.governmentIdProof.length > 0) {
+      const file = files.governmentIdProof[0];
+      const key = `${projectId}/government/${Date.now()}-${file.originalname}`;
+      await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.governmentIdProof = key;
+    }
+
+    if (files?.incomeProof && files.incomeProof.length > 0) {
+      const file = files.incomeProof[0];
+      const key = `${projectId}/income/${Date.now()}-${file.originalname}`;
+      await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.incomeProof = key;
+    }
+
+    if (files?.bankStatement && files.bankStatement.length > 0) {
+      const file = files.bankStatement[0];
+      const key = `${projectId}/bankstatement/${Date.now()}-${file.originalname}`;
+      await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.bankStatement = key;
+    }
+
+    const subLoan = await this.prisma.sub_loan.findFirst({
+      where: { application_id: applicationId },
+    });
+
+    if (!subLoan) {
+      throw new BadRequestException('Application with that ID could not be found.');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.saveCustomerDocuments(tx, subLoan.customer_id, {
+        governmentIdProof: uploadedPaths.governmentIdProof,
+        incomeProof: uploadedPaths.incomeProof,
+        bankStatement: uploadedPaths.bankStatement,
+      } as any);
+    });
+
+    return uploadedPaths;
+  }
 
   async createApplication(
     createApplicationDto: CreateApplicationRequestDto,
@@ -24,6 +79,15 @@ export class ApplicationService {
   ): Promise<CreateApplicationResponseDto> {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        if (
+          !createApplicationDto.creditReportConsent ||
+          !createApplicationDto.declarationAccepted
+        ) {
+          throw new BadRequestException(
+            'Credit Report Consent and Declaration Accepted are required.',
+          );
+        }
+
         const userId = currentUser.sub;
 
         const references = await this.resolveReferenceData(tx, createApplicationDto);

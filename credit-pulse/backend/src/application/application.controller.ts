@@ -1,4 +1,16 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  UploadedFiles,
+  UseGuards,
+  UseInterceptors,
+} from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 
 import type { Request } from 'express';
 
@@ -11,6 +23,43 @@ import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.
 @UseGuards(AuthGuard)
 export class ApplicationController {
   constructor(private readonly applicationService: ApplicationService) {}
+
+  @Post('files')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'governmentIdProof', maxCount: 1 },
+        { name: 'incomeProof', maxCount: 1 },
+        { name: 'bankStatement', maxCount: 1 },
+      ],
+      { limits: { fileSize: 100 * 1024 * 1024 } },
+    ),
+  )
+  async uploadFiles(
+    @UploadedFiles()
+    files: {
+      governmentIdProof?: any[];
+      incomeProof?: any[];
+      bankStatement?: any[];
+    },
+    @Body('application_id') applicationId: string,
+  ) {
+    if (!applicationId) {
+      throw new BadRequestException('Application ID is required.');
+    }
+    if (!files?.governmentIdProof || files.governmentIdProof.length === 0) {
+      throw new BadRequestException('Government ID Proof file is required.');
+    }
+    if (!files?.incomeProof || files.incomeProof.length === 0) {
+      throw new BadRequestException('Income Proof file is required.');
+    }
+    if (!files?.bankStatement || files.bankStatement.length === 0) {
+      throw new BadRequestException('Bank Statement file is required.');
+    }
+
+    return this.applicationService.uploadFiles(applicationId, files);
+  }
 
   @Post('create')
   @HttpCode(HttpStatus.CREATED)

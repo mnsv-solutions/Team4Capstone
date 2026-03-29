@@ -147,12 +147,12 @@ export class CreateApplicationRequestDto {
   @IsNotEmpty({ message: 'Employment Status is required.' })
   employmentStatus: string;
 
-  @ValidateIf((o) => o.employmentStatus !== 'Unemployed')
+  @ValidateIf((o) => o.employmentStatus === 'Employed')
   @IsString({ message: 'Employer Name must be a string.' })
   @IsNotEmpty({ message: 'Employer Name is required.' })
   employerName: string;
 
-  @ValidateIf((o) => o.employmentStatus !== 'Unemployed')
+  @ValidateIf((o) => o.employmentStatus === 'Employed')
   @IsString({ message: 'Job Title must be a string.' })
   @IsNotEmpty({ message: 'Job Title is required.' })
   jobTitle: string;
