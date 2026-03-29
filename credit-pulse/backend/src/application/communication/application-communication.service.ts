@@ -243,7 +243,7 @@ export class ApplicationCommunicationService {
     const communications = await this.prisma.application_communication_history.findMany({
       where: {
         application_id: application.application_id,
-        is_internal: dto.is_internal,
+        is_internal: dto.isInternal,
         is_deleted: false,
       },
       include: {
@@ -268,7 +268,7 @@ export class ApplicationCommunicationService {
       message: 'Communication history fetched successfully',
       data: {
         applicationNumber: application.application_number,
-        is_internal: dto.is_internal,
+        is_internal: dto.isInternal,
         totalRecords: communications.length,
         communications: communications.map((item) => ({
           messageId: item.message_id,

@@ -64,11 +64,11 @@ export class GetApplicationCommunicationHistoryDto {
    * Internal Communication Flag
    *
    * @memberof GetApplicationCommunicationHistoryDto
-   * @property {boolean} is_internal - Internal communication filter
-   * @property {string} is_internal.message - is_internal must be a boolean value
+   * @property {boolean} isInternal - Internal communication filter
+   * @property {string} isInternal.message - isInternal must be a boolean value
    */
   @IsOptional()
   @Transform(toOptionalBoolean)
-  @IsBoolean({ message: 'is_internal must be a boolean value' })
-  is_internal?: boolean;
+  @IsBoolean({ message: 'isInternal must be a boolean value' })
+  isInternal?: boolean;
 }
