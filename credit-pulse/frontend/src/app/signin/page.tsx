@@ -4,9 +4,11 @@ import axios from "axios";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { validateSignIn, SignInErrors } from "../utils/signinValidation";
+import { useAuth } from "../../context/AuthContext";
 
 export default function SignInPage() {
   const router = useRouter();
+  const { login } = useAuth();
 
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
@@ -25,13 +27,44 @@ export default function SignInPage() {
 
     setIsSubmitting(true);
     setSuccessMsg("");
+    setErrors({});
 
     try {
-      await axios.post("/api/auth/signin", { loginId, password });
+      const response = await axios.post("/api/auth/signin", {
+        loginId,
+        password,
+      });
 
-      setSuccessMsg("Signed in successfully. Redirecting to Home...");
+      const responseData = response.data;
+
+      const accessToken =
+        responseData?.accessToken ||
+        responseData?.token ||
+        responseData?.data?.accessToken ||
+        responseData?.data?.token ||
+        null;
+
+      const userData =
+        responseData?.user ||
+        responseData?.data?.user ||
+        {
+          loginId,
+        };
+
+      if (!accessToken) {
+        setErrors({
+          loginId: "Sign in succeeded, but no access token was returned.",
+        });
+        setIsSubmitting(false);
+        return;
+      }
+
+      login(accessToken, userData);
+
+      setSuccessMsg("Signed in successfully. Redirecting to dashboard...");
+
       setTimeout(() => {
-        router.push("/");
+        router.push("/dashboard");
       }, 900);
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -56,19 +89,11 @@ export default function SignInPage() {
   };
 
   const handleSocial = (provider: "google" | "apple") => {
-    if (isSubmitting) return;
-
-    setErrors({});
-    setIsSubmitting(true);
-    setSuccessMsg(
-      provider === "google"
-        ? "Google sign-in (dummy). Redirecting to Home..."
-        : "Apple sign-in (dummy). Redirecting to Home..."
-    );
-
-    setTimeout(() => {
-      router.push("/");
-    }, 900);
+    setErrors({
+      loginId: `${
+        provider === "google" ? "Google" : "Apple"
+      } sign-in is not integrated yet.`,
+    });
   };
 
   return (
