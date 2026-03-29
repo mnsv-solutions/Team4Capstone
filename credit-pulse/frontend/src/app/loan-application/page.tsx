@@ -359,7 +359,8 @@ export default function LoanApplicationPage() {
 
       const jsonPayload = buildLoanApplicationFormData(form);
 
-      const token = "[HARDCODED TOKEN HERE]";
+      const token =
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MTQ5ODNmNy1iZGJhLTRjNTgtYTc0OC00ZjI1ODk1NWMyNWQiLCJlbWFpbCI6InRAdC5jb20iLCJyb2xlX2lkIjoiYTBhZjE3MGUtNDg2Mi00OTllLWIyNTktNDBlMzEzYmFiZjgzIiwiaWF0IjoxNzc0ODExMzA0LCJleHAiOjE3NzQ4MTQ5MDR9.6fH-KcX8c00s8I9f-R9Us1vPmn6Y4OpwB6SG_ZIWfDE";
 
       const createResponse = await axios.post(
         "/api/application/create",
