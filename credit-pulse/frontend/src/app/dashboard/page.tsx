@@ -30,6 +30,9 @@ export default function DashboardPage() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const itemsPerPage = 3;
 
   useEffect(() => {
     if (authLoading) return;
@@ -106,6 +109,31 @@ export default function DashboardPage() {
       return matchesSearch && matchesStatus;
     });
   }, [applications, searchTerm, statusFilter]);
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(filteredApplications.length / itemsPerPage)
+  );
+
+  const paginatedApplications = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredApplications.slice(startIndex, endIndex);
+  }, [filteredApplications, currentPage]);
+
+  const startItem =
+    filteredApplications.length === 0
+      ? 0
+      : (currentPage - 1) * itemsPerPage + 1;
+
+  const endItem = Math.min(
+    currentPage * itemsPerPage,
+    filteredApplications.length
+  );
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, applications]);
 
   const summary = useMemo(() => {
     const normalizeStatus = (value: string | null) =>
@@ -299,7 +327,7 @@ export default function DashboardPage() {
                     </td>
                   </tr>
                 ) : (
-                  filteredApplications.map((item) => (
+                  paginatedApplications.map((item) => (
                     <tr key={item.applicationId}>
                       <td>
                         <div className="cp-dashboard-primary-text">
@@ -364,6 +392,53 @@ export default function DashboardPage() {
               </tbody>
             </table>
           </div>
+
+          {!isLoading && filteredApplications.length > 0 && (
+            <div className="cp-dashboard-pagination">
+              <div className="cp-dashboard-pagination-info">
+                Showing {startItem} to {endItem} of {filteredApplications.length} records
+              </div>
+
+              <div className="cp-dashboard-pagination-actions">
+                <button
+                  type="button"
+                  className="cp-dashboard-page-btn"
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </button>
+
+                {Array.from({ length: totalPages }, (_, index) => index + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      type="button"
+                      className={`cp-dashboard-page-btn ${
+                        currentPage === page
+                          ? "cp-dashboard-page-btn--active"
+                          : ""
+                      }`}
+                      onClick={() => setCurrentPage(page)}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
+
+                <button
+                  type="button"
+                  className="cp-dashboard-page-btn"
+                  onClick={() =>
+                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                  }
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </section>
     </main>
