@@ -307,14 +307,13 @@ export default function LoanApplicationPage() {
       graduationYear: formDataInput.graduationYear || "",
 
       employmentStatus: formDataInput.employmentStatus,
-      employerName: formDataInput.employerName || undefined,
-      jobTitle: formDataInput.jobTitle || undefined,
-      workExperience: formDataInput.workExperience || undefined,
-      monthlyIncome: formDataInput.monthlyIncome || undefined,
-      otherIncomeSources: formDataInput.otherIncomeSources || undefined,
-      existingLoans: formDataInput.existingLoans || undefined,
-      totalMonthlyLoanPayments:
-        formDataInput.totalMonthlyLoanPayments || undefined,
+      employerName: formDataInput.employerName || "",
+      jobTitle: formDataInput.jobTitle || "",
+      workExperience: formDataInput.workExperience || "",
+      monthlyIncome: formDataInput.monthlyIncome || "",
+      otherIncomeSources: formDataInput.otherIncomeSources || "",
+      existingLoans: formDataInput.existingLoans || "",
+      totalMonthlyLoanPayments: formDataInput.totalMonthlyLoanPayments || "",
 
       bankAccounts: formDataInput.bankAccounts.map((account) => ({
         bankName: account.bankName,
@@ -325,13 +324,6 @@ export default function LoanApplicationPage() {
         swiftBic: account.swiftBic || "",
         isRepaymentAccount: account.isRepaymentAccount,
       })),
-
-      governmentIdProof: formDataInput.governmentIdProof as
-        | string
-        | null
-        | File,
-      incomeProof: formDataInput.incomeProof as string | null | File,
-      bankStatement: formDataInput.bankStatement as string | null | File,
 
       creditReportConsent: formDataInput.creditReportConsent,
       declarationAccepted: formDataInput.declarationAccepted,
@@ -357,21 +349,14 @@ export default function LoanApplicationPage() {
     try {
       setIsSubmitting(true);
 
-      const jsonPayload = buildLoanApplicationFormData(form);
+      const payload = buildLoanApplicationPayload(form);
 
-      const token =
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3MTQ5ODNmNy1iZGJhLTRjNTgtYTc0OC00ZjI1ODk1NWMyNWQiLCJlbWFpbCI6InRAdC5jb20iLCJyb2xlX2lkIjoiYTBhZjE3MGUtNDg2Mi00OTllLWIyNTktNDBlMzEzYmFiZjgzIiwiaWF0IjoxNzc0ODExMzA0LCJleHAiOjE3NzQ4MTQ5MDR9.6fH-KcX8c00s8I9f-R9Us1vPmn6Y4OpwB6SG_ZIWfDE";
-
-      const createResponse = await axios.post(
-        "/api/application/create",
-        jsonPayload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+      const createResponse = await axios.post("/api/application/create", payload, {
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-      );
+      });
 
       const applicationId = createResponse.data.application_id;
 
@@ -658,8 +643,8 @@ export default function LoanApplicationPage() {
                   <option value="">Select gender</option>
                   <option value="Female">Female</option>
                   <option value="Male">Male</option>
-                  <option value="NonBinary">Non-binary</option>
-                  <option value="PreferNotToSay">Prefer not to say</option>
+                  <option value="Non-binary">Non-binary</option>
+                  <option value="Prefer not to say">Prefer not to say</option>
                 </select>
                 {renderInputError("gender")}
               </div>
