@@ -2,6 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { useRouter } from "next/navigation";
 import {
   UserRound,
   MapPin,
@@ -13,6 +14,7 @@ import {
   Trash2,
   Landmark,
 } from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 import {
   sanitizeDigits,
   sanitizeAlphaNumericUpper,
@@ -23,7 +25,12 @@ import {
   type FormErrors,
 } from "../utils/loanValidation";
 
-type StepKey = "personal" | "contact" | "education" | "financial" | "documents";
+type StepKey =
+  | "personal"
+  | "contact"
+  | "education"
+  | "financial"
+  | "documents";
 
 const steps: { key: StepKey; label: string }[] = [
   { key: "personal", label: "Personal Details" },
@@ -86,6 +93,9 @@ const initialForm: LoanApplicationForm = {
 };
 
 export default function LoanApplicationPage() {
+  const router = useRouter();
+  const { token, isAuthenticated, isLoading: authLoading, logout } = useAuth();
+
   const [currentStep, setCurrentStep] = useState(0);
   const [form, setForm] = useState<LoanApplicationForm>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
@@ -99,6 +109,14 @@ export default function LoanApplicationPage() {
   }, [currentStep]);
 
   useEffect(() => {
+    if (authLoading) return;
+
+    if (!token || !isAuthenticated) {
+      router.push("/signin");
+    }
+  }, [authLoading, token, isAuthenticated, router]);
+
+  useEffect(() => {
     if (form.mailingSameAsResidential) {
       setForm((prev) => ({
         ...prev,
@@ -109,7 +127,7 @@ export default function LoanApplicationPage() {
 
   function setField<K extends keyof LoanApplicationForm>(
     key: K,
-    value: LoanApplicationForm[K],
+    value: LoanApplicationForm[K]
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -125,7 +143,7 @@ export default function LoanApplicationPage() {
   function setAddressField(
     section: "residentialAddress" | "mailingAddress",
     key: keyof Address,
-    value: string,
+    value: string
   ) {
     setForm((prev) => ({
       ...prev,
@@ -139,12 +157,12 @@ export default function LoanApplicationPage() {
   function setBankField(
     index: number,
     key: keyof LoanApplicationForm["bankAccounts"][number],
-    value: string | boolean,
+    value: string | boolean
   ) {
     setForm((prev) => ({
       ...prev,
       bankAccounts: prev.bankAccounts.map((account, accountIndex) =>
-        accountIndex === index ? { ...account, [key]: value } : account,
+        accountIndex === index ? { ...account, [key]: value } : account
       ),
     }));
 
@@ -189,7 +207,7 @@ export default function LoanApplicationPage() {
 
       const removedAccount = prev.bankAccounts[index];
       const remainingAccounts = prev.bankAccounts.filter(
-        (_, accountIndex) => accountIndex !== index,
+        (_, accountIndex) => accountIndex !== index
       );
 
       if (removedAccount.isRepaymentAccount && remainingAccounts.length > 0) {
@@ -247,7 +265,7 @@ export default function LoanApplicationPage() {
     }
   }
 
-  function buildLoanApplicationFormData(formDataInput: LoanApplicationForm) {
+  function buildLoanApplicationPayload(formDataInput: LoanApplicationForm) {
     return {
       firstName: formDataInput.firstName,
       lastName: formDataInput.lastName,
@@ -257,25 +275,26 @@ export default function LoanApplicationPage() {
       nationality: formDataInput.nationality,
       governmentIdType: formDataInput.governmentIdType,
       governmentIdNumber: formDataInput.governmentIdNumber,
-      sinTaxId: formDataInput.sinTaxId || undefined,
+      sinTaxId: formDataInput.sinTaxId,
 
       email: formDataInput.email,
       mobile: formDataInput.mobile,
-      alternatePhone: formDataInput.alternatePhone || undefined,
+      alternatePhone: formDataInput.alternatePhone || "",
+
+      mailingSameAsResidential: formDataInput.mailingSameAsResidential,
 
       residentialAddress: {
         line1: formDataInput.residentialAddress.line1,
-        line2: formDataInput.residentialAddress.line2 || undefined,
+        line2: formDataInput.residentialAddress.line2 || "",
         city: formDataInput.residentialAddress.city,
         state: formDataInput.residentialAddress.state,
         postalCode: formDataInput.residentialAddress.postalCode,
         country: formDataInput.residentialAddress.country,
       },
 
-      mailingSameAsResidential: formDataInput.mailingSameAsResidential,
       mailingAddress: {
         line1: formDataInput.mailingAddress.line1,
-        line2: formDataInput.mailingAddress.line2 || undefined,
+        line2: formDataInput.mailingAddress.line2 || "",
         city: formDataInput.mailingAddress.city,
         state: formDataInput.mailingAddress.state,
         postalCode: formDataInput.mailingAddress.postalCode,
@@ -283,18 +302,18 @@ export default function LoanApplicationPage() {
       },
 
       highestEducation: formDataInput.highestEducation,
-      fieldOfStudy: formDataInput.fieldOfStudy,
-      institutionName: formDataInput.institutionName,
-      graduationYear: formDataInput.graduationYear || undefined,
+      fieldOfStudy: formDataInput.fieldOfStudy || "N/A",
+      institutionName: formDataInput.institutionName || "N/A",
+      graduationYear: formDataInput.graduationYear || "",
 
       employmentStatus: formDataInput.employmentStatus,
-      employerName: formDataInput.employerName || undefined,
-      jobTitle: formDataInput.jobTitle || undefined,
-      workExperience: formDataInput.workExperience || undefined,
-      monthlyIncome: formDataInput.monthlyIncome || undefined,
-      otherIncomeSources: formDataInput.otherIncomeSources || undefined,
-      existingLoans: formDataInput.existingLoans || undefined,
-      totalMonthlyLoanPayments: formDataInput.totalMonthlyLoanPayments || undefined,
+      employerName: formDataInput.employerName || "",
+      jobTitle: formDataInput.jobTitle || "",
+      workExperience: formDataInput.workExperience || "",
+      monthlyIncome: formDataInput.monthlyIncome || "",
+      otherIncomeSources: formDataInput.otherIncomeSources || "",
+      existingLoans: formDataInput.existingLoans || "",
+      totalMonthlyLoanPayments: formDataInput.totalMonthlyLoanPayments || "",
 
       bankAccounts: formDataInput.bankAccounts.map((account) => ({
         bankName: account.bankName,
@@ -302,7 +321,7 @@ export default function LoanApplicationPage() {
         transitNumber: account.transitNumber,
         accountNumber: account.accountNumber,
         accountType: account.accountType,
-        swiftBic: account.swiftBic || undefined,
+        swiftBic: account.swiftBic || "",
         isRepaymentAccount: account.isRepaymentAccount,
       })),
 
@@ -322,14 +341,17 @@ export default function LoanApplicationPage() {
 
     if (Object.keys(finalErrors).length > 0) return;
 
+    if (!token) {
+      setApiError("User not authenticated.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
 
-      const formData = buildLoanApplicationFormData(form);
+      const payload = buildLoanApplicationPayload(form);
 
-      const token = "[PASTE HARDED CODE TOKEN HERE]"
-
-      await axios.post("/api/application/create", formData, {
+      await axios.post("/api/application/create", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -344,14 +366,34 @@ export default function LoanApplicationPage() {
       setCurrentStep(0);
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (error) {
-      let message = "Something went wrong while submitting the application.";
+      let message = "Failed to submit loan application.";
 
       if (axios.isAxiosError(error)) {
-        const apiMessage = error.response?.data?.message;
-        message =
-          typeof apiMessage === "string"
-            ? apiMessage
-            : "Failed to submit loan application.";
+        const statusCode = error.response?.status;
+        const responseData = error.response?.data;
+        const apiMessage = responseData?.message;
+
+        console.log("Loan submit error status:", statusCode);
+        console.log("Loan submit error data:", responseData);
+
+        if (
+          statusCode === 401 ||
+          apiMessage === "Invalid token" ||
+          apiMessage === "No token provided" ||
+          apiMessage === "User not authenticated"
+        ) {
+          logout();
+          router.push("/signin");
+          return;
+        }
+
+        if (Array.isArray(apiMessage)) {
+          message = apiMessage.join(", ");
+        } else if (typeof apiMessage === "string") {
+          message = apiMessage;
+        } else if (typeof responseData === "string") {
+          message = responseData;
+        }
       } else if (error instanceof Error) {
         message = error.message;
       }
@@ -414,7 +456,7 @@ export default function LoanApplicationPage() {
     id: "governmentIdProof" | "incomeProof" | "bankStatement",
     label: string,
     helper: string,
-    file: File | null,
+    file: File | null
   ) {
     return (
       <div className="mb-4">
@@ -446,6 +488,16 @@ export default function LoanApplicationPage() {
 
         {renderInputError(id)}
       </div>
+    );
+  }
+
+  if (authLoading) {
+    return (
+      <main className="cp-loan-page">
+        <section className="cp-loan-card">
+          <div className="cp-dashboard-empty-state">Checking session...</div>
+        </section>
+      </main>
     );
   }
 
@@ -547,9 +599,7 @@ export default function LoanApplicationPage() {
               </div>
 
               <div className="col-12 col-md-6">
-                <label className="form-label fw-semibold">
-                  Date of Birth *
-                </label>
+                <label className="form-label fw-semibold">Date of Birth *</label>
                 <input
                   type="date"
                   className={`form-control ${errors.dob ? "is-invalid" : ""}`}
@@ -562,7 +612,9 @@ export default function LoanApplicationPage() {
               <div className="col-12 col-md-6">
                 <label className="form-label fw-semibold">Gender *</label>
                 <select
-                  className={`form-select ${errors.gender ? "is-invalid" : ""}`}
+                  className={`form-select ${
+                    errors.gender ? "is-invalid" : ""
+                  }`}
                   value={form.gender}
                   onChange={(e) => setField("gender", e.target.value)}
                 >
@@ -576,9 +628,7 @@ export default function LoanApplicationPage() {
               </div>
 
               <div className="col-12 col-md-6">
-                <label className="form-label fw-semibold">
-                  Marital Status *
-                </label>
+                <label className="form-label fw-semibold">Marital Status *</label>
                 <select
                   className={`form-select ${
                     errors.maritalStatus ? "is-invalid" : ""
@@ -658,7 +708,7 @@ export default function LoanApplicationPage() {
                   onChange={(e) =>
                     setField(
                       "sinTaxId",
-                      sanitizeDigits(e.target.value).slice(0, 9),
+                      sanitizeDigits(e.target.value).slice(0, 9)
                     )
                   }
                   placeholder="Enter SIN (9 digits)"
@@ -673,12 +723,12 @@ export default function LoanApplicationPage() {
           {currentStep === 1 && (
             <div className="row g-3">
               <div className="col-12 col-md-6">
-                <label className="form-label fw-semibold">
-                  Email Address *
-                </label>
+                <label className="form-label fw-semibold">Email Address *</label>
                 <input
                   type="email"
-                  className={`form-control ${errors.email ? "is-invalid" : ""}`}
+                  className={`form-control ${
+                    errors.email ? "is-invalid" : ""
+                  }`}
                   value={form.email}
                   onChange={(e) => setField("email", e.target.value)}
                   placeholder="Enter email address"
@@ -687,9 +737,7 @@ export default function LoanApplicationPage() {
               </div>
 
               <div className="col-12 col-md-3">
-                <label className="form-label fw-semibold">
-                  Mobile Number *
-                </label>
+                <label className="form-label fw-semibold">Mobile Number *</label>
                 <input
                   type="text"
                   className={`form-control ${
@@ -705,9 +753,7 @@ export default function LoanApplicationPage() {
               </div>
 
               <div className="col-12 col-md-3">
-                <label className="form-label fw-semibold">
-                  Alternate Phone
-                </label>
+                <label className="form-label fw-semibold">Alternate Phone</label>
                 <input
                   type="text"
                   className="form-control"
@@ -724,9 +770,7 @@ export default function LoanApplicationPage() {
               </div>
 
               <div className="col-12 col-md-6">
-                <label className="form-label fw-semibold">
-                  Address Line 1 *
-                </label>
+                <label className="form-label fw-semibold">Address Line 1 *</label>
                 <input
                   type="text"
                   className={`form-control ${
@@ -734,11 +778,7 @@ export default function LoanApplicationPage() {
                   }`}
                   value={form.residentialAddress.line1}
                   onChange={(e) =>
-                    setAddressField(
-                      "residentialAddress",
-                      "line1",
-                      e.target.value,
-                    )
+                    setAddressField("residentialAddress", "line1", e.target.value)
                   }
                   placeholder="Enter address line 1"
                 />
@@ -752,11 +792,7 @@ export default function LoanApplicationPage() {
                   className="form-control"
                   value={form.residentialAddress.line2}
                   onChange={(e) =>
-                    setAddressField(
-                      "residentialAddress",
-                      "line2",
-                      e.target.value,
-                    )
+                    setAddressField("residentialAddress", "line2", e.target.value)
                   }
                   placeholder="Enter address line 2"
                 />
@@ -771,11 +807,7 @@ export default function LoanApplicationPage() {
                   }`}
                   value={form.residentialAddress.city}
                   onChange={(e) =>
-                    setAddressField(
-                      "residentialAddress",
-                      "city",
-                      e.target.value,
-                    )
+                    setAddressField("residentialAddress", "city", e.target.value)
                   }
                   placeholder="Enter city"
                 />
@@ -783,9 +815,7 @@ export default function LoanApplicationPage() {
               </div>
 
               <div className="col-12 col-md-3">
-                <label className="form-label fw-semibold">
-                  Province / State *
-                </label>
+                <label className="form-label fw-semibold">Province / State *</label>
                 <input
                   type="text"
                   className={`form-control ${
@@ -793,11 +823,7 @@ export default function LoanApplicationPage() {
                   }`}
                   value={form.residentialAddress.state}
                   onChange={(e) =>
-                    setAddressField(
-                      "residentialAddress",
-                      "state",
-                      e.target.value,
-                    )
+                    setAddressField("residentialAddress", "state", e.target.value)
                   }
                   placeholder="Enter province / state"
                 />
@@ -816,7 +842,7 @@ export default function LoanApplicationPage() {
                     setAddressField(
                       "residentialAddress",
                       "postalCode",
-                      e.target.value.toUpperCase(),
+                      e.target.value.toUpperCase()
                     )
                   }
                   placeholder="Enter postal code"
@@ -833,11 +859,7 @@ export default function LoanApplicationPage() {
                   }`}
                   value={form.residentialAddress.country}
                   onChange={(e) =>
-                    setAddressField(
-                      "residentialAddress",
-                      "country",
-                      e.target.value,
-                    )
+                    setAddressField("residentialAddress", "country", e.target.value)
                   }
                   placeholder="Enter country"
                 />
@@ -881,11 +903,7 @@ export default function LoanApplicationPage() {
                       }`}
                       value={form.mailingAddress.line1}
                       onChange={(e) =>
-                        setAddressField(
-                          "mailingAddress",
-                          "line1",
-                          e.target.value,
-                        )
+                        setAddressField("mailingAddress", "line1", e.target.value)
                       }
                       placeholder="Enter address line 1"
                     />
@@ -901,11 +919,7 @@ export default function LoanApplicationPage() {
                       className="form-control"
                       value={form.mailingAddress.line2}
                       onChange={(e) =>
-                        setAddressField(
-                          "mailingAddress",
-                          "line2",
-                          e.target.value,
-                        )
+                        setAddressField("mailingAddress", "line2", e.target.value)
                       }
                       placeholder="Enter address line 2"
                     />
@@ -920,11 +934,7 @@ export default function LoanApplicationPage() {
                       }`}
                       value={form.mailingAddress.city}
                       onChange={(e) =>
-                        setAddressField(
-                          "mailingAddress",
-                          "city",
-                          e.target.value,
-                        )
+                        setAddressField("mailingAddress", "city", e.target.value)
                       }
                       placeholder="Enter city"
                     />
@@ -942,11 +952,7 @@ export default function LoanApplicationPage() {
                       }`}
                       value={form.mailingAddress.state}
                       onChange={(e) =>
-                        setAddressField(
-                          "mailingAddress",
-                          "state",
-                          e.target.value,
-                        )
+                        setAddressField("mailingAddress", "state", e.target.value)
                       }
                       placeholder="Enter province / state"
                     />
@@ -954,9 +960,7 @@ export default function LoanApplicationPage() {
                   </div>
 
                   <div className="col-12 col-md-3">
-                    <label className="form-label fw-semibold">
-                      Postal Code *
-                    </label>
+                    <label className="form-label fw-semibold">Postal Code *</label>
                     <input
                       type="text"
                       className={`form-control ${
@@ -967,7 +971,7 @@ export default function LoanApplicationPage() {
                         setAddressField(
                           "mailingAddress",
                           "postalCode",
-                          e.target.value.toUpperCase(),
+                          e.target.value.toUpperCase()
                         )
                       }
                       placeholder="Enter postal code"
@@ -984,11 +988,7 @@ export default function LoanApplicationPage() {
                       }`}
                       value={form.mailingAddress.country}
                       onChange={(e) =>
-                        setAddressField(
-                          "mailingAddress",
-                          "country",
-                          e.target.value,
-                        )
+                        setAddressField("mailingAddress", "country", e.target.value)
                       }
                       placeholder="Enter country"
                     />
@@ -1051,9 +1051,7 @@ export default function LoanApplicationPage() {
                         errors.institutionName ? "is-invalid" : ""
                       }`}
                       value={form.institutionName}
-                      onChange={(e) =>
-                        setField("institutionName", e.target.value)
-                      }
+                      onChange={(e) => setField("institutionName", e.target.value)}
                       placeholder="Enter institution name"
                     />
                     {renderInputError("institutionName")}
@@ -1070,10 +1068,7 @@ export default function LoanApplicationPage() {
                       }`}
                       value={form.graduationYear}
                       onChange={(e) =>
-                        setField(
-                          "graduationYear",
-                          sanitizeDigits(e.target.value),
-                        )
+                        setField("graduationYear", sanitizeDigits(e.target.value))
                       }
                       placeholder="Enter graduation year"
                       maxLength={4}
@@ -1088,9 +1083,7 @@ export default function LoanApplicationPage() {
           {currentStep === 3 && (
             <div className="row g-3">
               <div className="col-12 col-md-4">
-                <label className="form-label fw-semibold">
-                  Employment Status *
-                </label>
+                <label className="form-label fw-semibold">Employment Status *</label>
                 <select
                   className={`form-select ${
                     errors.employmentStatus ? "is-invalid" : ""
@@ -1109,9 +1102,7 @@ export default function LoanApplicationPage() {
               </div>
 
               <div className="col-12 col-md-4">
-                <label className="form-label fw-semibold">
-                  Monthly Income *
-                </label>
+                <label className="form-label fw-semibold">Monthly Income *</label>
                 <input
                   type="text"
                   className={`form-control ${
@@ -1139,7 +1130,7 @@ export default function LoanApplicationPage() {
                   onChange={(e) =>
                     setField(
                       "tenureMonths",
-                      sanitizeDigits(e.target.value).slice(0, 3),
+                      sanitizeDigits(e.target.value).slice(0, 3)
                     )
                   }
                   placeholder="Enter tenure (e.g. 60)"
@@ -1156,9 +1147,7 @@ export default function LoanApplicationPage() {
                   type="text"
                   className="form-control"
                   value={form.otherIncomeSources}
-                  onChange={(e) =>
-                    setField("otherIncomeSources", e.target.value)
-                  }
+                  onChange={(e) => setField("otherIncomeSources", e.target.value)}
                   placeholder="Enter other income sources"
                 />
               </div>
@@ -1167,9 +1156,7 @@ export default function LoanApplicationPage() {
                 form.employmentStatus === "Self-employed") && (
                 <>
                   <div className="col-12 col-md-4">
-                    <label className="form-label fw-semibold">
-                      Employer Name *
-                    </label>
+                    <label className="form-label fw-semibold">Employer Name *</label>
                     <input
                       type="text"
                       className={`form-control ${
@@ -1199,18 +1186,14 @@ export default function LoanApplicationPage() {
                   </div>
 
                   <div className="col-12 col-md-4">
-                    <label className="form-label fw-semibold">
-                      Work Experience *
-                    </label>
+                    <label className="form-label fw-semibold">Work Experience *</label>
                     <input
                       type="text"
                       className={`form-control ${
                         errors.workExperience ? "is-invalid" : ""
                       }`}
                       value={form.workExperience}
-                      onChange={(e) =>
-                        setField("workExperience", e.target.value)
-                      }
+                      onChange={(e) => setField("workExperience", e.target.value)}
                       placeholder="Enter work experience"
                     />
                     {renderInputError("workExperience")}
@@ -1219,9 +1202,7 @@ export default function LoanApplicationPage() {
               )}
 
               <div className="col-12 col-md-4">
-                <label className="form-label fw-semibold">
-                  Existing Loans *
-                </label>
+                <label className="form-label fw-semibold">Existing Loans *</label>
                 <select
                   className={`form-select ${
                     errors.existingLoans ? "is-invalid" : ""
@@ -1250,7 +1231,7 @@ export default function LoanApplicationPage() {
                     onChange={(e) =>
                       setField(
                         "totalMonthlyLoanPayments",
-                        sanitizeDigits(e.target.value),
+                        sanitizeDigits(e.target.value)
                       )
                     }
                     placeholder="Enter total monthly loan payments"
@@ -1309,9 +1290,7 @@ export default function LoanApplicationPage() {
 
                     <div className="row g-3">
                       <div className="col-12 col-md-4">
-                        <label className="form-label fw-semibold">
-                          Bank Name *
-                        </label>
+                        <label className="form-label fw-semibold">Bank Name *</label>
                         <input
                           type="text"
                           className={`form-control ${
@@ -1344,15 +1323,13 @@ export default function LoanApplicationPage() {
                             setBankField(
                               index,
                               "institutionNumber",
-                              sanitizeDigits(e.target.value).slice(0, 3),
+                              sanitizeDigits(e.target.value).slice(0, 3)
                             )
                           }
                           placeholder="3 digits"
                           maxLength={3}
                         />
-                        {renderInputError(
-                          `bankAccounts.${index}.institutionNumber`,
-                        )}
+                        {renderInputError(`bankAccounts.${index}.institutionNumber`)}
                       </div>
 
                       <div className="col-12 col-md-4">
@@ -1371,21 +1348,17 @@ export default function LoanApplicationPage() {
                             setBankField(
                               index,
                               "transitNumber",
-                              sanitizeDigits(e.target.value).slice(0, 5),
+                              sanitizeDigits(e.target.value).slice(0, 5)
                             )
                           }
                           placeholder="5 digits"
                           maxLength={5}
                         />
-                        {renderInputError(
-                          `bankAccounts.${index}.transitNumber`,
-                        )}
+                        {renderInputError(`bankAccounts.${index}.transitNumber`)}
                       </div>
 
                       <div className="col-12 col-md-4">
-                        <label className="form-label fw-semibold">
-                          Account Number *
-                        </label>
+                        <label className="form-label fw-semibold">Account Number *</label>
                         <input
                           type="text"
                           className={`form-control ${
@@ -1398,20 +1371,16 @@ export default function LoanApplicationPage() {
                             setBankField(
                               index,
                               "accountNumber",
-                              sanitizeDigits(e.target.value).slice(0, 17),
+                              sanitizeDigits(e.target.value).slice(0, 17)
                             )
                           }
                           placeholder="Enter full account number"
                         />
-                        {renderInputError(
-                          `bankAccounts.${index}.accountNumber`,
-                        )}
+                        {renderInputError(`bankAccounts.${index}.accountNumber`)}
                       </div>
 
                       <div className="col-12 col-md-4">
-                        <label className="form-label fw-semibold">
-                          Account Type *
-                        </label>
+                        <label className="form-label fw-semibold">Account Type *</label>
                         <select
                           className={`form-select ${
                             errors[`bankAccounts.${index}.accountType`]
@@ -1431,9 +1400,7 @@ export default function LoanApplicationPage() {
                       </div>
 
                       <div className="col-12 col-md-4">
-                        <label className="form-label fw-semibold">
-                          SWIFT / BIC Code
-                        </label>
+                        <label className="form-label fw-semibold">SWIFT / BIC Code</label>
                         <input
                           type="text"
                           className={`form-control ${
@@ -1446,10 +1413,7 @@ export default function LoanApplicationPage() {
                             setBankField(
                               index,
                               "swiftBic",
-                              sanitizeAlphaNumericUpper(e.target.value).slice(
-                                0,
-                                11,
-                              ),
+                              sanitizeAlphaNumericUpper(e.target.value).slice(0, 11)
                             )
                           }
                           placeholder="Optional"
@@ -1494,21 +1458,21 @@ export default function LoanApplicationPage() {
                 "governmentIdProof",
                 "Government ID Proof",
                 "Passport / Driver License / National ID",
-                form.governmentIdProof,
+                form.governmentIdProof
               )}
 
               {renderUploadField(
                 "incomeProof",
                 "Income Proof",
                 "Pay slip (last 3 months)",
-                form.incomeProof,
+                form.incomeProof
               )}
 
               {renderUploadField(
                 "bankStatement",
                 "Bank Statement",
                 "Last 6 months bank statement",
-                form.bankStatement,
+                form.bankStatement
               )}
 
               <p className="cp-loan-note mb-0">
