@@ -351,9 +351,31 @@ export default function LoanApplicationPage() {
 
       const payload = buildLoanApplicationPayload(form);
 
-      await axios.post("/api/application/create", payload, {
+      const createResponse = await axios.post("/api/application/create", payload, {
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const applicationId = createResponse.data.application_id;
+
+      const multipartData = new FormData();
+      multipartData.append("application_id", applicationId);
+
+      if (form.governmentIdProof) {
+        multipartData.append("governmentIdProof", form.governmentIdProof);
+      }
+      if (form.incomeProof) {
+        multipartData.append("incomeProof", form.incomeProof);
+      }
+      if (form.bankStatement) {
+        multipartData.append("bankStatement", form.bankStatement);
+      }
+
+      await axios.post("/api/application/files", multipartData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
       });

@@ -4,6 +4,7 @@ import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 
 import { Prisma } from '../../generated/prisma/client.js';
+import { AwsService } from '../aws/aws.service.js';
 import { JwtPayload } from '../common/types/jwtpayload.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
@@ -16,7 +17,61 @@ export class ApplicationService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
+    private readonly awsService: AwsService,
   ) {}
+
+  async uploadFiles(
+    applicationId: string,
+    files: {
+      governmentIdProof?: any[];
+      incomeProof?: any[];
+      bankStatement?: any[];
+    },
+  ) {
+    const bucket = this.configService.get<string>('aws.s3.bucketName') || 'credit-pulse-bucket';
+    const projectId = applicationId;
+
+    const uploadedPaths: any = {};
+
+    if (files?.governmentIdProof && files.governmentIdProof.length > 0) {
+      const file = files.governmentIdProof[0];
+      const key = `${projectId}/government/${Date.now()}-${file.originalname}`;
+      await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.governmentIdProof = key;
+    }
+
+    if (files?.incomeProof && files.incomeProof.length > 0) {
+      const file = files.incomeProof[0];
+      const key = `${projectId}/income/${Date.now()}-${file.originalname}`;
+      await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.incomeProof = key;
+    }
+
+    if (files?.bankStatement && files.bankStatement.length > 0) {
+      const file = files.bankStatement[0];
+      const key = `${projectId}/bankstatement/${Date.now()}-${file.originalname}`;
+      await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.bankStatement = key;
+    }
+
+    const subLoan = await this.prisma.sub_loan.findFirst({
+      where: { application_id: applicationId },
+    });
+
+    if (!subLoan) {
+      throw new BadRequestException('Application with that ID could not be found.');
+    }
+
+    await this.prisma.$transaction(async (tx) => {
+      await this.saveCustomerDocuments(tx, subLoan.customer_id, {
+        governmentIdProof: uploadedPaths.governmentIdProof,
+        incomeProof: uploadedPaths.incomeProof,
+        bankStatement: uploadedPaths.bankStatement,
+      } as any);
+    });
+
+    return uploadedPaths;
+  }
 
   async createApplication(
     createApplicationDto: CreateApplicationRequestDto,
@@ -24,6 +79,15 @@ export class ApplicationService {
   ): Promise<CreateApplicationResponseDto> {
     try {
       return await this.prisma.$transaction(async (tx) => {
+        if (
+          !createApplicationDto.creditReportConsent ||
+          !createApplicationDto.declarationAccepted
+        ) {
+          throw new BadRequestException(
+            'Credit Report Consent and Declaration Accepted are required.',
+          );
+        }
+
         const userId = currentUser.sub;
 
         const references = await this.resolveReferenceData(tx, createApplicationDto);
@@ -62,7 +126,7 @@ export class ApplicationService {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           const target = error.meta?.target as Array<string> | string | undefined;
-          let fields = 'unique fields';
+          let fields = error.meta ? JSON.stringify(error.meta) : 'unique fields';
           if (Array.isArray(target)) {
             fields = target.join(', ');
           } else if (typeof target === 'string') {
@@ -185,26 +249,11 @@ export class ApplicationService {
         select: { marital_status_id: true },
       }));
 
-    const nationalityCountry =
-      (await tx.countries.findFirst({
-        where: {
-          is_active: true,
-          nationality_name: { equals: dto.nationality, mode: 'insensitive' },
-        },
-        select: { country_id: true },
-      })) ??
-      (await tx.countries.findFirst({
-        where: { is_active: true, country_name: { equals: dto.nationality, mode: 'insensitive' } },
-        select: { country_id: true },
-      })) ??
-      (await tx.countries.create({
-        data: {
-          country_code: dto.nationality.substring(0, 3).toUpperCase(),
-          country_name: dto.nationality,
-          nationality_name: dto.nationality,
-        },
-        select: { country_id: true },
-      }));
+    const nationalityCountryId = await this.getOrCreateCountry(
+      tx,
+      dto.nationality,
+      dto.nationality,
+    );
 
     const governmentIdType =
       (await tx.government_id_types.findFirst({
@@ -231,7 +280,7 @@ export class ApplicationService {
       employmentTypeId: employmentType.employment_type_id,
       genderId: gender.gender_id,
       maritalStatusId: maritalStatus.marital_status_id,
-      nationalityCountryId: nationalityCountry.country_id,
+      nationalityCountryId,
       governmentIdTypeId: governmentIdType.government_id_type_id,
     };
   }
@@ -276,22 +325,7 @@ export class ApplicationService {
     dto: CreateApplicationRequestDto,
     references: any,
   ) {
-    const resCountry =
-      (await tx.countries.findFirst({
-        where: {
-          is_active: true,
-          country_name: { equals: dto.residentialAddress.country, mode: 'insensitive' },
-        },
-        select: { country_id: true },
-      })) ??
-      (await tx.countries.create({
-        data: {
-          country_code: dto.residentialAddress.country.substring(0, 3).toUpperCase(),
-          country_name: dto.residentialAddress.country,
-          nationality_name: `${dto.residentialAddress.country} National`,
-        },
-        select: { country_id: true },
-      }));
+    const resCountryId = await this.getOrCreateCountry(tx, dto.residentialAddress.country);
 
     await tx.customer_address_details.create({
       data: {
@@ -302,28 +336,13 @@ export class ApplicationService {
         city: dto.residentialAddress.city,
         state_province: dto.residentialAddress.state,
         postal_code: dto.residentialAddress.postalCode,
-        country_id: resCountry.country_id,
+        country_id: resCountryId,
         is_primary: true,
       },
     });
 
     if (!dto.mailingSameAsResidential && dto.mailingAddress) {
-      const mailCountry =
-        (await tx.countries.findFirst({
-          where: {
-            is_active: true,
-            country_name: { equals: dto.mailingAddress.country, mode: 'insensitive' },
-          },
-          select: { country_id: true },
-        })) ??
-        (await tx.countries.create({
-          data: {
-            country_code: dto.mailingAddress.country.substring(0, 3).toUpperCase(),
-            country_name: dto.mailingAddress.country,
-            nationality_name: `${dto.mailingAddress.country} National`,
-          },
-          select: { country_id: true },
-        }));
+      const mailCountryId = await this.getOrCreateCountry(tx, dto.mailingAddress.country);
 
       await tx.customer_address_details.create({
         data: {
@@ -334,7 +353,7 @@ export class ApplicationService {
           city: dto.mailingAddress.city,
           state_province: dto.mailingAddress.state,
           postal_code: dto.mailingAddress.postalCode,
-          country_id: mailCountry.country_id,
+          country_id: mailCountryId,
           is_primary: false,
         },
       });
@@ -446,11 +465,11 @@ export class ApplicationService {
   ) {
     const contactTypeMobile =
       (await tx.contact_types.findFirst({
-        where: { contact_type_name: { equals: 'MOBILE', mode: 'insensitive' }, is_active: true },
+        where: { contact_type_code: { equals: 'MOBILE', mode: 'insensitive' }, is_active: true },
         select: { contact_type_id: true },
       })) ??
       (await tx.contact_types.create({
-        data: { contact_type_code: 'MOB', contact_type_name: 'MOBILE' },
+        data: { contact_type_code: 'MOBILE', contact_type_name: 'Mobile Number' },
         select: { contact_type_id: true },
       }));
 
@@ -476,11 +495,11 @@ export class ApplicationService {
 
     const contactTypeEmail =
       (await tx.contact_types.findFirst({
-        where: { contact_type_name: { equals: 'EMAIL', mode: 'insensitive' }, is_active: true },
+        where: { contact_type_code: { equals: 'EMAIL', mode: 'insensitive' }, is_active: true },
         select: { contact_type_id: true },
       })) ??
       (await tx.contact_types.create({
-        data: { contact_type_code: 'EMAIL', contact_type_name: 'EMAIL' },
+        data: { contact_type_code: 'EMAIL', contact_type_name: 'Email Address' },
         select: { contact_type_id: true },
       }));
 
@@ -684,5 +703,54 @@ export class ApplicationService {
       .padStart(4, '0');
 
     return `APPL${timestampPart}${randomPart}`;
+  }
+
+  private async getOrCreateCountry(
+    tx: PrismaTransaction,
+    countryName: string,
+    nationalityName?: string,
+  ): Promise<string> {
+    const defaultCode = countryName.substring(0, 3).toUpperCase().padEnd(3, 'X');
+    let country = await tx.countries.findFirst({
+      where: {
+        is_active: true,
+        OR: [
+          { country_name: { equals: countryName, mode: 'insensitive' } },
+          ...(nationalityName
+            ? [{ nationality_name: { equals: nationalityName, mode: 'insensitive' as const } }]
+            : []),
+          { country_code: { equals: defaultCode } },
+        ],
+      },
+      select: { country_id: true },
+    });
+
+    if (country) {
+      return country.country_id;
+    }
+
+    let uniqueCode = defaultCode;
+    let counter = 1;
+    while (
+      await tx.countries.findFirst({
+        where: { country_code: uniqueCode },
+        select: { country_id: true },
+      })
+    ) {
+      const suffix = String(counter);
+      uniqueCode = defaultCode.substring(0, 3 - suffix.length) + suffix;
+      counter++;
+    }
+
+    const newCountry = await tx.countries.create({
+      data: {
+        country_code: uniqueCode,
+        country_name: countryName,
+        nationality_name: nationalityName || `${countryName} National`,
+      },
+      select: { country_id: true },
+    });
+
+    return newCountry.country_id;
   }
 }
