@@ -191,36 +191,37 @@ model banks {
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 
 model cibil_reports {
-  cibil_report_id           String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  application_id            String                     @unique(map: "uq_cibil_reports_application_id") @db.Uuid
-  request_id                String                     @unique(map: "uq_cibil_reports_request_id") @db.VarChar(50)
-  reference_id              String                     @unique(map: "uq_cibil_reports_reference_id") @db.VarChar(50)
-  bureau                    String                     @default("CIBIL") @db.VarChar(20)
-  report_date               DateTime                   @db.Timestamptz(6)
-  status                    String                     @db.VarChar(20)
+  cibil_report_id           String                      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id            String                      @unique(map: "uq_cibil_reports_application_id") @db.Uuid
+  request_id                String                      @unique(map: "uq_cibil_reports_request_id") @db.VarChar(50)
+  reference_id              String                      @unique(map: "uq_cibil_reports_reference_id") @db.VarChar(50)
+  bureau                    String                      @default("CIBIL") @db.VarChar(20)
+  report_date               DateTime                    @db.Timestamptz(6)
+  status                    String                      @db.VarChar(20)
   cibil_score               Int
-  score_band                String                     @db.VarChar(20)
-  risk_level                String                     @db.VarChar(20)
-  score_version             String                     @db.VarChar(20)
+  score_band                String                      @db.VarChar(20)
+  risk_level                String                      @db.VarChar(20)
+  score_version             String                      @db.VarChar(20)
   total_accounts            Int
   active_accounts           Int
   closed_accounts           Int
-  total_outstanding_balance Decimal                    @db.Decimal(14, 2)
+  total_outstanding_balance Decimal                     @db.Decimal(14, 2)
   secured_loan_accounts     Int
   unsecured_loan_accounts   Int
-  total_missed_payments     Int                        @default(0)
-  recent_delinquency        Boolean                    @default(false)
-  credit_utilization_ratio  Decimal                    @db.Decimal(5, 2)
-  average_account_age_years Decimal                    @db.Decimal(5, 2)
-  debt_to_income_estimate   Decimal                    @db.Decimal(5, 2)
-  created_at                DateTime                   @default(now()) @db.Timestamptz(6)
+  total_missed_payments     Int                         @default(0)
+  recent_delinquency        Boolean                     @default(false)
+  credit_utilization_ratio  Decimal                     @db.Decimal(5, 2)
+  average_account_age_years Decimal                     @db.Decimal(5, 2)
+  debt_to_income_estimate   Decimal                     @db.Decimal(5, 2)
+  created_at                DateTime                    @default(now()) @db.Timestamptz(6)
   cibil_applicants          cibil_applicants?
   cibil_accounts            cibil_accounts[]
   cibil_enquiries           cibil_enquiries[]
   cibil_payment_history     cibil_payment_history[]
   cibil_risk_indicators     cibil_risk_indicators?
   application_credit_check  application_credit_check[]
-  loan_application          loan_application           @relation(fields: [application_id], references: [application_id], onDelete: Cascade, onUpdate: NoAction)
+  loan_application          loan_application            @relation(fields: [application_id], references: [application_id], onDelete: Cascade, onUpdate: NoAction)
+  application_ratio_summary application_ratio_summary[]
 
   @@index([report_date], map: "idx_cibil_reports_report_date")
   @@index([cibil_score], map: "idx_cibil_reports_cibil_score")
@@ -325,6 +326,8 @@ model customer {
   government_ids     customer_government_id[]
   bank_details       customer_bank_details[]
   documents          customer_document_details[]
+
+  application_ratio_summary application_ratio_summary[]
 
   @@index([is_active], map: "idx_customer_active")
   @@index([date_of_birth], map: "idx_customer_dob")
@@ -585,6 +588,7 @@ model loan_application {
   sub_loan                                 sub_loan[]
   application_communication_history        application_communication_history[]
   application_message_attachment           application_message_attachment[]
+  application_ratio_summary                application_ratio_summary?
 
   @@index([is_active], map: "idx_loan_application_active")
   @@index([status_id], map: "idx_loan_application_status")
@@ -953,4 +957,43 @@ model application_message_attachment {
 
   @@index([message_id], map: "idx_application_message_attachment_message_id")
   @@index([application_id], map: "idx_application_message_attachment_application_id")
+}
+
+model application_ratio_summary {
+  ratio_summary_id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id     String @db.Uuid
+  application_number String @db.VarChar(40)
+  customer_id        String @db.Uuid
+
+  dbr                Decimal @default(0) @db.Decimal(5, 2)
+  emi_to_income      Decimal @default(0) @db.Decimal(5, 2)
+  credit_utilization Decimal @default(0) @db.Decimal(5, 2)
+  loan_to_income     Decimal @default(0) @db.Decimal(10, 4)
+
+  monthly_income              Decimal @default(0) @db.Decimal(12, 2)
+  annual_income               Decimal @default(0) @db.Decimal(14, 2)
+  total_monthly_debt_payments Decimal @default(0) @db.Decimal(12, 2)
+  proposed_emi                Decimal @default(0) @db.Decimal(14, 2)
+  requested_loan_amount       Decimal @default(0) @db.Decimal(14, 2)
+
+  cibil_report_id     String?  @db.Uuid
+  calculation_version String   @default("v1") @db.VarChar(30)
+  calculated_at       DateTime @default(now()) @db.Timestamptz(6)
+  remarks             String?  @db.Text
+  input_snapshot_json Json?
+
+  created_by String?  @db.Uuid
+  updated_by String?  @db.Uuid
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @updatedAt @db.Timestamptz(6)
+  is_active  Boolean  @default(true)
+
+  loan_application             loan_application @relation(fields: [application_id], references: [application_id])
+  customer                     customer         @relation(fields: [customer_id], references: [customer_id])
+  cibilReports                 cibil_reports?   @relation(fields: [cibil_reportsCibil_report_id], references: [cibil_report_id])
+  cibil_reportsCibil_report_id String?          @db.Uuid
+
+  @@unique([application_id])
+  @@index([application_number])
+  @@index([customer_id])
 }
