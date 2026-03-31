@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  NotFoundException,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import * as bcrypt from 'bcrypt';
@@ -756,7 +761,9 @@ export class ApplicationService {
     return newCountry.country_id;
   }
 
-  async getPersonalInformation(dto: GetPersonalInformationRequestDto): Promise<GetPersonalInformationResponseDto> {
+  async getPersonalInformation(
+    dto: GetPersonalInformationRequestDto,
+  ): Promise<GetPersonalInformationResponseDto> {
     const loanApp = await this.prisma.loan_application.findUnique({
       where: { application_number: dto.applicationNumber },
       include: {
@@ -783,13 +790,17 @@ export class ApplicationService {
       throw new NotFoundException(`Application with number ${dto.applicationNumber} not found.`);
     }
 
-    const primarySubLoan = loanApp.sub_loan.find((sl) => sl.applicant_type === 0) || loanApp.sub_loan[0];
+    const primarySubLoan =
+      loanApp.sub_loan.find((sl) => sl.applicant_type === 0) || loanApp.sub_loan[0];
     if (!primarySubLoan || !primarySubLoan.customer) {
-      throw new NotFoundException(`Customer details not found for application ${dto.applicationNumber}.`);
+      throw new NotFoundException(
+        `Customer details not found for application ${dto.applicationNumber}.`,
+      );
     }
 
     const customer = primarySubLoan.customer;
-    const govIdRecord = customer.government_ids?.find((gid) => gid.is_primary) || customer.government_ids?.[0];
+    const govIdRecord =
+      customer.government_ids?.find((gid) => gid.is_primary) || customer.government_ids?.[0];
 
     return {
       firstName: customer.first_name,
@@ -803,5 +814,4 @@ export class ApplicationService {
       sinTaxId: customer.sin_tax_id_masked || '',
     };
   }
-
 }
