@@ -1029,3 +1029,17 @@ html[data-theme="dark"] .cp-loan-consent-box {
   border-color: #334155;
   background: transparent;
 }
+
+
+.alert {
+  background: rgba(239, 68, 68, 0.18);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #fecaca;
+}
+
+html[data-theme="light"] .alert {
+  color: #b91c1c;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+
