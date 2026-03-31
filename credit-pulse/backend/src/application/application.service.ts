@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from '@nestjs/common';
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
 import * as bcrypt from 'bcrypt';
@@ -9,6 +9,8 @@ import { JwtPayload } from '../common/types/jwtpayload.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
 import { CreateApplicationResponseDto } from './dto/createApplicationResponse.dto.js';
+import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
+import { GetPersonalInformationResponseDto } from './dto/getPersonalInformationResponse.dto.js';
 
 type PrismaTransaction = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
 
@@ -753,4 +755,53 @@ export class ApplicationService {
 
     return newCountry.country_id;
   }
+
+  async getPersonalInformation(dto: GetPersonalInformationRequestDto): Promise<GetPersonalInformationResponseDto> {
+    const loanApp = await this.prisma.loan_application.findUnique({
+      where: { application_number: dto.applicationNumber },
+      include: {
+        sub_loan: {
+          include: {
+            customer: {
+              include: {
+                gender: true,
+                marital_status: true,
+                nationality: true,
+                government_ids: {
+                  include: {
+                    id_type: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!loanApp) {
+      throw new NotFoundException(`Application with number ${dto.applicationNumber} not found.`);
+    }
+
+    const primarySubLoan = loanApp.sub_loan.find((sl) => sl.applicant_type === 0) || loanApp.sub_loan[0];
+    if (!primarySubLoan || !primarySubLoan.customer) {
+      throw new NotFoundException(`Customer details not found for application ${dto.applicationNumber}.`);
+    }
+
+    const customer = primarySubLoan.customer;
+    const govIdRecord = customer.government_ids?.find((gid) => gid.is_primary) || customer.government_ids?.[0];
+
+    return {
+      firstName: customer.first_name,
+      lastName: customer.last_name,
+      dob: customer.date_of_birth ? customer.date_of_birth.toISOString().split('T')[0] : '',
+      gender: customer.gender?.gender_name || '',
+      maritalStatus: customer.marital_status?.marital_status_name || '',
+      nationality: customer.nationality?.country_name || '',
+      governmentIdType: govIdRecord?.id_type?.government_id_type_name || '',
+      governmentIdNumber: govIdRecord?.government_id_number_masked || '',
+      sinTaxId: customer.sin_tax_id_masked || '',
+    };
+  }
+
 }
