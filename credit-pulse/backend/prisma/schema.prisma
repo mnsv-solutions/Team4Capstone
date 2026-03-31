@@ -352,7 +352,6 @@ model customer_contact_details {
   customer     customer      @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)
   contact_type contact_types @relation(fields: [contact_type_id], references: [contact_type_id])
 
-  @@unique([contact_type_id, contact_value], map: "ux_customer_contact_value_active")
   @@index([customer_id, is_active], map: "idx_customer_contact_customer_active")
 }
 
