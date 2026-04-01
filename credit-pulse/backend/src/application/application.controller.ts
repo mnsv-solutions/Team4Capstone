@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Get,
   HttpCode,
   HttpStatus,
   Post,
@@ -18,6 +19,7 @@ import { AuthGuard } from '../auth/auth.guard.js';
 import { JwtPayload } from '../common/types/jwtpayload.js';
 import { ApplicationService } from './application.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
+import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
 
 @Controller('application')
 @UseGuards(AuthGuard)
@@ -71,5 +73,11 @@ export class ApplicationController {
       createApplicationDto,
       req.user as JwtPayload,
     );
+  }
+
+  @Get('personal-information')
+  @HttpCode(HttpStatus.OK)
+  async getPersonalInformation(@Body() dto: GetPersonalInformationRequestDto) {
+    return await this.applicationService.getPersonalInformation(dto);
   }
 }
