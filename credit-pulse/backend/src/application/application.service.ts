@@ -14,6 +14,8 @@ import { JwtPayload } from '../common/types/jwtpayload.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
 import { CreateApplicationResponseDto } from './dto/createApplicationResponse.dto.js';
+import { GetContactDetailsRequestDto } from './dto/getContactDetailsRequest.dto.js';
+import { GetContactDetailsResponseDto } from './dto/getContactDetailsResponse.dto.js';
 import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
 import { GetPersonalInformationResponseDto } from './dto/getPersonalInformationResponse.dto.js';
 
@@ -812,6 +814,96 @@ export class ApplicationService {
       governmentIdType: govIdRecord?.id_type?.government_id_type_name || '',
       governmentIdNumber: govIdRecord?.government_id_number_masked || '',
       sinTaxId: customer.sin_tax_id_masked || '',
+    };
+  }
+
+  async getContactDetails(dto: GetContactDetailsRequestDto): Promise<GetContactDetailsResponseDto> {
+    const loanApp = await this.prisma.loan_application.findUnique({
+      where: { application_number: dto.applicationNumber },
+      include: {
+        sub_loan: {
+          include: {
+            customer: {
+              include: {
+                contact_details: {
+                  include: {
+                    contact_type: true,
+                  },
+                },
+                address_details: {
+                  include: {
+                    country: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!loanApp) {
+      throw new NotFoundException(`Application with number ${dto.applicationNumber} not found.`);
+    }
+
+    const primarySubLoan =
+      loanApp.sub_loan.find((sl) => sl.applicant_type === 0) || loanApp.sub_loan[0];
+    if (!primarySubLoan || !primarySubLoan.customer) {
+      throw new NotFoundException(
+        `Customer details not found for application ${dto.applicationNumber}.`,
+      );
+    }
+
+    const customer = primarySubLoan.customer;
+
+    const emailDetail = customer.contact_details?.find(
+      (c) =>
+        c.contact_type?.contact_type_code === 'EMAIL' ||
+        c.contact_type?.contact_type_code === 'EMAIL_ADDRESS',
+    );
+    const mobileDetail = customer.contact_details?.find(
+      (c) => c.contact_type?.contact_type_code === 'MOBILE' && c.is_primary === true,
+    );
+    const alternatePhoneDetail = customer.contact_details?.find(
+      (c) => c.contact_type?.contact_type_code === 'MOBILE' && c.is_primary === false,
+    );
+
+    const residentialAddressDetail = customer.address_details?.find((a) => a.is_primary === true);
+    const mailingAddressDetail = customer.address_details?.find((a) => a.is_primary === false);
+
+    const mapAddress = (addr: typeof residentialAddressDetail) => {
+      if (!addr) {
+        return {
+          line1: '',
+          line2: '',
+          city: '',
+          state: '',
+          postalCode: '',
+          country: '',
+        };
+      }
+      return {
+        line1: addr.line1 || '',
+        line2: addr.line2 || '',
+        city: addr.city || '',
+        state: addr.state_province || '',
+        postalCode: addr.postal_code || '',
+        country: addr.country?.country_name || '',
+      };
+    };
+
+    const resAddressMapped = mapAddress(residentialAddressDetail);
+    const mailAddressMapped = mailingAddressDetail
+      ? mapAddress(mailingAddressDetail)
+      : resAddressMapped;
+
+    return {
+      email: emailDetail?.contact_value || '',
+      mobile: mobileDetail?.contact_value || '',
+      alternatePhone: alternatePhoneDetail?.contact_value || '',
+      residentialAddress: resAddressMapped,
+      mailingSameAsResidential: !mailingAddressDetail,
+      mailingAddress: mailAddressMapped,
     };
   }
 }
