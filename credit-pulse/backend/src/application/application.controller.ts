@@ -20,6 +20,7 @@ import { JwtPayload } from '../common/types/jwtpayload.js';
 import { ApplicationService } from './application.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
 import { GetContactDetailsRequestDto } from './dto/getContactDetailsRequest.dto.js';
+import { GetEducationDetailsRequestDto } from './dto/getEducationDetailsRequest.dto.js';
 import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
 
 @Controller('application')
@@ -86,5 +87,11 @@ export class ApplicationController {
   @HttpCode(HttpStatus.OK)
   async getContactDetails(@Body() dto: GetContactDetailsRequestDto) {
     return await this.applicationService.getContactDetails(dto);
+  }
+
+  @Get('education-details')
+  @HttpCode(HttpStatus.OK)
+  async getEducationDetails(@Body() dto: GetEducationDetailsRequestDto) {
+    return await this.applicationService.getEducationDetails(dto);
   }
 }

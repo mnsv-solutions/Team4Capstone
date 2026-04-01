@@ -16,6 +16,8 @@ import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.
 import { CreateApplicationResponseDto } from './dto/createApplicationResponse.dto.js';
 import { GetContactDetailsRequestDto } from './dto/getContactDetailsRequest.dto.js';
 import { GetContactDetailsResponseDto } from './dto/getContactDetailsResponse.dto.js';
+import { GetEducationDetailsRequestDto } from './dto/getEducationDetailsRequest.dto.js';
+import { GetEducationDetailsResponseDto } from './dto/getEducationDetailsResponse.dto.js';
 import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
 import { GetPersonalInformationResponseDto } from './dto/getPersonalInformationResponse.dto.js';
 
@@ -904,6 +906,54 @@ export class ApplicationService {
       residentialAddress: resAddressMapped,
       mailingSameAsResidential: !mailingAddressDetail,
       mailingAddress: mailAddressMapped,
+    };
+  }
+
+  async getEducationDetails(
+    dto: GetEducationDetailsRequestDto,
+  ): Promise<GetEducationDetailsResponseDto> {
+    const loanApp = await this.prisma.loan_application.findUnique({
+      where: { application_number: dto.applicationNumber },
+      include: {
+        sub_loan: {
+          include: {
+            customer: {
+              include: {
+                education_details: {
+                  include: {
+                    education_level: true,
+                    institution: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!loanApp) {
+      throw new NotFoundException(`Application with number ${dto.applicationNumber} not found.`);
+    }
+
+    const primarySubLoan =
+      loanApp.sub_loan.find((sl) => sl.applicant_type === 0) || loanApp.sub_loan[0];
+    if (!primarySubLoan || !primarySubLoan.customer) {
+      throw new NotFoundException(
+        `Customer details not found for application ${dto.applicationNumber}.`,
+      );
+    }
+
+    const customer = primarySubLoan.customer;
+
+    const educationDetail =
+      customer.education_details?.find((e) => e.is_active) || customer.education_details?.[0];
+
+    return {
+      highestEducation: educationDetail?.education_level?.level_name || '',
+      fieldOfStudy: educationDetail?.field_of_study || '',
+      institutionName: educationDetail?.institution?.institution_name || '',
+      graduationYear: educationDetail?.graduation_year?.toString() || '',
     };
   }
 }
