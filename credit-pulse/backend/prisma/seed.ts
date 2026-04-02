@@ -264,10 +264,11 @@ async function findOrCreateInstitution(
 async function seedBase() {
   console.log('Starting seed...');
 
-  const victorPassword = await bcrypt.hash('Victor@123', 10);
-  const miswaPassword = await bcrypt.hash('Miswa@123', 10);
-  const niraliPassword = await bcrypt.hash('Nirali@123', 10);
-  const sukhPassword = await bcrypt.hash('Sukh@123', 10);
+  const adminPassword = await bcrypt.hash('Victor@19880412.1001', 10);
+  const sourcingPassword = await bcrypt.hash('Sukh@19981222.1002', 10);
+  const underwriterPassword = await bcrypt.hash('Miswa@19910918.1003', 10);
+  const disbursalPassword = await bcrypt.hash('Nirali@19990810.1004', 10);
+  const customerPassword = await bcrypt.hash('Aman@19970214.1005', 10);
 
   await prisma.application_credit_check.deleteMany();
   await prisma.cibil_risk_indicators.deleteMany();
@@ -306,18 +307,34 @@ async function seedBase() {
     },
   });
 
-  const roleAnalyst = await prisma.roles.create({
+  const roleSourcingOfficer = await prisma.roles.create({
     data: {
-      role_code: 'ANALYST',
-      role_name: 'Credit Analyst',
+      role_code: 'SOURCING_OFFICER',
+      role_name: 'Sourcing Officer',
       is_active: true,
     },
   });
 
-  const roleOps = await prisma.roles.create({
+  const roleUnderwriter = await prisma.roles.create({
     data: {
-      role_code: 'OPS',
-      role_name: 'Operations Officer',
+      role_code: 'UNDERWRITER',
+      role_name: 'Underwriter',
+      is_active: true,
+    },
+  });
+
+  const roleDisbursalOfficer = await prisma.roles.create({
+    data: {
+      role_code: 'DISBURSAL_OFFICER',
+      role_name: 'Disbursal Officer',
+      is_active: true,
+    },
+  });
+
+  const roleCustomer = await prisma.roles.create({
+    data: {
+      role_code: 'CUSTOMER',
+      role_name: 'Customer',
       is_active: true,
     },
   });
@@ -328,36 +345,8 @@ async function seedBase() {
       first_name: 'Victor',
       last_name: 'Admin',
       email: 'victor@creditpulse.com',
-      password_hash: victorPassword,
+      password_hash: adminPassword,
       phone: '+1-519-555-1001',
-      is_email_verified: true,
-      is_system_user: true,
-      is_active: true,
-    },
-  });
-
-  const miswa = await prisma.users.create({
-    data: {
-      role_id: roleAnalyst.role_id,
-      first_name: 'Miswa',
-      last_name: 'Analyst',
-      email: 'miswa@creditpulse.com',
-      password_hash: miswaPassword,
-      phone: '+1-519-555-1002',
-      is_email_verified: true,
-      is_system_user: true,
-      is_active: true,
-    },
-  });
-
-  const nirali = await prisma.users.create({
-    data: {
-      role_id: roleAnalyst.role_id,
-      first_name: 'Nirali',
-      last_name: 'Patel',
-      email: 'nirali@creditpulse.com',
-      password_hash: niraliPassword,
-      phone: '+1-519-555-1003',
       is_email_verified: true,
       is_system_user: true,
       is_active: true,
@@ -366,14 +355,56 @@ async function seedBase() {
 
   const sukh = await prisma.users.create({
     data: {
-      role_id: roleOps.role_id,
+      role_id: roleSourcingOfficer.role_id,
       first_name: 'Sukh',
       last_name: 'Bhambra',
       email: 'sukh@creditpulse.com',
-      password_hash: sukhPassword,
+      password_hash: sourcingPassword,
+      phone: '+1-519-555-1002',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const miswa = await prisma.users.create({
+    data: {
+      role_id: roleUnderwriter.role_id,
+      first_name: 'Miswa',
+      last_name: 'Patel',
+      email: 'miswa@creditpulse.com',
+      password_hash: underwriterPassword,
+      phone: '+1-519-555-1003',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const nirali = await prisma.users.create({
+    data: {
+      role_id: roleDisbursalOfficer.role_id,
+      first_name: 'Nirali',
+      last_name: 'Patel',
+      email: 'nirali@creditpulse.com',
+      password_hash: disbursalPassword,
       phone: '+1-519-555-1004',
       is_email_verified: true,
       is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const amanCustomer = await prisma.users.create({
+    data: {
+      role_id: roleCustomer.role_id,
+      first_name: 'Aman',
+      last_name: 'Sharma',
+      email: 'aman.sharma@creditpulse.com',
+      password_hash: customerPassword,
+      phone: '+1-519-555-1005',
+      is_email_verified: true,
+      is_system_user: false,
       is_active: true,
     },
   });
@@ -646,33 +677,9 @@ async function seedBase() {
         marital_status: 'Married',
         nationality: 'Canadian',
         government_id_type: 'SIN',
-        government_id_number: '900000001',
-        created_by: createdBy,
-        updated_by: updatedBy,
-        is_active: true,
-      },
-      {
-        user_id: miswa.user_id,
-        date_of_birth: new Date('1991-09-18'),
-        gender: 'Female',
-        marital_status: 'Single',
-        nationality: 'Canadian',
-        government_id_type: 'SIN',
-        government_id_number: '900000002',
-        created_by: createdBy,
-        updated_by: updatedBy,
-        is_active: true,
-      },
-      {
-        user_id: nirali.user_id,
-        date_of_birth: new Date('1999-08-10'),
-        gender: 'Female',
-        marital_status: 'Single',
-        nationality: 'Indian',
-        government_id_type: 'SIN',
-        government_id_number: '900000003',
-        created_by: createdBy,
-        updated_by: updatedBy,
+        government_id_number: '1001',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
         is_active: true,
       },
       {
@@ -682,9 +689,45 @@ async function seedBase() {
         marital_status: 'Single',
         nationality: 'Indian',
         government_id_type: 'SIN',
-        government_id_number: '900000004',
-        created_by: createdBy,
-        updated_by: updatedBy,
+        government_id_number: '1002',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: miswa.user_id,
+        date_of_birth: new Date('1991-09-18'),
+        gender: 'Female',
+        marital_status: 'Single',
+        nationality: 'Canadian',
+        government_id_type: 'SIN',
+        government_id_number: '1003',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: nirali.user_id,
+        date_of_birth: new Date('1999-08-10'),
+        gender: 'Female',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1004',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: amanCustomer.user_id,
+        date_of_birth: new Date('1997-02-14'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1005',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
         is_active: true,
       },
     ],
@@ -4348,10 +4391,339 @@ async function seedApplicationCommunication() {
   console.log(app4Message2.message_id);
 }
 
+async function seedEligibilityEngine() {
+  console.log('Starting seed for eligibility rule engine...');
+
+  const victor = await getRequiredUser('victor@creditpulse.com');
+  const nirali = await getRequiredUser('nirali@creditpulse.com');
+  const miswa = await getRequiredUser('miswa@creditpulse.com');
+  const sukh = await getRequiredUser('sukh@creditpulse.com');
+
+  await prisma.application_eligibility_summary.deleteMany();
+  await prisma.eligibility_rule.deleteMany();
+  await prisma.eligibility_rule_set.deleteMany();
+
+  const defaultRuleSet = await prisma.eligibility_rule_set.create({
+    data: {
+      rule_set_code: 'DEFAULT_ELIGIBILITY',
+      rule_set_name: 'Default Eligibility Rules',
+      version_no: 1,
+      description: 'Default rule set for loan eligibility decisioning',
+      effective_from: new Date('2026-04-01T00:00:00Z'),
+      is_active: true,
+      created_by: victor.user_id,
+      updated_by: victor.user_id,
+    },
+  });
+
+  await prisma.eligibility_rule.createMany({
+    data: [
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'CREDIT_SCORE_SOFT_MIN',
+        rule_name: 'Minimum Credit Score',
+        metric_name: 'credit_score',
+        operator: '>=',
+        threshold_value: '650',
+        severity: 'SOFT_FAIL',
+        failure_message: 'Credit score is below the preferred threshold.',
+        evaluation_order: 1,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'CREDIT_SCORE_HARD_MIN',
+        rule_name: 'Hard Minimum Credit Score',
+        metric_name: 'credit_score',
+        operator: '>=',
+        threshold_value: '600',
+        severity: 'HARD_FAIL',
+        failure_message: 'Credit score is below the minimum allowed threshold.',
+        evaluation_order: 2,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'DBR_SOFT_MAX',
+        rule_name: 'Maximum DBR',
+        metric_name: 'dbr',
+        operator: '<=',
+        threshold_value: '40',
+        severity: 'SOFT_FAIL',
+        failure_message: 'Debt burden ratio is above the preferred limit.',
+        evaluation_order: 3,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'DBR_HARD_MAX',
+        rule_name: 'Hard Maximum DBR',
+        metric_name: 'dbr',
+        operator: '<=',
+        threshold_value: '50',
+        severity: 'HARD_FAIL',
+        failure_message: 'Debt burden ratio exceeds the maximum allowed limit.',
+        evaluation_order: 4,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'EMI_TO_INCOME_SOFT_MAX',
+        rule_name: 'Maximum EMI To Income',
+        metric_name: 'emi_to_income',
+        operator: '<=',
+        threshold_value: '35',
+        severity: 'SOFT_FAIL',
+        failure_message: 'EMI-to-income ratio is above the preferred limit.',
+        evaluation_order: 5,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'EMI_TO_INCOME_HARD_MAX',
+        rule_name: 'Hard Maximum EMI To Income',
+        metric_name: 'emi_to_income',
+        operator: '<=',
+        threshold_value: '45',
+        severity: 'HARD_FAIL',
+        failure_message: 'EMI-to-income ratio exceeds the maximum allowed limit.',
+        evaluation_order: 6,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'CREDIT_UTILIZATION_SOFT_MAX',
+        rule_name: 'Maximum Credit Utilization',
+        metric_name: 'credit_utilization',
+        operator: '<=',
+        threshold_value: '60',
+        severity: 'SOFT_FAIL',
+        failure_message: 'Credit utilization is above the preferred limit.',
+        evaluation_order: 7,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'CREDIT_UTILIZATION_HARD_MAX',
+        rule_name: 'Hard Maximum Credit Utilization',
+        metric_name: 'credit_utilization',
+        operator: '<=',
+        threshold_value: '80',
+        severity: 'HARD_FAIL',
+        failure_message: 'Credit utilization exceeds the maximum allowed limit.',
+        evaluation_order: 8,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'LOAN_TO_INCOME_SOFT_MAX',
+        rule_name: 'Maximum Loan To Income',
+        metric_name: 'loan_to_income',
+        operator: '<=',
+        threshold_value: '50',
+        severity: 'SOFT_FAIL',
+        failure_message: 'Loan-to-income ratio is above the preferred limit.',
+        evaluation_order: 9,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'LOAN_TO_INCOME_HARD_MAX',
+        rule_name: 'Hard Maximum Loan To Income',
+        metric_name: 'loan_to_income',
+        operator: '<=',
+        threshold_value: '70',
+        severity: 'HARD_FAIL',
+        failure_message: 'Loan-to-income ratio exceeds the maximum allowed limit.',
+        evaluation_order: 10,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'BUREAU_STATUS_SUCCESS_ONLY',
+        rule_name: 'Bureau Status Must Be Successful',
+        metric_name: 'bureau_status',
+        operator: '=',
+        expected_value: 'SUCCESS',
+        severity: 'HARD_FAIL',
+        failure_message: 'Credit bureau status must be SUCCESS.',
+        evaluation_order: 11,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'RISK_LEVEL_BLOCK_HIGH',
+        rule_name: 'Block High Risk Level',
+        metric_name: 'risk_level',
+        operator: '!=',
+        expected_value: 'HIGH',
+        severity: 'HARD_FAIL',
+        failure_message: 'Applicant is marked as HIGH risk.',
+        evaluation_order: 12,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'MIN_MONTHLY_INCOME',
+        rule_name: 'Minimum Monthly Income',
+        metric_name: 'monthly_income',
+        operator: '>=',
+        threshold_value: '25000',
+        severity: 'SOFT_FAIL',
+        failure_message: 'Monthly income is below the preferred threshold.',
+        evaluation_order: 13,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'MIN_NET_SURPLUS_AFTER_EMI',
+        rule_name: 'Minimum Net Surplus After EMI',
+        metric_name: 'net_surplus_after_emi',
+        operator: '>=',
+        threshold_value: '10000',
+        severity: 'HARD_FAIL',
+        failure_message: 'Net surplus after EMI is below the minimum required threshold.',
+        evaluation_order: 14,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+      {
+        rule_set_id: defaultRuleSet.rule_set_id,
+        rule_code: 'MAX_AGE_AT_MATURITY',
+        rule_name: 'Maximum Age At Loan Maturity',
+        metric_name: 'age_at_maturity',
+        operator: '<=',
+        threshold_value: '65',
+        severity: 'HARD_FAIL',
+        failure_message: 'Applicant age at maturity exceeds the allowed maximum.',
+        evaluation_order: 15,
+        is_active: true,
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+      },
+    ],
+  });
+
+  const app6 = await getRequiredApplication('APPL0000000006');
+  const app7 = await getRequiredApplication('APPL0000000007');
+  const app9 = await getRequiredApplication('APPL0000000009');
+
+  await prisma.application_eligibility_summary.createMany({
+    data: [
+      {
+        application_id: app6.application_id,
+        application_number: app6.application_number,
+        rule_set_id: defaultRuleSet.rule_set_id,
+        eligibility_status: 'ELIGIBLE',
+        failed_rule_count: 0,
+        reason_json: [],
+        decision_snapshot_json: {
+          credit_score: 742,
+          dbr: 28.5,
+          emi_to_income: 21.4,
+          credit_utilization: 15,
+          loan_to_income: 32.2,
+          bureau_status: 'SUCCESS',
+          risk_level: 'LOW',
+          monthly_income: 62000,
+          net_surplus_after_emi: 24800,
+          age_at_maturity: 31,
+        },
+        calculated_at: new Date('2026-04-01T10:00:00Z'),
+        created_by: nirali.user_id,
+        updated_by: nirali.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app7.application_id,
+        application_number: app7.application_number,
+        rule_set_id: defaultRuleSet.rule_set_id,
+        eligibility_status: 'CONDITIONALLY_ELIGIBLE',
+        failed_rule_count: 1,
+        reason_json: ['Debt burden ratio is above the preferred limit.'],
+        decision_snapshot_json: {
+          credit_score: 801,
+          dbr: 42.1,
+          emi_to_income: 29.8,
+          credit_utilization: 11,
+          loan_to_income: 34.7,
+          bureau_status: 'SUCCESS',
+          risk_level: 'VERY_LOW',
+          monthly_income: 78000,
+          net_surplus_after_emi: 30100,
+          age_at_maturity: 43,
+        },
+        calculated_at: new Date('2026-04-01T10:15:00Z'),
+        created_by: miswa.user_id,
+        updated_by: miswa.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app9.application_id,
+        application_number: app9.application_number,
+        rule_set_id: defaultRuleSet.rule_set_id,
+        eligibility_status: 'NOT_ELIGIBLE',
+        failed_rule_count: 3,
+        reason_json: [
+          'Applicant is marked as HIGH risk.',
+          'Credit utilization is above the preferred limit.',
+          'EMI-to-income ratio exceeds the maximum allowed limit.',
+        ],
+        decision_snapshot_json: {
+          credit_score: 615,
+          dbr: 46.8,
+          emi_to_income: 47.2,
+          credit_utilization: 62,
+          loan_to_income: 58.4,
+          bureau_status: 'SUCCESS',
+          risk_level: 'HIGH',
+          monthly_income: 54000,
+          net_surplus_after_emi: 8600,
+          age_at_maturity: 51,
+        },
+        calculated_at: new Date('2026-04-01T10:30:00Z'),
+        created_by: sukh.user_id,
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+    ],
+  });
+
+  console.log('Eligibility rule engine seeded successfully.');
+}
+
 async function main() {
   await seedBase();
   await seedSupplemental();
   await seedApplicationCommunication();
+  await seedEligibilityEngine();
   console.log('Merged seed completed successfully.');
 }
 
