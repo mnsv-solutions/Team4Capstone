@@ -589,6 +589,7 @@ model loan_application {
   application_communication_history        application_communication_history[]
   application_message_attachment           application_message_attachment[]
   application_ratio_summary                application_ratio_summary?
+  applicationEligibilitySummaries          application_eligibility_summary[]
 
   @@index([is_active], map: "idx_loan_application_active")
   @@index([status_id], map: "idx_loan_application_status")
@@ -996,4 +997,74 @@ model application_ratio_summary {
   @@unique([application_id])
   @@index([application_number])
   @@index([customer_id])
+}
+
+model eligibility_rule_set {
+  rule_set_id           String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule_set_code         String                            @db.VarChar(50)
+  rule_set_name         String                            @db.VarChar(150)
+  version_no            Int
+  description           String?                           @db.Text
+  effective_from        DateTime?                         @db.Timestamptz(6)
+  effective_to          DateTime?                         @db.Timestamptz(6)
+  is_active             Boolean                           @default(true)
+  created_by            String?                           @db.Uuid
+  updated_by            String?                           @db.Uuid
+  created_at            DateTime                          @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime                          @updatedAt @db.Timestamptz(6)
+  eligibility_rules     eligibility_rule[]
+  eligibility_summaries application_eligibility_summary[]
+
+  @@unique([rule_set_code, version_no], map: "uq_eligibility_rule_set_code_version")
+  @@index([is_active], map: "idx_eligibility_rule_set_is_active")
+}
+
+model eligibility_rule {
+  rule_id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rule_set_id      String               @db.Uuid
+  rule_code        String               @db.VarChar(50)
+  rule_name        String               @db.VarChar(150)
+  metric_name      String               @db.VarChar(50)
+  operator         String               @db.VarChar(20)
+  threshold_value  Decimal?             @db.Decimal(12, 2)
+  threshold_min    Decimal?             @db.Decimal(12, 2)
+  threshold_max    Decimal?             @db.Decimal(12, 2)
+  expected_value   String?              @db.VarChar(50)
+  severity         String               @default("SOFT_FAIL") @db.VarChar(20)
+  failure_message  String               @db.Text
+  evaluation_order Int                  @default(1)
+  is_active        Boolean              @default(true)
+  created_by       String?              @db.Uuid
+  updated_by       String?              @db.Uuid
+  created_at       DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime             @updatedAt @db.Timestamptz(6)
+  rule_set         eligibility_rule_set @relation(fields: [rule_set_id], references: [rule_set_id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([rule_set_id, rule_code], map: "uq_eligibility_rule_rule_set_code")
+  @@index([rule_set_id, is_active], map: "idx_eligibility_rule_rule_set_active")
+  @@index([metric_name], map: "idx_eligibility_rule_metric_name")
+}
+
+model application_eligibility_summary {
+  eligibility_summary_id String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  application_id         String               @db.Uuid
+  application_number     String               @db.VarChar(40)
+  rule_set_id            String               @db.Uuid
+  eligibility_status     String               @db.VarChar(30)
+  failed_rule_count      Int                  @default(0)
+  reason_json            Json?
+  decision_snapshot_json Json?
+  calculated_at          DateTime             @default(now()) @db.Timestamptz(6)
+  created_by             String?              @db.Uuid
+  updated_by             String?              @db.Uuid
+  created_at             DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at             DateTime             @updatedAt @db.Timestamptz(6)
+  is_active              Boolean              @default(true)
+  loan_application       loan_application     @relation(fields: [application_id], references: [application_id], onDelete: Cascade, onUpdate: NoAction)
+  rule_set               eligibility_rule_set @relation(fields: [rule_set_id], references: [rule_set_id], onUpdate: NoAction)
+
+  @@index([application_id], map: "idx_application_eligibility_summary_application_id")
+  @@index([application_number], map: "idx_application_eligibility_summary_application_number")
+  @@index([rule_set_id], map: "idx_application_eligibility_summary_rule_set_id")
+  @@index([eligibility_status], map: "idx_application_eligibility_summary_status")
 }

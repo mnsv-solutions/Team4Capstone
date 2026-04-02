@@ -33,6 +33,11 @@
     "start:prod": "concurrently \"npm run start:prod:backend\" \"npm run start:prod:frontend\""
   },
   "dependencies": {
-    "concurrently": "^9.2.1"
+    "bcrypt": "^6.0.0",
+    "concurrently": "^9.2.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@types/multer": "^2.1.0"
   }
 }
