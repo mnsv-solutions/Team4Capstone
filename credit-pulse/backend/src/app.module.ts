@@ -15,6 +15,7 @@ import { FetchAllUsersModule } from './fetch-all-users/fetch-all-users.module.js
 import { GenerateRepaymentScheduleModule } from './generate-repayment-schedule/generate-repayment-schedule.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaService } from './prisma/prisma.service.js';
+import { TeamsModule } from './teams/teams.module.js';
 import { UpdateUserStatusModule } from './update-user-status/update-user-status.module.js';
 import { UploadUsersModule } from './upload-users/upload-users.module.js';
 import { UsersModule } from './users/users.module.js';
@@ -33,6 +34,7 @@ import { UsersModule } from './users/users.module.js';
     UploadUsersModule,
     UpdateUserStatusModule,
     FetchAllUsersModule,
+    TeamsModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, PrismaService, AwsService],
