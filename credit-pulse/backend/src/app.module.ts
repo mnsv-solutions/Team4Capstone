@@ -11,9 +11,11 @@ import { AwsService } from './aws/aws.service.js';
 import { CalculateRatiosModule } from './calculate-ratios/calculate-ratios.module.js';
 import { CreditScoreCheckModule } from './credit-score-check/credit-score-check.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
+import { FetchAllUsersModule } from './fetch-all-users/fetch-all-users.module.js';
 import { GenerateRepaymentScheduleModule } from './generate-repayment-schedule/generate-repayment-schedule.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaService } from './prisma/prisma.service.js';
+import { UpdateUserStatusModule } from './update-user-status/update-user-status.module.js';
 import { UploadUsersModule } from './upload-users/upload-users.module.js';
 import { UsersModule } from './users/users.module.js';
 
@@ -29,6 +31,8 @@ import { UsersModule } from './users/users.module.js';
     GenerateRepaymentScheduleModule,
     CalculateRatiosModule,
     UploadUsersModule,
+    UpdateUserStatusModule,
+    FetchAllUsersModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, PrismaService, AwsService],
