@@ -24,35 +24,6 @@ import { COMMUNICATION_PROPERTIES } from "./communication-properties";
 
 type VerificationStatus = "VERIFIED" | "NOT_VERIFIED" | "";
 
-<<<<<<< HEAD
-type ContactAddressDto = {
-  line1: string;
-  line2?: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  country: string;
-};
-
-type GetContactDetailsResponseDto = {
-  email: string;
-  mobile: string;
-  alternatePhone: string;
-  residentialAddress: ContactAddressDto;
-  mailingSameAsResidential: boolean;
-  mailingAddress: ContactAddressDto;
-};
-
-type ContactDetailsApiResponse =
-  | {
-      success?: boolean;
-      message?: string;
-      data?: GetContactDetailsResponseDto;
-    }
-  | GetContactDetailsResponseDto;
-
-=======
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
 type CommunicationAttachment = {
   documentName: string;
   originalFileName: string;
@@ -232,7 +203,6 @@ type LocalAttachmentLink = {
   originalFileName: string;
 };
 
-<<<<<<< HEAD
 type AttachmentDownloadInfo = {
   href: string;
   fileName: string;
@@ -241,8 +211,6 @@ type AttachmentDownloadInfo = {
   unavailableAfterRefresh: boolean;
 };
 
-=======
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
 const HARDCODED_APPLICATION_NUMBER = COMMUNICATION_PROPERTIES.APPLICATION_NUMBER;
 const HARDCODED_CUSTOMER_USER_ID = COMMUNICATION_PROPERTIES.CUSTOMER_USER_ID;
 const HARDCODED_SYSTEM_USER_ID = COMMUNICATION_PROPERTIES.SYSTEM_USER_ID;
@@ -484,11 +452,7 @@ function getIsInternalFromRecipient(recipientType: string) {
   return recipientType.trim().toUpperCase() !== "CUSTOMER";
 }
 
-<<<<<<< HEAD
 function isPermanentAttachmentLink(path: string) {
-=======
-function isRealAttachmentLink(path: string) {
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
   if (!path) return false;
 
   return (
@@ -498,13 +462,10 @@ function isRealAttachmentLink(path: string) {
   );
 }
 
-<<<<<<< HEAD
 function isTemporaryLocalPath(path: string) {
   return path.startsWith("mock-uploads/");
 }
 
-=======
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
 function makeAttachmentLookupKeys(attachment: {
   attachmentId?: string;
   documentName?: string;
@@ -519,36 +480,6 @@ function makeAttachmentLookupKeys(attachment: {
   ].filter(Boolean);
 }
 
-<<<<<<< HEAD
-function getSafeAddress(address?: ContactAddressDto): ContactAddressDto {
-  return {
-    line1: address?.line1 || "",
-    line2: address?.line2 || "",
-    city: address?.city || "",
-    state: address?.state || "",
-    postalCode: address?.postalCode || "",
-    country: address?.country || "",
-  };
-}
-
-function extractContactDetailsResponse(
-  response: ContactDetailsApiResponse
-): GetContactDetailsResponseDto | null {
-  if (!response) return null;
-
-  if ("data" in response && response.data) {
-    return response.data;
-  }
-
-  if ("email" in response) {
-    return response as GetContactDetailsResponseDto;
-  }
-
-  return null;
-}
-
-=======
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
 export default function ApplicationDetailsPage() {
   const router = useRouter();
   const { token, isAuthenticated, isLoading: authLoading, logout } = useAuth();
@@ -639,81 +570,6 @@ export default function ApplicationDetailsPage() {
     });
   }, [currentUserRole]);
 
-<<<<<<< HEAD
-  async function fetchContactDetails() {
-    if (!token) return;
-    if (!isValidApplicationNumber(details.applicationNumber)) return;
-
-    try {
-      const response = await axios.get<ContactDetailsApiResponse>(
-        "/api/application/contact-details", 
-        {
-          params: {
-            applicationNumber: details.applicationNumber.trim(),
-          },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const contactData = extractContactDetailsResponse(response.data);
-
-      if (!contactData) return;
-
-      const residentialAddress = getSafeAddress(contactData.residentialAddress);
-      const mailingAddress = getSafeAddress(contactData.mailingAddress);
-
-      setDetails((prev) => ({
-        ...prev,
-        email: contactData.email || "",
-        mobile: contactData.mobile || "",
-        alternatePhone: contactData.alternatePhone || "",
-        residentialLine1: residentialAddress.line1,
-        residentialLine2: residentialAddress.line2 || "",
-        residentialCity: residentialAddress.city,
-        residentialState: residentialAddress.state,
-        residentialPostalCode: residentialAddress.postalCode,
-        residentialCountry: residentialAddress.country,
-        mailingSameAsResidential: Boolean(contactData.mailingSameAsResidential),
-        mailingLine1: mailingAddress.line1,
-        mailingLine2: mailingAddress.line2 || "",
-        mailingCity: mailingAddress.city,
-        mailingState: mailingAddress.state,
-        mailingPostalCode: mailingAddress.postalCode,
-        mailingCountry: mailingAddress.country,
-      }));
-    } catch (error) {
-      console.error("Failed to fetch contact details:", error);
-
-      if (axios.isAxiosError(error)) {
-        const statusCode = error.response?.status;
-        const apiMessage = error.response?.data?.message;
-
-        if (
-          statusCode === 401 ||
-          apiMessage === "Invalid token" ||
-          apiMessage === "No token provided" ||
-          apiMessage === "User not authenticated"
-        ) {
-          logout();
-          router.push("/signin");
-          return;
-        }
-      }
-    }
-  }
-
-  useEffect(() => {
-    if (!token) return;
-    if (!isValidApplicationNumber(details.applicationNumber)) return;
-
-    fetchContactDetails();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [token, details.applicationNumber]);
-
-=======
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
   function toggleSection(section: AccordionKey) {
     setOpenSections((prev) => ({
       ...prev,
@@ -787,11 +643,7 @@ export default function ApplicationDetailsPage() {
 
   function getAttachmentDownloadInfo(
     attachment: CommunicationHistoryAttachment | CommunicationAttachment
-<<<<<<< HEAD
   ): AttachmentDownloadInfo {
-=======
-  ) {
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
     const keys = makeAttachmentLookupKeys(attachment);
     const localMatch = keys.find((key) => localAttachmentLinks[key]);
 
@@ -804,24 +656,16 @@ export default function ApplicationDetailsPage() {
           "attachment",
         downloadable: true,
         isLocal: true,
-<<<<<<< HEAD
         unavailableAfterRefresh: false,
       };
     }
 
     if (attachment.documentPath && isPermanentAttachmentLink(attachment.documentPath)) {
-=======
-      };
-    }
-
-    if (attachment.documentPath && isRealAttachmentLink(attachment.documentPath)) {
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
       return {
         href: attachment.documentPath,
         fileName: attachment.originalFileName || "attachment",
         downloadable: true,
         isLocal: false,
-<<<<<<< HEAD
         unavailableAfterRefresh: false,
       };
     }
@@ -833,8 +677,6 @@ export default function ApplicationDetailsPage() {
         downloadable: false,
         isLocal: false,
         unavailableAfterRefresh: true,
-=======
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
       };
     }
 
@@ -843,10 +685,7 @@ export default function ApplicationDetailsPage() {
       fileName: attachment.originalFileName || "attachment",
       downloadable: false,
       isLocal: false,
-<<<<<<< HEAD
       unavailableAfterRefresh: false,
-=======
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
     };
   }
 
@@ -1013,14 +852,10 @@ export default function ApplicationDetailsPage() {
         },
       });
 
-<<<<<<< HEAD
       setCommunicationSuccess(
         "Communication saved successfully. Attached files are temporary until backend storage is implemented."
       );
 
-=======
-      setCommunicationSuccess("Communication saved successfully.");
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
       setCommunicationForm({
         ...initialCommunicationForm(),
         senderType: senderTypeFromLogin,
@@ -1104,7 +939,6 @@ export default function ApplicationDetailsPage() {
     );
   }
 
-<<<<<<< HEAD
   function renderStaticField(label: string, value: string | number | boolean | null | undefined) {
     return (
       <div className="col-12 col-md-4">
@@ -1114,8 +948,6 @@ export default function ApplicationDetailsPage() {
     );
   }
 
-=======
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
   if (authLoading) {
     return (
       <main className="cp-loan-page">
@@ -1206,7 +1038,6 @@ export default function ApplicationDetailsPage() {
                   onChange={(e) => updateDetail("dob", e.target.value)}
                 />
               </div>
-<<<<<<< HEAD
 
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">Gender</label>
@@ -1261,8 +1092,6 @@ export default function ApplicationDetailsPage() {
                   onChange={(e) => updateDetail("sinTaxId", e.target.value)}
                 />
               </div>
-=======
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
             </div>
           )}
 
@@ -1297,7 +1126,6 @@ export default function ApplicationDetailsPage() {
                   }
                 />
               </div>
-<<<<<<< HEAD
 
               <div className="col-12 col-md-6">
                 <label className="form-label fw-semibold">Residential Address Line 1</label>
@@ -1709,8 +1537,6 @@ export default function ApplicationDetailsPage() {
                   readOnly
                 />
               </div>
-=======
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
             </div>
           )}
 
@@ -1891,7 +1717,6 @@ export default function ApplicationDetailsPage() {
                                     {item.attachments.map((attachment) => {
                                       const downloadInfo = getAttachmentDownloadInfo(attachment);
 
-<<<<<<< HEAD
                                       if (downloadInfo.downloadable) {
                                         return (
                                           <div
@@ -1925,30 +1750,12 @@ export default function ApplicationDetailsPage() {
                                         );
                                       }
 
-=======
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
                                       return (
                                         <div
                                           key={attachment.attachmentId}
                                           className="cp-loan-attachment-chip"
                                         >
-<<<<<<< HEAD
                                           <span>{attachment.originalFileName || "-"}</span>
-=======
-                                          {downloadInfo.downloadable ? (
-                                            <a
-                                              href={downloadInfo.href}
-                                              target="_blank"
-                                              rel="noreferrer"
-                                              className="cp-loan-attachment-link"
-                                            >
-                                              <Download size={14} />
-                                              <span>{attachment.originalFileName || "-"}</span>
-                                            </a>
-                                          ) : (
-                                            <span>{attachment.originalFileName || "-"}</span>
-                                          )}
->>>>>>> 23ef0fa (feat: communication page frontend implementation)
                                         </div>
                                       );
                                     })}
