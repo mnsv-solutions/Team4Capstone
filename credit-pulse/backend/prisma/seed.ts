@@ -409,6 +409,412 @@ async function seedBase() {
     },
   });
 
+  const joyal = await prisma.users.create({
+    data: {
+      role_id: roleSourcingOfficer.role_id,
+      first_name: 'Joyal',
+      last_name: 'Aji',
+      email: 'joyal.aji@creditpulse.com',
+      password_hash: sourcingPassword,
+      phone: '+1-519-555-1101',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const praveen = await prisma.users.create({
+    data: {
+      role_id: roleSourcingOfficer.role_id,
+      first_name: 'Praveen',
+      last_name: 'Bangla',
+      email: 'praveen.bangla@creditpulse.com',
+      password_hash: sourcingPassword,
+      phone: '+1-519-555-1102',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const yisa = await prisma.users.create({
+    data: {
+      role_id: roleSourcingOfficer.role_id,
+      first_name: 'Yisa',
+      last_name: 'Bankole',
+      email: 'yisa.bankole@creditpulse.com',
+      password_hash: sourcingPassword,
+      phone: '+1-519-555-1103',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const sandip = await prisma.users.create({
+    data: {
+      role_id: roleSourcingOfficer.role_id,
+      first_name: 'Sandip',
+      last_name: 'Bharati',
+      email: 'sandip.bharati@creditpulse.com',
+      password_hash: sourcingPassword,
+      phone: '+1-519-555-1104',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const birav = await prisma.users.create({
+    data: {
+      role_id: roleSourcingOfficer.role_id,
+      first_name: 'Birav',
+      last_name: 'Bhattrai',
+      email: 'birav.bhattrai@creditpulse.com',
+      password_hash: sourcingPassword,
+      phone: '+1-519-555-1105',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const shikha = await prisma.users.create({
+    data: {
+      role_id: roleSourcingOfficer.role_id,
+      first_name: 'Shikha',
+      last_name: 'Desai',
+      email: 'shikha.desai@creditpulse.com',
+      password_hash: sourcingPassword,
+      phone: '+1-519-555-1106',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const victorEnejo = await prisma.users.create({
+    data: {
+      role_id: roleSourcingOfficer.role_id,
+      first_name: 'Victor',
+      last_name: 'Enejo',
+      email: 'victor.enejo@creditpulse.com',
+      password_hash: sourcingPassword,
+      phone: '+1-519-555-1107',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const kandarpgiri = await prisma.users.create({
+    data: {
+      role_id: roleSourcingOfficer.role_id,
+      first_name: 'Kandarpgiri',
+      last_name: 'Gosai',
+      email: 'kandarpgiri.gosai@creditpulse.com',
+      password_hash: sourcingPassword,
+      phone: '+1-519-555-1108',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const nisargkumar = await prisma.users.create({
+    data: {
+      role_id: roleSourcingOfficer.role_id,
+      first_name: 'Nisargkumar',
+      last_name: 'Goswami',
+      email: 'nisargkumar.goswami@creditpulse.com',
+      password_hash: sourcingPassword,
+      phone: '+1-519-555-1109',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const gurpreet = await prisma.users.create({
+    data: {
+      role_id: roleSourcingOfficer.role_id,
+      first_name: 'Gurpreet',
+      last_name: 'Singh',
+      email: 'gurpreet.singh@creditpulse.com',
+      password_hash: sourcingPassword,
+      phone: '+1-519-555-1110',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const tyler = await prisma.users.create({
+    data: {
+      role_id: roleUnderwriter.role_id,
+      first_name: 'Tyler',
+      last_name: 'Kobe',
+      email: 'tyler.kobe@creditpulse.com',
+      password_hash: underwriterPassword,
+      phone: '+1-519-555-1201',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const sherrice = await prisma.users.create({
+    data: {
+      role_id: roleUnderwriter.role_id,
+      first_name: 'Sherrice',
+      last_name: 'Lyons',
+      email: 'sherrice.lyons@creditpulse.com',
+      password_hash: underwriterPassword,
+      phone: '+1-519-555-1202',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const shahid = await prisma.users.create({
+    data: {
+      role_id: roleUnderwriter.role_id,
+      first_name: 'Shahid',
+      last_name: 'Mahammed',
+      email: 'shahid.mahammed@creditpulse.com',
+      password_hash: underwriterPassword,
+      phone: '+1-519-555-1203',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const rajavardhan = await prisma.users.create({
+    data: {
+      role_id: roleUnderwriter.role_id,
+      first_name: 'Rajavardhan',
+      last_name: 'Reddy',
+      email: 'rajavardhan.reddy@creditpulse.com',
+      password_hash: underwriterPassword,
+      phone: '+1-519-555-1204',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const aakash = await prisma.users.create({
+    data: {
+      role_id: roleUnderwriter.role_id,
+      first_name: 'Aakash',
+      last_name: 'Nair',
+      email: 'aakash.nair@creditpulse.com',
+      password_hash: underwriterPassword,
+      phone: '+1-519-555-1205',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const james = await prisma.users.create({
+    data: {
+      role_id: roleUnderwriter.role_id,
+      first_name: 'James',
+      last_name: 'Okeke',
+      email: 'james.okeke@creditpulse.com',
+      password_hash: underwriterPassword,
+      phone: '+1-519-555-1206',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const emmanuel = await prisma.users.create({
+    data: {
+      role_id: roleUnderwriter.role_id,
+      first_name: 'Emmanuel',
+      last_name: 'Raji',
+      email: 'emmanuel.raji@creditpulse.com',
+      password_hash: underwriterPassword,
+      phone: '+1-519-555-1207',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const rutvik = await prisma.users.create({
+    data: {
+      role_id: roleUnderwriter.role_id,
+      first_name: 'Rutvik',
+      last_name: 'Patel',
+      email: 'rutvik.patel@creditpulse.com',
+      password_hash: underwriterPassword,
+      phone: '+1-519-555-1208',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const vatsal = await prisma.users.create({
+    data: {
+      role_id: roleUnderwriter.role_id,
+      first_name: 'Vatsal',
+      last_name: 'Patel',
+      email: 'vatsal.patel@creditpulse.com',
+      password_hash: underwriterPassword,
+      phone: '+1-519-555-1209',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const prabhjot = await prisma.users.create({
+    data: {
+      role_id: roleUnderwriter.role_id,
+      first_name: 'Prabhjot',
+      last_name: 'Singh',
+      email: 'prabhjot.singh@creditpulse.com',
+      password_hash: underwriterPassword,
+      phone: '+1-519-555-1210',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const vishwa = await prisma.users.create({
+    data: {
+      role_id: roleDisbursalOfficer.role_id,
+      first_name: 'Vishwa',
+      last_name: 'Rana',
+      email: 'vishwa.rana@creditpulse.com',
+      password_hash: disbursalPassword,
+      phone: '+1-519-555-1301',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const dhruti = await prisma.users.create({
+    data: {
+      role_id: roleDisbursalOfficer.role_id,
+      first_name: 'Dhruti',
+      last_name: 'Rathod',
+      email: 'dhruti.rathod@creditpulse.com',
+      password_hash: disbursalPassword,
+      phone: '+1-519-555-1302',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const rajKumar = await prisma.users.create({
+    data: {
+      role_id: roleDisbursalOfficer.role_id,
+      first_name: 'Raj',
+      last_name: 'Kumar',
+      email: 'raj.kumar@creditpulse.com',
+      password_hash: disbursalPassword,
+      phone: '+1-519-555-1303',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const honey = await prisma.users.create({
+    data: {
+      role_id: roleDisbursalOfficer.role_id,
+      first_name: 'Honey',
+      last_name: 'Singh',
+      email: 'honey.singh@creditpulse.com',
+      password_hash: disbursalPassword,
+      phone: '+1-519-555-1304',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const parminder = await prisma.users.create({
+    data: {
+      role_id: roleDisbursalOfficer.role_id,
+      first_name: 'Parminder',
+      last_name: 'Singh',
+      email: 'parminder.singh@creditpulse.com',
+      password_hash: disbursalPassword,
+      phone: '+1-519-555-1305',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const christ = await prisma.users.create({
+    data: {
+      role_id: roleDisbursalOfficer.role_id,
+      first_name: 'Christ',
+      last_name: 'Vijay',
+      email: 'christ.vijay@creditpulse.com',
+      password_hash: disbursalPassword,
+      phone: '+1-519-555-1306',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const ansh = await prisma.users.create({
+    data: {
+      role_id: roleDisbursalOfficer.role_id,
+      first_name: 'Ansh',
+      last_name: 'Sukhija',
+      email: 'ansh.sukhija@creditpulse.com',
+      password_hash: disbursalPassword,
+      phone: '+1-519-555-1307',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const sukhjit = await prisma.users.create({
+    data: {
+      role_id: roleDisbursalOfficer.role_id,
+      first_name: 'Sukhjit',
+      last_name: 'Kaur',
+      email: 'sukhjit.kaur@creditpulse.com',
+      password_hash: disbursalPassword,
+      phone: '+1-519-555-1308',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
+  const teena = await prisma.users.create({
+    data: {
+      role_id: roleDisbursalOfficer.role_id,
+      first_name: 'Teena',
+      last_name: 'Thomas',
+      email: 'teena.thomas@creditpulse.com',
+      password_hash: disbursalPassword,
+      phone: '+1-519-555-1309',
+      is_email_verified: true,
+      is_system_user: true,
+      is_active: true,
+    },
+  });
+
   const createdBy = victor.user_id;
   const updatedBy = victor.user_id;
 
@@ -726,6 +1132,354 @@ async function seedBase() {
         nationality: 'Indian',
         government_id_type: 'SIN',
         government_id_number: '1005',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: joyal.user_id,
+        date_of_birth: new Date('1996-01-15'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1101',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: praveen.user_id,
+        date_of_birth: new Date('1995-03-22'),
+        gender: 'Male',
+        marital_status: 'Married',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1102',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: yisa.user_id,
+        date_of_birth: new Date('1994-07-11'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Nigerian',
+        government_id_type: 'SIN',
+        government_id_number: '1103',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: sandip.user_id,
+        date_of_birth: new Date('1997-09-05'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1104',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: birav.user_id,
+        date_of_birth: new Date('1998-02-19'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Nepalese',
+        government_id_type: 'SIN',
+        government_id_number: '1105',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: shikha.user_id,
+        date_of_birth: new Date('1996-11-28'),
+        gender: 'Female',
+        marital_status: 'Married',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1106',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: victorEnejo.user_id,
+        date_of_birth: new Date('1993-04-14'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Nigerian',
+        government_id_type: 'SIN',
+        government_id_number: '1107',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: kandarpgiri.user_id,
+        date_of_birth: new Date('1995-08-30'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1108',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: nisargkumar.user_id,
+        date_of_birth: new Date('1997-05-10'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1109',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: gurpreet.user_id,
+        date_of_birth: new Date('1994-12-18'),
+        gender: 'Male',
+        marital_status: 'Married',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1110',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: tyler.user_id,
+        date_of_birth: new Date('1992-06-09'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Canadian',
+        government_id_type: 'SIN',
+        government_id_number: '1201',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: sherrice.user_id,
+        date_of_birth: new Date('1991-10-27'),
+        gender: 'Female',
+        marital_status: 'Single',
+        nationality: 'Canadian',
+        government_id_type: 'SIN',
+        government_id_number: '1202',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: shahid.user_id,
+        date_of_birth: new Date('1993-01-31'),
+        gender: 'Male',
+        marital_status: 'Married',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1203',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: rajavardhan.user_id,
+        date_of_birth: new Date('1995-07-20'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1204',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: aakash.user_id,
+        date_of_birth: new Date('1996-09-16'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1205',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: james.user_id,
+        date_of_birth: new Date('1990-02-12'),
+        gender: 'Male',
+        marital_status: 'Married',
+        nationality: 'Nigerian',
+        government_id_type: 'SIN',
+        government_id_number: '1206',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: emmanuel.user_id,
+        date_of_birth: new Date('1992-11-04'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Nigerian',
+        government_id_type: 'SIN',
+        government_id_number: '1207',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: rutvik.user_id,
+        date_of_birth: new Date('1997-04-25'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1208',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: vatsal.user_id,
+        date_of_birth: new Date('1995-06-14'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1209',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: prabhjot.user_id,
+        date_of_birth: new Date('1994-08-08'),
+        gender: 'Male',
+        marital_status: 'Married',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1210',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: vishwa.user_id,
+        date_of_birth: new Date('1998-03-03'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1301',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: dhruti.user_id,
+        date_of_birth: new Date('1997-12-09'),
+        gender: 'Female',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1302',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: rajKumar.user_id,
+        date_of_birth: new Date('1993-05-21'),
+        gender: 'Male',
+        marital_status: 'Married',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1303',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: honey.user_id,
+        date_of_birth: new Date('1996-10-13'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1304',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: parminder.user_id,
+        date_of_birth: new Date('1992-01-17'),
+        gender: 'Male',
+        marital_status: 'Married',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1305',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: christ.user_id,
+        date_of_birth: new Date('1994-07-07'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1306',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: ansh.user_id,
+        date_of_birth: new Date('1998-09-29'),
+        gender: 'Male',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1307',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: sukhjit.user_id,
+        date_of_birth: new Date('1997-02-24'),
+        gender: 'Female',
+        marital_status: 'Married',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1308',
+        created_by: victor.user_id,
+        updated_by: victor.user_id,
+        is_active: true,
+      },
+      {
+        user_id: teena.user_id,
+        date_of_birth: new Date('1995-11-11'),
+        gender: 'Female',
+        marital_status: 'Single',
+        nationality: 'Indian',
+        government_id_type: 'SIN',
+        government_id_number: '1309',
         created_by: victor.user_id,
         updated_by: victor.user_id,
         is_active: true,
@@ -4714,18 +5468,439 @@ async function seedEligibilityEngine() {
   console.log('Eligibility rule engine seeded successfully.');
 }
 
+async function seedTeams() {
+  await prisma.teams.upsert({
+    where: { team_code: 'SOURCING_TEAM' },
+    update: {
+      team_name: 'Sourcing Team',
+      description: 'Handles sourcing and initial application processing.',
+      is_active: true,
+      updated_at: new Date(),
+    },
+    create: {
+      team_id: crypto.randomUUID(),
+      team_code: 'SOURCING_TEAM',
+      team_name: 'Sourcing Team',
+      description: 'Handles sourcing and initial application processing.',
+      is_active: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
+
+  await prisma.teams.upsert({
+    where: { team_code: 'UNDERWRITER_TEAM' },
+    update: {
+      team_name: 'Underwriter Team',
+      description: 'Handles credit review and underwriting decisions.',
+      is_active: true,
+      updated_at: new Date(),
+    },
+    create: {
+      team_id: crypto.randomUUID(),
+      team_code: 'UNDERWRITER_TEAM',
+      team_name: 'Underwriter Team',
+      description: 'Handles credit review and underwriting decisions.',
+      is_active: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
+
+  await prisma.teams.upsert({
+    where: { team_code: 'DISBURSAL_TEAM' },
+    update: {
+      team_name: 'Disbursal Team',
+      description: 'Handles loan disbursal and payout processing.',
+      is_active: true,
+      updated_at: new Date(),
+    },
+    create: {
+      team_id: crypto.randomUUID(),
+      team_code: 'DISBURSAL_TEAM',
+      team_name: 'Disbursal Team',
+      description: 'Handles loan disbursal and payout processing.',
+      is_active: true,
+      created_at: new Date(),
+      updated_at: new Date(),
+    },
+  });
+
+  console.log('Teams seeded successfully.');
+}
+
+async function seedTeamMembers() {
+  const sourcingTeam = await prisma.teams.findFirst({
+    where: { team_code: 'SOURCING_TEAM' },
+  });
+
+  const underwriterTeam = await prisma.teams.findFirst({
+    where: { team_code: 'UNDERWRITER_TEAM' },
+  });
+
+  const disbursalTeam = await prisma.teams.findFirst({
+    where: { team_code: 'DISBURSAL_TEAM' },
+  });
+
+  if (!sourcingTeam || !underwriterTeam || !disbursalTeam) {
+    throw new Error('Required teams not found. Please run seedTeams() first.');
+  }
+
+  const sukh = await getRequiredUser('sukh@creditpulse.com');
+  const joyal = await getRequiredUser('joyal.aji@creditpulse.com');
+  const praveen = await getRequiredUser('praveen.bangla@creditpulse.com');
+  const yisa = await getRequiredUser('yisa.bankole@creditpulse.com');
+  const sandip = await getRequiredUser('sandip.bharati@creditpulse.com');
+  const birav = await getRequiredUser('birav.bhattrai@creditpulse.com');
+  const shikha = await getRequiredUser('shikha.desai@creditpulse.com');
+  const victorEnejo = await getRequiredUser('victor.enejo@creditpulse.com');
+  const kandarpgiri = await getRequiredUser('kandarpgiri.gosai@creditpulse.com');
+  const nisargkumar = await getRequiredUser('nisargkumar.goswami@creditpulse.com');
+  const gurpreet = await getRequiredUser('gurpreet.singh@creditpulse.com');
+
+  const miswa = await getRequiredUser('miswa@creditpulse.com');
+  const tyler = await getRequiredUser('tyler.kobe@creditpulse.com');
+  const sherrice = await getRequiredUser('sherrice.lyons@creditpulse.com');
+  const shahid = await getRequiredUser('shahid.mahammed@creditpulse.com');
+  const rajavardhan = await getRequiredUser('rajavardhan.reddy@creditpulse.com');
+  const aakash = await getRequiredUser('aakash.nair@creditpulse.com');
+  const james = await getRequiredUser('james.okeke@creditpulse.com');
+  const emmanuel = await getRequiredUser('emmanuel.raji@creditpulse.com');
+  const rutvik = await getRequiredUser('rutvik.patel@creditpulse.com');
+  const vatsal = await getRequiredUser('vatsal.patel@creditpulse.com');
+  const prabhjot = await getRequiredUser('prabhjot.singh@creditpulse.com');
+
+  const nirali = await getRequiredUser('nirali@creditpulse.com');
+  const vishwa = await getRequiredUser('vishwa.rana@creditpulse.com');
+  const dhruti = await getRequiredUser('dhruti.rathod@creditpulse.com');
+  const rajKumar = await getRequiredUser('raj.kumar@creditpulse.com');
+  const honey = await getRequiredUser('honey.singh@creditpulse.com');
+  const parminder = await getRequiredUser('parminder.singh@creditpulse.com');
+  const christ = await getRequiredUser('christ.vijay@creditpulse.com');
+  const ansh = await getRequiredUser('ansh.sukhija@creditpulse.com');
+  const sukhjit = await getRequiredUser('sukhjit.kaur@creditpulse.com');
+  const teena = await getRequiredUser('teena.thomas@creditpulse.com');
+
+  await prisma.team_members.createMany({
+    data: [
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: sourcingTeam.team_id,
+        user_id: sukh.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: sourcingTeam.team_id,
+        user_id: joyal.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: sourcingTeam.team_id,
+        user_id: praveen.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: sourcingTeam.team_id,
+        user_id: yisa.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: sourcingTeam.team_id,
+        user_id: sandip.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: sourcingTeam.team_id,
+        user_id: birav.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: sourcingTeam.team_id,
+        user_id: shikha.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: sourcingTeam.team_id,
+        user_id: victorEnejo.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: sourcingTeam.team_id,
+        user_id: kandarpgiri.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: sourcingTeam.team_id,
+        user_id: nisargkumar.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: sourcingTeam.team_id,
+        user_id: gurpreet.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: underwriterTeam.team_id,
+        user_id: miswa.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: underwriterTeam.team_id,
+        user_id: tyler.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: underwriterTeam.team_id,
+        user_id: sherrice.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: underwriterTeam.team_id,
+        user_id: shahid.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: underwriterTeam.team_id,
+        user_id: rajavardhan.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: underwriterTeam.team_id,
+        user_id: aakash.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: underwriterTeam.team_id,
+        user_id: james.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: underwriterTeam.team_id,
+        user_id: emmanuel.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: underwriterTeam.team_id,
+        user_id: rutvik.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: underwriterTeam.team_id,
+        user_id: vatsal.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: underwriterTeam.team_id,
+        user_id: prabhjot.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: disbursalTeam.team_id,
+        user_id: nirali.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: disbursalTeam.team_id,
+        user_id: vishwa.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: disbursalTeam.team_id,
+        user_id: dhruti.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: disbursalTeam.team_id,
+        user_id: rajKumar.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: disbursalTeam.team_id,
+        user_id: honey.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: disbursalTeam.team_id,
+        user_id: parminder.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: disbursalTeam.team_id,
+        user_id: christ.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: disbursalTeam.team_id,
+        user_id: ansh.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: disbursalTeam.team_id,
+        user_id: sukhjit.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      {
+        team_member_id: crypto.randomUUID(),
+        team_id: disbursalTeam.team_id,
+        user_id: teena.user_id,
+        is_active: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+    ],
+    skipDuplicates: true,
+  });
+
+  console.log('Team members seeded successfully.');
+}
 async function main() {
   await seedBase();
   await seedSupplemental();
   await seedApplicationCommunication();
   await seedEligibilityEngine();
-  console.log('Merged seed completed successfully.');
+  await seedTeams();
+  await seedTeamMembers();
+
   console.log('System users:');
+
   console.log('Victor  -> victor@creditpulse.com /  Victor@19880412.1001');
   console.log('Miswa   -> miswa@creditpulse.com / Miswa@19910918.1003');
   console.log('Nirali  -> nirali@creditpulse.com / Nirali@19990810.1004');
   console.log('Sukh    -> sukh@creditpulse.com / Sukh@19981222.1002');
   console.log('Aman    -> aman@creditpulse.com / Aman@19970214.1005');
+
+  console.log('Sourcing Officers:');
+
+  console.log('Joyal  -> joyal.aji@creditpulse.com / Sukh@19981222.1002');
+  console.log('Praveen  -> praveen.bangla@creditpulse.com / Sukh@19981222.1002');
+  console.log('Yisa  -> yisa.bankole@creditpulse.com / Sukh@19981222.1002');
+  console.log('Sandip  -> sandip.bharati@creditpulse.com / Sukh@19981222.1002');
+  console.log('Birav  -> birav.bhattrai@creditpulse.com / Sukh@19981222.1002');
+  console.log('Shikha  -> shikha.desai@creditpulse.com / Sukh@19981222.1002');
+  console.log('Victor Enejo  -> victor.enejo@creditpulse.com / Sukh@19981222.1002');
+  console.log('Kandarpgiri  -> kandarpgiri.gosai@creditpulse.com / Sukh@19981222.1002');
+  console.log('Nisargkumar  -> nisargkumar.goswami@creditpulse.com / Sukh@19981222.1002');
+  console.log('Gurpreet  -> gurpreet.singh@creditpulse.com / Sukh@19981222.1002');
+
+  console.log('Underwriters:');
+
+  console.log('Tyler  -> tyler.kobe@creditpulse.com / Miswa@19910918.1003');
+  console.log('Sherrice  -> sherrice.lyons@creditpulse.com / Miswa@19910918.1003');
+  console.log('Shahid  -> shahid.mahammed@creditpulse.com / Miswa@19910918.1003');
+  console.log('Rajavardhan  -> rajavardhan.reddy@creditpulse.com / Miswa@19910918.1003');
+  console.log('Aakash  -> aakash.nair@creditpulse.com / Miswa@19910918.1003');
+  console.log('James  -> james.okeke@creditpulse.com / Miswa@19910918.1003');
+  console.log('Emmanuel  -> emmanuel.raji@creditpulse.com / Miswa@19910918.1003');
+  console.log('Rutvik  -> rutvik.patel@creditpulse.com / Miswa@19910918.1003');
+  console.log('Vatsal  -> vatsal.patel@creditpulse.com / Miswa@19910918.1003');
+  console.log('Prabhjot  -> prabhjot.singh@creditpulse.com / Miswa@19910918.1003');
+
+  console.log('Disbursal Officers:');
+
+  console.log('Vishwa  -> vishwa.rana@creditpulse.com / Nirali@19990810.1004');
+  console.log('Dhruti  -> dhruti.rathod@creditpulse.com / Nirali@19990810.1004');
+  console.log('Raj Kumar  -> raj.kumar@creditpulse.com / Nirali@19990810.1004');
+  console.log('Honey  -> honey.singh@creditpulse.com / Nirali@19990810.1004');
+  console.log('Parminder  -> parminder.singh@creditpulse.com / Nirali@19990810.1004');
+  console.log('Christ  -> christ.vijay@creditpulse.com / Nirali@19990810.1004');
+  console.log('Ansh  -> ansh.sukhija@creditpulse.com / Nirali@19990810.1004');
+  console.log('Sukhjit  -> sukhjit.kaur@creditpulse.com / Nirali@19990810.1004');
+  console.log('Teena  -> teena.thomas@creditpulse.com / Nirali@19990810.1004');
+  console.log('Merged seed completed successfully.');
 }
 
 main()
