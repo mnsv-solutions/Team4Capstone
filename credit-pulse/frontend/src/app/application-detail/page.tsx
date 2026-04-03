@@ -203,6 +203,14 @@ type LocalAttachmentLink = {
   originalFileName: string;
 };
 
+type AttachmentDownloadInfo = {
+  href: string;
+  fileName: string;
+  downloadable: boolean;
+  isLocal: boolean;
+  unavailableAfterRefresh: boolean;
+};
+
 const HARDCODED_APPLICATION_NUMBER = COMMUNICATION_PROPERTIES.APPLICATION_NUMBER;
 const HARDCODED_CUSTOMER_USER_ID = COMMUNICATION_PROPERTIES.CUSTOMER_USER_ID;
 const HARDCODED_SYSTEM_USER_ID = COMMUNICATION_PROPERTIES.SYSTEM_USER_ID;
@@ -444,7 +452,7 @@ function getIsInternalFromRecipient(recipientType: string) {
   return recipientType.trim().toUpperCase() !== "CUSTOMER";
 }
 
-function isRealAttachmentLink(path: string) {
+function isPermanentAttachmentLink(path: string) {
   if (!path) return false;
 
   return (
@@ -452,6 +460,10 @@ function isRealAttachmentLink(path: string) {
     path.startsWith("https://") ||
     path.startsWith("/")
   );
+}
+
+function isTemporaryLocalPath(path: string) {
+  return path.startsWith("mock-uploads/");
 }
 
 function makeAttachmentLookupKeys(attachment: {
@@ -631,7 +643,7 @@ export default function ApplicationDetailsPage() {
 
   function getAttachmentDownloadInfo(
     attachment: CommunicationHistoryAttachment | CommunicationAttachment
-  ) {
+  ): AttachmentDownloadInfo {
     const keys = makeAttachmentLookupKeys(attachment);
     const localMatch = keys.find((key) => localAttachmentLinks[key]);
 
@@ -644,15 +656,27 @@ export default function ApplicationDetailsPage() {
           "attachment",
         downloadable: true,
         isLocal: true,
+        unavailableAfterRefresh: false,
       };
     }
 
-    if (attachment.documentPath && isRealAttachmentLink(attachment.documentPath)) {
+    if (attachment.documentPath && isPermanentAttachmentLink(attachment.documentPath)) {
       return {
         href: attachment.documentPath,
         fileName: attachment.originalFileName || "attachment",
         downloadable: true,
         isLocal: false,
+        unavailableAfterRefresh: false,
+      };
+    }
+
+    if (attachment.documentPath && isTemporaryLocalPath(attachment.documentPath)) {
+      return {
+        href: "",
+        fileName: attachment.originalFileName || "attachment",
+        downloadable: false,
+        isLocal: false,
+        unavailableAfterRefresh: true,
       };
     }
 
@@ -661,6 +685,7 @@ export default function ApplicationDetailsPage() {
       fileName: attachment.originalFileName || "attachment",
       downloadable: false,
       isLocal: false,
+      unavailableAfterRefresh: false,
     };
   }
 
@@ -827,7 +852,10 @@ export default function ApplicationDetailsPage() {
         },
       });
 
-      setCommunicationSuccess("Communication saved successfully.");
+      setCommunicationSuccess(
+        "Communication saved successfully. Attached files are temporary until backend storage is implemented."
+      );
+
       setCommunicationForm({
         ...initialCommunicationForm(),
         senderType: senderTypeFromLogin,
@@ -907,6 +935,15 @@ export default function ApplicationDetailsPage() {
       <div className="cp-loan-bank-card mb-3">
         <div className="cp-loan-bank-card-header">{renderAccordionHeader(section)}</div>
         {isOpen ? <div className="pt-3">{children}</div> : null}
+      </div>
+    );
+  }
+
+  function renderStaticField(label: string, value: string | number | boolean | null | undefined) {
+    return (
+      <div className="col-12 col-md-4">
+        <label className="form-label fw-semibold">{label}</label>
+        <input className="form-control" value={value ?? ""} readOnly />
       </div>
     );
   }
@@ -1001,6 +1038,60 @@ export default function ApplicationDetailsPage() {
                   onChange={(e) => updateDetail("dob", e.target.value)}
                 />
               </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Gender</label>
+                <input
+                  className="form-control"
+                  value={details.gender}
+                  onChange={(e) => updateDetail("gender", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Marital Status</label>
+                <input
+                  className="form-control"
+                  value={details.maritalStatus}
+                  onChange={(e) => updateDetail("maritalStatus", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Nationality</label>
+                <input
+                  className="form-control"
+                  value={details.nationality}
+                  onChange={(e) => updateDetail("nationality", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Government ID Type</label>
+                <input
+                  className="form-control"
+                  value={details.governmentIdType}
+                  onChange={(e) => updateDetail("governmentIdType", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Government ID Number</label>
+                <input
+                  className="form-control"
+                  value={details.governmentIdNumber}
+                  onChange={(e) => updateDetail("governmentIdNumber", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">SIN / Tax ID</label>
+                <input
+                  className="form-control"
+                  value={details.sinTaxId}
+                  onChange={(e) => updateDetail("sinTaxId", e.target.value)}
+                />
+              </div>
             </div>
           )}
 
@@ -1033,6 +1124,417 @@ export default function ApplicationDetailsPage() {
                   onChange={(e) =>
                     updateDetail("alternatePhone", sanitizeDigits(e.target.value))
                   }
+                />
+              </div>
+
+              <div className="col-12 col-md-6">
+                <label className="form-label fw-semibold">Residential Address Line 1</label>
+                <input
+                  className="form-control"
+                  value={details.residentialLine1}
+                  onChange={(e) => updateDetail("residentialLine1", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-6">
+                <label className="form-label fw-semibold">Residential Address Line 2</label>
+                <input
+                  className="form-control"
+                  value={details.residentialLine2}
+                  onChange={(e) => updateDetail("residentialLine2", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Residential City</label>
+                <input
+                  className="form-control"
+                  value={details.residentialCity}
+                  onChange={(e) => updateDetail("residentialCity", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Residential Province / State</label>
+                <input
+                  className="form-control"
+                  value={details.residentialState}
+                  onChange={(e) => updateDetail("residentialState", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Residential Postal Code</label>
+                <input
+                  className="form-control"
+                  value={details.residentialPostalCode}
+                  onChange={(e) => updateDetail("residentialPostalCode", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Residential Country</label>
+                <input
+                  className="form-control"
+                  value={details.residentialCountry}
+                  onChange={(e) => updateDetail("residentialCountry", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12">
+                <div className="form-check">
+                  <input
+                    id="mailingSameAsResidential"
+                    className="form-check-input"
+                    type="checkbox"
+                    checked={details.mailingSameAsResidential}
+                    onChange={(e) => updateDetail("mailingSameAsResidential", e.target.checked)}
+                  />
+                  <label htmlFor="mailingSameAsResidential" className="form-check-label">
+                    Mailing address same as residential
+                  </label>
+                </div>
+              </div>
+
+              {!details.mailingSameAsResidential ? (
+                <>
+                  <div className="col-12 col-md-6">
+                    <label className="form-label fw-semibold">Mailing Address Line 1</label>
+                    <input
+                      className="form-control"
+                      value={details.mailingLine1}
+                      onChange={(e) => updateDetail("mailingLine1", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-6">
+                    <label className="form-label fw-semibold">Mailing Address Line 2</label>
+                    <input
+                      className="form-control"
+                      value={details.mailingLine2}
+                      onChange={(e) => updateDetail("mailingLine2", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-3">
+                    <label className="form-label fw-semibold">Mailing City</label>
+                    <input
+                      className="form-control"
+                      value={details.mailingCity}
+                      onChange={(e) => updateDetail("mailingCity", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-3">
+                    <label className="form-label fw-semibold">Mailing Province / State</label>
+                    <input
+                      className="form-control"
+                      value={details.mailingState}
+                      onChange={(e) => updateDetail("mailingState", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-3">
+                    <label className="form-label fw-semibold">Mailing Postal Code</label>
+                    <input
+                      className="form-control"
+                      value={details.mailingPostalCode}
+                      onChange={(e) => updateDetail("mailingPostalCode", e.target.value)}
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-3">
+                    <label className="form-label fw-semibold">Mailing Country</label>
+                    <input
+                      className="form-control"
+                      value={details.mailingCountry}
+                      onChange={(e) => updateDetail("mailingCountry", e.target.value)}
+                    />
+                  </div>
+                </>
+              ) : null}
+            </div>
+          )}
+
+          {renderSectionShell(
+            accordionSections[2],
+            <div className="row g-3">
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Highest Education</label>
+                <input
+                  className="form-control"
+                  value={details.highestEducation}
+                  onChange={(e) => updateDetail("highestEducation", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Field of Study</label>
+                <input
+                  className="form-control"
+                  value={details.fieldOfStudy}
+                  onChange={(e) => updateDetail("fieldOfStudy", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Institution Name</label>
+                <input
+                  className="form-control"
+                  value={details.institutionName}
+                  onChange={(e) => updateDetail("institutionName", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Graduation Year</label>
+                <input
+                  className="form-control"
+                  value={details.graduationYear}
+                  onChange={(e) => updateDetail("graduationYear", e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {renderSectionShell(
+            accordionSections[3],
+            <div className="row g-3">
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Employment Status</label>
+                <input
+                  className="form-control"
+                  value={details.employmentStatus}
+                  onChange={(e) => updateDetail("employmentStatus", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Employer Name</label>
+                <input
+                  className="form-control"
+                  value={details.employerName}
+                  onChange={(e) => updateDetail("employerName", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Job Title</label>
+                <input
+                  className="form-control"
+                  value={details.jobTitle}
+                  onChange={(e) => updateDetail("jobTitle", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Work Experience</label>
+                <input
+                  className="form-control"
+                  value={details.workExperience}
+                  onChange={(e) => updateDetail("workExperience", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Monthly Income</label>
+                <input
+                  className="form-control"
+                  value={details.monthlyIncome}
+                  onChange={(e) => updateDetail("monthlyIncome", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Other Income Sources</label>
+                <input
+                  className="form-control"
+                  value={details.otherIncomeSources}
+                  onChange={(e) => updateDetail("otherIncomeSources", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label fw-semibold">Existing Loans</label>
+                <input
+                  className="form-control"
+                  value={details.existingLoans}
+                  onChange={(e) => updateDetail("existingLoans", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-6">
+                <label className="form-label fw-semibold">Total Monthly Loan Payments</label>
+                <input
+                  className="form-control"
+                  value={details.totalMonthlyLoanPayments}
+                  onChange={(e) => updateDetail("totalMonthlyLoanPayments", e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-6">
+                <label className="form-label fw-semibold">Tenure (Months)</label>
+                <input
+                  className="form-control"
+                  value={details.tenureMonths}
+                  onChange={(e) => updateDetail("tenureMonths", e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {renderSectionShell(
+            accordionSections[4],
+            <div className="row g-3">
+              {details.bankAccounts.length === 0 ? (
+                <>
+                  {renderStaticField("Bank Name", "")}
+                  {renderStaticField("Institution Number", "")}
+                  {renderStaticField("Transit Number", "")}
+                  {renderStaticField("Account Number", "")}
+                  {renderStaticField("Account Type", "")}
+                  {renderStaticField("SWIFT / BIC", "")}
+                </>
+              ) : (
+                details.bankAccounts.map((account, index) => (
+                  <React.Fragment key={`${account.accountNumber}-${index}`}>
+                    {renderStaticField("Bank Name", account.bankName)}
+                    {renderStaticField("Institution Number", account.institutionNumber)}
+                    {renderStaticField("Transit Number", account.transitNumber)}
+                    {renderStaticField("Account Number", account.accountNumber)}
+                    {renderStaticField("Account Type", account.accountType)}
+                    {renderStaticField("SWIFT / BIC", account.swiftBic)}
+                  </React.Fragment>
+                ))
+              )}
+            </div>
+          )}
+
+          {renderSectionShell(
+            accordionSections[5],
+            <div className="cp-loan-table-wrap">
+              <div className="table-responsive">
+                <table className="table align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>Document Type</th>
+                      <th>File Name</th>
+                      <th>Verification Status</th>
+                      <th>Download</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {details.documentRows.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="cp-loan-table-empty">
+                          No documents available.
+                        </td>
+                      </tr>
+                    ) : (
+                      details.documentRows.map((doc) => (
+                        <tr key={doc.id}>
+                          <td>{doc.documentType || "-"}</td>
+                          <td>{doc.fileName || "-"}</td>
+                          <td>{doc.verificationStatus || "-"}</td>
+                          <td>
+                            {doc.downloadUrl ? (
+                              <a
+                                href={doc.downloadUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="cp-loan-attachment-link"
+                              >
+                                <Download size={14} />
+                                <span>Open</span>
+                              </a>
+                            ) : (
+                              <span className="cp-loan-note">No file</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {renderSectionShell(
+            accordionSections[6],
+            <div className="row g-3">
+              {renderStaticField("CIBIL Score", details.cibilScore)}
+              {renderStaticField("CIBIL Status", details.cibilStatus)}
+              {renderStaticField("Last Updated", details.cibilLastUpdated)}
+              <div className="col-12">
+                <label className="form-label fw-semibold">Remarks</label>
+                <textarea className="form-control" rows={4} value={details.cibilRemarks} readOnly />
+              </div>
+            </div>
+          )}
+
+          {renderSectionShell(
+            accordionSections[7],
+            <div className="row g-3">
+              {renderStaticField("EMI Amount", details.emiAmount)}
+              {renderStaticField("Total Repayment", details.totalRepayment)}
+              {renderStaticField("Interest Amount", details.interestAmount)}
+              {renderStaticField("Schedule Start Date", details.scheduleStartDate)}
+              {renderStaticField("Schedule End Date", details.scheduleEndDate)}
+            </div>
+          )}
+
+          {renderSectionShell(
+            accordionSections[8],
+            <div className="row g-3">
+              {renderStaticField("FOIR Ratio", details.foirRatio)}
+              {renderStaticField("DTI Ratio", details.dtiRatio)}
+              {renderStaticField("LTV Ratio", details.ltvRatio)}
+              {renderStaticField("DSCR Ratio", details.dscrRatio)}
+            </div>
+          )}
+
+          {renderSectionShell(
+            accordionSections[9],
+            <div className="row g-3">
+              {renderStaticField("Eligibility Status", details.eligibilityStatus)}
+              <div className="col-12">
+                <label className="form-label fw-semibold">Eligibility Message</label>
+                <textarea
+                  className="form-control"
+                  rows={4}
+                  value={details.eligibilityMessage}
+                  readOnly
+                />
+              </div>
+            </div>
+          )}
+
+          {renderSectionShell(
+            accordionSections[10],
+            <div className="row g-3">
+              <div className="col-12">
+                <label className="form-label fw-semibold">Underwriter Review</label>
+                <textarea
+                  className="form-control"
+                  rows={5}
+                  value={details.underwriterReview}
+                  readOnly
+                />
+              </div>
+            </div>
+          )}
+
+          {renderSectionShell(
+            accordionSections[11],
+            <div className="row g-3">
+              <div className="col-12">
+                <label className="form-label fw-semibold">Underwriter Decision</label>
+                <textarea
+                  className="form-control"
+                  rows={5}
+                  value={details.underwriterDecision}
+                  readOnly
                 />
               </div>
             </div>
@@ -1215,24 +1717,45 @@ export default function ApplicationDetailsPage() {
                                     {item.attachments.map((attachment) => {
                                       const downloadInfo = getAttachmentDownloadInfo(attachment);
 
-                                      return (
-                                        <div
-                                          key={attachment.attachmentId}
-                                          className="cp-loan-attachment-chip"
-                                        >
-                                          {downloadInfo.downloadable ? (
+                                      if (downloadInfo.downloadable) {
+                                        return (
+                                          <div
+                                            key={attachment.attachmentId}
+                                            className="cp-loan-attachment-chip"
+                                          >
                                             <a
                                               href={downloadInfo.href}
                                               target="_blank"
                                               rel="noreferrer"
                                               className="cp-loan-attachment-link"
+                                              download={downloadInfo.isLocal ? downloadInfo.fileName : undefined}
                                             >
                                               <Download size={14} />
                                               <span>{attachment.originalFileName || "-"}</span>
                                             </a>
-                                          ) : (
-                                            <span>{attachment.originalFileName || "-"}</span>
-                                          )}
+                                          </div>
+                                        );
+                                      }
+
+                                      if (downloadInfo.unavailableAfterRefresh) {
+                                        return (
+                                          <div
+                                            key={attachment.attachmentId}
+                                            className="cp-loan-attachment-chip"
+                                          >
+                                            <span className="cp-loan-note">
+                                              {attachment.originalFileName || "-"} — Unavailable after refresh
+                                            </span>
+                                          </div>
+                                        );
+                                      }
+
+                                      return (
+                                        <div
+                                          key={attachment.attachmentId}
+                                          className="cp-loan-attachment-chip"
+                                        >
+                                          <span>{attachment.originalFileName || "-"}</span>
                                         </div>
                                       );
                                     })}
