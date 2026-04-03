@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
   UploadedFiles,
   UseGuards,
@@ -79,19 +80,19 @@ export class ApplicationController {
 
   @Get('personal-information')
   @HttpCode(HttpStatus.OK)
-  async getPersonalInformation(@Body() dto: GetPersonalInformationRequestDto) {
+  async getPersonalInformation(@Query() dto: GetPersonalInformationRequestDto) {
     return await this.applicationService.getPersonalInformation(dto);
   }
 
   @Get('contact-details')
   @HttpCode(HttpStatus.OK)
-  async getContactDetails(@Body() dto: GetContactDetailsRequestDto) {
+  async getContactDetails(@Query() dto: GetContactDetailsRequestDto) {
     return await this.applicationService.getContactDetails(dto);
   }
 
   @Get('education-details')
   @HttpCode(HttpStatus.OK)
-  async getEducationDetails(@Body() dto: GetEducationDetailsRequestDto) {
+  async getEducationDetails(@Query() dto: GetEducationDetailsRequestDto) {
     return await this.applicationService.getEducationDetails(dto);
   }
 }
