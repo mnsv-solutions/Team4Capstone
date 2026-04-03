@@ -3,29 +3,29 @@
 
 export class FetchAllUsersResponseDto {
   // The user's ID
-  userId: string;
+  userId!: string;
 
   // The type of role that the user has
-  roleType: string;
+  roleType!: string;
 
   // The user's name
-  name: string;
+  name!: string;
 
   // The user's email address
-  userEmail: string;
+  userEmail!: string;
 
   // The user's phone number
-  phone: string | null;
+  phone!: string | null;
 
   // Whether the user is logged in or not
-  isLoggedIn: boolean;
+  isLoggedIn!: boolean;
 
   // Whether the user is active or not
-  isActive: boolean;
+  isActive!: boolean;
 
   // Whether the user is blocked or not
-  isBlocked: boolean;
+  isBlocked!: boolean;
 
   // The date when the user was created
-  createdAt: Date;
+  createdAt!: Date;
 }
