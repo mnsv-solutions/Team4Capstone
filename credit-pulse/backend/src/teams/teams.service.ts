@@ -1,8 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 
+import { FetchAllUsersResponseDto } from '../fetch-all-users/dto/fetch-all-users-response.dto.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FetchAllTeamsResponseDto } from './dto/fetch-all-teams-response.dto.js';
+import { FetchTeamUsersRequestDto } from './dto/fetch-team-users-request.dto.js';
+import { FetchTeamUsersListResponseDto } from './dto/fetch-team-users-response.dto.js';
 
+type TeamLookupRow = {
+  teamId: string;
+};
+
+type TeamUserRow = FetchAllUsersResponseDto;
 // Service for fetching all teams
 @Injectable()
 export class TeamsService {
@@ -66,6 +74,63 @@ export class TeamsService {
     return {
       message: 'Teams fetched successfully.',
       data: teamsResponse,
+    };
+  }
+  /**
+   * This function fetches all users that belong to a team.
+   *
+   * It first checks whether the team exists and is active. If the team does not exist, or is not active,
+   * it throws a NotFoundException.
+   *
+   * Then, it fetches all active team members and their role details. It selects the user's ID, name, email, phone number,
+   * login status, activity status, block status, and creation date.
+   *
+   * Finally, it returns a promise that resolves to a FetchTeamUsersListResponseDto object.
+   *
+   * @param {FetchTeamUsersRequestDto} fetchTeamUsersRequestDto - The request object that contains the team ID.
+   * @returns A promise that resolves to a FetchTeamUsersListResponseDto object.
+   */
+  async fetchTeamUsers(
+    fetchTeamUsersRequestDto: FetchTeamUsersRequestDto,
+  ): Promise<FetchTeamUsersListResponseDto> {
+    const { teamId } = fetchTeamUsersRequestDto;
+
+    // First check whether the team exists and is active
+    const team = await this.prisma.$queryRaw<TeamLookupRow[]>`
+      SELECT t.team_id AS "teamId"
+      FROM teams t
+      WHERE t.team_id = ${teamId}
+        AND t.is_active = true
+      LIMIT 1
+    `;
+
+    if (!team.length) {
+      throw new NotFoundException('Team not found.');
+    }
+
+    // Then fetch all active team members and their role details
+    const teamUsers = await this.prisma.$queryRaw<TeamUserRow[]>`
+      SELECT
+        u.user_id AS "userId",
+        r.role_code AS "roleType",
+        TRIM(CONCAT(u.first_name, ' ', u.last_name)) AS "name",
+        u.email AS "userEmail",
+        u.phone AS "phone",
+        COALESCE(u.is_logged_in, false) AS "isLoggedIn",
+        u.is_active AS "isActive",
+        COALESCE(u.is_blocked, false) AS "isBlocked",
+        u.created_at AS "createdAt"
+      FROM team_members tm
+      INNER JOIN users u ON u.user_id = tm.user_id
+      INNER JOIN roles r ON r.role_id = u.role_id
+      WHERE tm.team_id = ${teamId}
+        AND tm.is_active = true
+      ORDER BY u.created_at DESC
+    `;
+
+    return {
+      message: 'Team users fetched successfully.',
+      data: teamUsers,
     };
   }
 }
