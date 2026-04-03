@@ -49,22 +49,22 @@ export class ApplicationService {
     if (files?.governmentIdProof && files.governmentIdProof.length > 0) {
       const file = files.governmentIdProof[0];
       const key = `${projectId}/government/${Date.now()}-${file.originalname}`;
-      await this.awsService.uploadToS3(bucket, key, file.buffer);
-      uploadedPaths.governmentIdProof = key;
+      const url = await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.governmentIdProof = url;
     }
 
     if (files?.incomeProof && files.incomeProof.length > 0) {
       const file = files.incomeProof[0];
       const key = `${projectId}/income/${Date.now()}-${file.originalname}`;
-      await this.awsService.uploadToS3(bucket, key, file.buffer);
-      uploadedPaths.incomeProof = key;
+      const url = await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.incomeProof = url;
     }
 
     if (files?.bankStatement && files.bankStatement.length > 0) {
       const file = files.bankStatement[0];
       const key = `${projectId}/bankstatement/${Date.now()}-${file.originalname}`;
-      await this.awsService.uploadToS3(bucket, key, file.buffer);
-      uploadedPaths.bankStatement = key;
+      const url = await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.bankStatement = url;
     }
 
     const subLoan = await this.prisma.sub_loan.findFirst({

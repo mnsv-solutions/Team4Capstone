@@ -24,6 +24,7 @@ import { GetContactDetailsRequestDto } from './dto/getContactDetailsRequest.dto.
 import { GetEducationDetailsRequestDto } from './dto/getEducationDetailsRequest.dto.js';
 import { GetFinancialDetailsRequestDto } from './dto/getFinancialDetailsRequest.dto.js';
 import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
+import { GetDocumentDetailsRequestDto } from './dto/getDocumentDetailsRequest.dto.js';
 
 @Controller('application')
 @UseGuards(AuthGuard)
