@@ -862,6 +862,7 @@ model users {
   sub_loan_sub_loan_created_byTousers                     sub_loan[]           @relation("sub_loan_created_byTousers")
   sub_loan_sub_loan_updated_byTousers                     sub_loan[]           @relation("sub_loan_updated_byTousers")
   user_bank_account                                       user_bank_account[]
+  team_members                                            team_members[]
 
   @@index([role_id, is_active], map: "idx_users_role_active")
 }
@@ -1069,4 +1070,30 @@ model application_eligibility_summary {
   @@index([application_number], map: "idx_application_eligibility_summary_application_number")
   @@index([rule_set_id], map: "idx_application_eligibility_summary_rule_set_id")
   @@index([eligibility_status], map: "idx_application_eligibility_summary_status")
+}
+
+model teams {
+  team_id     String   @id @default(uuid()) @db.Uuid
+  team_code   String   @unique @db.VarChar(100)
+  team_name   String   @db.VarChar(150)
+  description String?  @db.Text
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now()) @db.Timestamp(6)
+  updated_at  DateTime @updatedAt @db.Timestamp(6)
+
+  team_members team_members[]
+}
+
+model team_members {
+  team_member_id String   @id @default(uuid()) @db.Uuid
+  team_id        String   @db.Uuid
+  user_id        String   @db.Uuid
+  is_active      Boolean  @default(true)
+  created_at     DateTime @default(now()) @db.Timestamp(6)
+  updated_at     DateTime @updatedAt @db.Timestamp(6)
+
+  teams teams @relation(fields: [team_id], references: [team_id], onDelete: NoAction, onUpdate: NoAction)
+  users users @relation(fields: [user_id], references: [user_id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([team_id, user_id])
 }
