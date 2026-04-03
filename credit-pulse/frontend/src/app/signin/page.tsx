@@ -17,19 +17,26 @@ export default function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // Stops default form submit
     e.preventDefault();
+
+    // Prevents multiple submit clicks
     if (isSubmitting) return;
 
+    // Validates sign in fields
     const validationErrors = validateSignIn(loginId, password);
     setErrors(validationErrors);
 
+    // Stops submit on validation errors
     if (Object.keys(validationErrors).length > 0) return;
 
+    // Starts loading state
     setIsSubmitting(true);
     setSuccessMsg("");
     setErrors({});
 
     try {
+      // Sends sign in request
       const response = await axios.post("/api/auth/signin", {
         loginId,
         password,
@@ -37,6 +44,7 @@ export default function SignInPage() {
 
       const responseData = response.data;
 
+      // Reads token from response
       const accessToken =
         responseData?.accessToken ||
         responseData?.token ||
@@ -44,13 +52,13 @@ export default function SignInPage() {
         responseData?.data?.token ||
         null;
 
-      const userData =
-        responseData?.user ||
-        responseData?.data?.user ||
-        {
+      // Reads user data from response
+      const userData = responseData?.user ||
+        responseData?.data?.user || {
           loginId,
         };
 
+      // Stops flow if token is missing
       if (!accessToken) {
         setErrors({
           loginId: "Sign in succeeded, but no access token was returned.",
@@ -59,14 +67,32 @@ export default function SignInPage() {
         return;
       }
 
+      // Saves token and user details
       login(accessToken, userData);
 
-      setSuccessMsg("Signed in successfully. Redirecting to dashboard...");
+      // Normalizes role code for redirect
+      const normalizedRoleCode =
+        typeof userData?.roleCode === "string"
+          ? userData.roleCode.trim().toUpperCase()
+          : "";
 
+      // Decides page after login
+      const redirectPath =
+        normalizedRoleCode === "ADMIN" ? "/admin" : "/dashboard";
+
+      // Shows success message
+      setSuccessMsg(
+        normalizedRoleCode === "ADMIN"
+          ? "Signed in successfully. Redirecting to admin page..."
+          : "Signed in successfully. Redirecting to dashboard...",
+      );
+
+      // Redirects user after short delay
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push(redirectPath);
       }, 900);
     } catch (error) {
+      // Handles api error response
       if (axios.isAxiosError(error)) {
         const apiMessage = error.response?.data?.message;
         const errorMessage =
@@ -79,6 +105,7 @@ export default function SignInPage() {
         return;
       }
 
+      // Handles server connection failure
       setErrors({
         loginId:
           "Unable to reach the server. Please make sure the backend is running.",
@@ -89,6 +116,7 @@ export default function SignInPage() {
   };
 
   const handleSocial = (provider: "google" | "apple") => {
+    // Shows social login placeholder message
     setErrors({
       loginId: `${
         provider === "google" ? "Google" : "Apple"
@@ -105,7 +133,11 @@ export default function SignInPage() {
             <p className="mb-4 auth-muted">Access your CreditPulse account.</p>
 
             {successMsg && (
-              <div className="alert alert-success" role="status" aria-live="polite">
+              <div
+                className="alert alert-success"
+                role="status"
+                aria-live="polite"
+              >
                 {successMsg}
               </div>
             )}
@@ -123,7 +155,9 @@ export default function SignInPage() {
                   value={loginId}
                   onChange={(e) => setLoginId(e.target.value)}
                   aria-invalid={!!errors.loginId}
-                  aria-describedby={errors.loginId ? "loginId-error" : undefined}
+                  aria-describedby={
+                    errors.loginId ? "loginId-error" : undefined
+                  }
                   disabled={isSubmitting}
                   required
                 />
@@ -136,7 +170,10 @@ export default function SignInPage() {
 
               <div className="mb-3">
                 <div className="d-flex justify-content-between align-items-center">
-                  <label htmlFor="password" className="form-label fw-semibold mb-0">
+                  <label
+                    htmlFor="password"
+                    className="form-label fw-semibold mb-0"
+                  >
                     Password
                   </label>
                   <a className="auth-link" href="/forgot-password">
@@ -152,7 +189,9 @@ export default function SignInPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   aria-invalid={!!errors.password}
-                  aria-describedby={errors.password ? "password-error" : undefined}
+                  aria-describedby={
+                    errors.password ? "password-error" : undefined
+                  }
                   disabled={isSubmitting}
                   required
                 />
@@ -171,7 +210,10 @@ export default function SignInPage() {
                 {isSubmitting ? "Signing In..." : "Sign In"}
               </button>
 
-              <div className="auth-or my-4" aria-label="Alternative sign in options">
+              <div
+                className="auth-or my-4"
+                aria-label="Alternative sign in options"
+              >
                 <div className="auth-or-line" aria-hidden="true" />
                 <div className="auth-or-text" aria-hidden="true">
                   OR
