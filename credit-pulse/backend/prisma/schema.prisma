@@ -829,6 +829,8 @@ model users {
   is_email_verified                                       Boolean              @default(false)
   is_system_user                                          Boolean              @default(false)
   is_active                                               Boolean              @default(true)
+  is_blocked                                              Boolean              @default(false)
+  is_logged_in                                            Boolean              @default(false)
   created_at                                              DateTime             @default(now()) @db.Timestamptz(6)
   updated_at                                              DateTime             @default(now()) @db.Timestamptz(6)
   address_types_address_types_created_byTousers           address_types[]      @relation("address_types_created_byTousers")

@@ -2489,11 +2489,6 @@ async function seedBase() {
   });
 
   console.log('Seed completed successfully.');
-  console.log('System users:');
-  console.log('Victor  -> victor@creditpulse.com / Victor@123');
-  console.log('Miswa   -> miswa@creditpulse.com / Miswa@123');
-  console.log('Nirali  -> nirali@creditpulse.com / Nirali@123');
-  console.log('Sukh    -> sukh@creditpulse.com / Sukh@123');
 }
 
 async function seedSupplemental() {
@@ -4725,6 +4720,12 @@ async function main() {
   await seedApplicationCommunication();
   await seedEligibilityEngine();
   console.log('Merged seed completed successfully.');
+  console.log('System users:');
+  console.log('Victor  -> victor@creditpulse.com /  Victor@19880412.1001');
+  console.log('Miswa   -> miswa@creditpulse.com / Miswa@19910918.1003');
+  console.log('Nirali  -> nirali@creditpulse.com / Nirali@19990810.1004');
+  console.log('Sukh    -> sukh@creditpulse.com / Sukh@19981222.1002');
+  console.log('Aman    -> aman@creditpulse.com / Aman@19970214.1005');
 }
 
 main()
