@@ -12,6 +12,7 @@ import { CalculateRatiosModule } from './calculate-ratios/calculate-ratios.modul
 import { CreditScoreCheckModule } from './credit-score-check/credit-score-check.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
 import { FetchAllUsersModule } from './fetch-all-users/fetch-all-users.module.js';
+import { FetchUserRoleModule } from './fetch-user-role/fetch-user-role.module.js';
 import { GenerateRepaymentScheduleModule } from './generate-repayment-schedule/generate-repayment-schedule.module.js';
 import { HealthController } from './health/health.controller.js';
 import { PrismaService } from './prisma/prisma.service.js';
@@ -33,6 +34,7 @@ import { UsersModule } from './users/users.module.js';
     UploadUsersModule,
     UpdateUserStatusModule,
     FetchAllUsersModule,
+    FetchUserRoleModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, PrismaService, AwsService],
