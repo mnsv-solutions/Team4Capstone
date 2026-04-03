@@ -8,8 +8,8 @@
  * @property {string} data.roleCode - Role code
  */
 export class FetchUserRoleResponseDto {
-  message: string;
-  data: {
+  message!: string;
+  data!: {
     userId: string;
     roleId: string;
     roleCode: string;
