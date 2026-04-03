@@ -24,6 +24,32 @@ import { COMMUNICATION_PROPERTIES } from "./communication-properties";
 
 type VerificationStatus = "VERIFIED" | "NOT_VERIFIED" | "";
 
+type ContactAddressDto = {
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+};
+
+type GetContactDetailsResponseDto = {
+  email: string;
+  mobile: string;
+  alternatePhone: string;
+  residentialAddress: ContactAddressDto;
+  mailingSameAsResidential: boolean;
+  mailingAddress: ContactAddressDto;
+};
+
+type ContactDetailsApiResponse =
+  | {
+      success?: boolean;
+      message?: string;
+      data?: GetContactDetailsResponseDto;
+    }
+  | GetContactDetailsResponseDto;
+
 type CommunicationAttachment = {
   documentName: string;
   originalFileName: string;
@@ -480,6 +506,33 @@ function makeAttachmentLookupKeys(attachment: {
   ].filter(Boolean);
 }
 
+function getSafeAddress(address?: ContactAddressDto): ContactAddressDto {
+  return {
+    line1: address?.line1 || "",
+    line2: address?.line2 || "",
+    city: address?.city || "",
+    state: address?.state || "",
+    postalCode: address?.postalCode || "",
+    country: address?.country || "",
+  };
+}
+
+function extractContactDetailsResponse(
+  response: ContactDetailsApiResponse
+): GetContactDetailsResponseDto | null {
+  if (!response) return null;
+
+  if ("data" in response && response.data) {
+    return response.data;
+  }
+
+  if ("email" in response) {
+    return response as GetContactDetailsResponseDto;
+  }
+
+  return null;
+}
+
 export default function ApplicationDetailsPage() {
   const router = useRouter();
   const { token, isAuthenticated, isLoading: authLoading, logout } = useAuth();
@@ -569,6 +622,78 @@ export default function ApplicationDetailsPage() {
       };
     });
   }, [currentUserRole]);
+
+  async function fetchContactDetails() {
+    if (!token) return;
+    if (!isValidApplicationNumber(details.applicationNumber)) return;
+
+    try {
+      const response = await axios.get<ContactDetailsApiResponse>(
+        "/api/application/contact-details", 
+        {
+          params: {
+            applicationNumber: details.applicationNumber.trim(),
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const contactData = extractContactDetailsResponse(response.data);
+
+      if (!contactData) return;
+
+      const residentialAddress = getSafeAddress(contactData.residentialAddress);
+      const mailingAddress = getSafeAddress(contactData.mailingAddress);
+
+      setDetails((prev) => ({
+        ...prev,
+        email: contactData.email || "",
+        mobile: contactData.mobile || "",
+        alternatePhone: contactData.alternatePhone || "",
+        residentialLine1: residentialAddress.line1,
+        residentialLine2: residentialAddress.line2 || "",
+        residentialCity: residentialAddress.city,
+        residentialState: residentialAddress.state,
+        residentialPostalCode: residentialAddress.postalCode,
+        residentialCountry: residentialAddress.country,
+        mailingSameAsResidential: Boolean(contactData.mailingSameAsResidential),
+        mailingLine1: mailingAddress.line1,
+        mailingLine2: mailingAddress.line2 || "",
+        mailingCity: mailingAddress.city,
+        mailingState: mailingAddress.state,
+        mailingPostalCode: mailingAddress.postalCode,
+        mailingCountry: mailingAddress.country,
+      }));
+    } catch (error) {
+      console.error("Failed to fetch contact details:", error);
+
+      if (axios.isAxiosError(error)) {
+        const statusCode = error.response?.status;
+        const apiMessage = error.response?.data?.message;
+
+        if (
+          statusCode === 401 ||
+          apiMessage === "Invalid token" ||
+          apiMessage === "No token provided" ||
+          apiMessage === "User not authenticated"
+        ) {
+          logout();
+          router.push("/signin");
+          return;
+        }
+      }
+    }
+  }
+
+  useEffect(() => {
+    if (!token) return;
+    if (!isValidApplicationNumber(details.applicationNumber)) return;
+
+    fetchContactDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, details.applicationNumber]);
 
   function toggleSection(section: AccordionKey) {
     setOpenSections((prev) => ({
