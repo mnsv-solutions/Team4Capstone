@@ -343,9 +343,10 @@ export class TeamsService {
   async removeUserFromTeam(
     removeUserFromTeamRequestDto: RemoveUserFromTeamRequestDto,
   ): Promise<RemoveUserFromTeamResponseDto> {
+    // Takes team id and user id from the request body
     const { teamId, userId } = removeUserFromTeamRequestDto;
 
-    // Check whether the team exists
+    // Checks whether the team exists and is active
     const team = await this.prisma.teams.findFirst({
       where: {
         team_id: teamId,
@@ -357,12 +358,12 @@ export class TeamsService {
       },
     });
 
+    // Stops the flow if the team is not found
     if (!team) {
-      // If the team does not exist, throw a NotFoundException
       throw new NotFoundException('Team not found.');
     }
 
-    // Check whether the user exists
+    // Checks whether the user exists
     const user = await this.prisma.users.findFirst({
       where: {
         user_id: userId,
@@ -374,12 +375,12 @@ export class TeamsService {
       },
     });
 
+    // Stops the flow if the user is not found
     if (!user) {
-      // If the user does not exist, throw a NotFoundException
       throw new NotFoundException('User not found.');
     }
 
-    // Check whether the user is already assigned to the given team
+    // Finds the active team membership for this user and team
     const activeTeamMember = await this.prisma.team_members.findFirst({
       where: {
         team_id: teamId,
@@ -391,55 +392,27 @@ export class TeamsService {
       },
     });
 
-    if (activeTeamMember) {
-      // If the user is already assigned to the team and is active, throw a BadRequestException
-      throw new BadRequestException(
-        'User is already assigned to this team. Remove the user from the current team first.',
-      );
+    // Throws an error if the user is not currently an active member of the team
+    if (!activeTeamMember) {
+      throw new NotFoundException('User is not mapped to this team.');
     }
 
-    // Check whether the user is already assigned to the given team but is inactive
-    const inactiveTeamMember = await this.prisma.team_members.findFirst({
+    // Soft deletes the membership by marking it as inactive
+    await this.prisma.team_members.update({
       where: {
-        team_id: teamId,
-        user_id: userId,
-        is_active: false,
+        team_member_id: activeTeamMember.team_member_id,
       },
-      select: {
-        team_member_id: true,
+      data: {
+        is_active: false,
+        updated_at: new Date(),
       },
     });
 
-    if (inactiveTeamMember) {
-      // If the user is already assigned to the team but is inactive, update the team member to be active
-      await this.prisma.team_members.update({
-        where: {
-          team_member_id: inactiveTeamMember.team_member_id,
-        },
-        data: {
-          is_active: true,
-          updated_at: new Date(),
-        },
-      });
-    } else {
-      // If the user is not already assigned to the team, create a new team member
-      await this.prisma.team_members.create({
-        data: {
-          team_member_id: randomUUID(),
-          team_id: teamId,
-          user_id: userId,
-          is_active: true,
-          created_at: new Date(),
-          updated_at: new Date(),
-        },
-      });
-    }
-
-    // Construct the response object
+    // Builds the full user name for the response message
     const userName = `${user.first_name} ${user.last_name}`.trim();
 
     return {
-      message: `${userName} is successfully removed from ${team.team_name}.`,
+      message: `${userName} is successfully removed from Team named ${team.team_name}.`,
       data: {
         teamId: team.team_id,
         teamName: team.team_name,
