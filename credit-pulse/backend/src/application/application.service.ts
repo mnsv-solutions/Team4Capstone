@@ -16,6 +16,8 @@ import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.
 import { CreateApplicationResponseDto } from './dto/createApplicationResponse.dto.js';
 import { GetContactDetailsRequestDto } from './dto/getContactDetailsRequest.dto.js';
 import { GetContactDetailsResponseDto } from './dto/getContactDetailsResponse.dto.js';
+import { GetDocumentDetailsRequestDto } from './dto/getDocumentDetailsRequest.dto.js';
+import { GetDocumentDetailsResponseDto } from './dto/getDocumentDetailsResponse.dto.js';
 import { GetEducationDetailsRequestDto } from './dto/getEducationDetailsRequest.dto.js';
 import { GetEducationDetailsResponseDto } from './dto/getEducationDetailsResponse.dto.js';
 import { GetFinancialDetailsRequestDto } from './dto/getFinancialDetailsRequest.dto.js';
@@ -49,22 +51,22 @@ export class ApplicationService {
     if (files?.governmentIdProof && files.governmentIdProof.length > 0) {
       const file = files.governmentIdProof[0];
       const key = `${projectId}/government/${Date.now()}-${file.originalname}`;
-      await this.awsService.uploadToS3(bucket, key, file.buffer);
-      uploadedPaths.governmentIdProof = key;
+      const url = await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.governmentIdProof = url;
     }
 
     if (files?.incomeProof && files.incomeProof.length > 0) {
       const file = files.incomeProof[0];
       const key = `${projectId}/income/${Date.now()}-${file.originalname}`;
-      await this.awsService.uploadToS3(bucket, key, file.buffer);
-      uploadedPaths.incomeProof = key;
+      const url = await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.incomeProof = url;
     }
 
     if (files?.bankStatement && files.bankStatement.length > 0) {
       const file = files.bankStatement[0];
       const key = `${projectId}/bankstatement/${Date.now()}-${file.originalname}`;
-      await this.awsService.uploadToS3(bucket, key, file.buffer);
-      uploadedPaths.bankStatement = key;
+      const url = await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.bankStatement = url;
     }
 
     const subLoan = await this.prisma.sub_loan.findFirst({
@@ -724,7 +726,7 @@ export class ApplicationService {
     nationalityName?: string,
   ): Promise<string> {
     const defaultCode = countryName.substring(0, 3).toUpperCase().padEnd(3, 'X');
-    let country = await tx.countries.findFirst({
+    const country = await tx.countries.findFirst({
       where: {
         is_active: true,
         OR: [
@@ -1031,6 +1033,68 @@ export class ApplicationService {
       existingLoans: '',
       totalMonthlyLoanPayments: liabilityDetail?.monthly_payment?.toString() || '',
       bankAccounts,
+    };
+  }
+
+  async getDocumentDetails(
+    dto: GetDocumentDetailsRequestDto,
+  ): Promise<GetDocumentDetailsResponseDto> {
+    const loanApp = await this.prisma.loan_application.findUnique({
+      where: { application_number: dto.applicationNumber },
+      include: {
+        sub_loan: {
+          include: {
+            customer: {
+              include: {
+                documents: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!loanApp) {
+      throw new NotFoundException(`Application with number ${dto.applicationNumber} not found.`);
+    }
+
+    const primarySubLoan =
+      loanApp.sub_loan.find((sl) => sl.applicant_type === 0) || loanApp.sub_loan[0];
+    if (!primarySubLoan || !primarySubLoan.customer) {
+      throw new NotFoundException(
+        `Customer details not found for application ${dto.applicationNumber}.`,
+      );
+    }
+
+    const customer = primarySubLoan.customer;
+    const docs = customer.documents || [];
+
+    const getDocDetails = (name: string) => {
+      const doc = docs.find((d) => d.document_name === name && d.is_active);
+      if (!doc || !doc.document_path) return undefined;
+
+      const path = doc.document_path;
+      const parts = path.split('/');
+      const lastPart = parts[parts.length - 1] || '';
+
+      let file_name = lastPart;
+      file_name = decodeURIComponent(lastPart);
+
+      const dashIndex = file_name.indexOf('-');
+      if (dashIndex !== -1) {
+        file_name = file_name.substring(dashIndex + 1);
+      }
+
+      return {
+        file_name,
+        path,
+      };
+    };
+
+    return {
+      governmentIdProofUrl: getDocDetails('Government ID'),
+      incomeProofUrl: getDocDetails('Pay Slip / Income Proof'),
+      bankStatementUrl: getDocDetails('Bank Statement'),
     };
   }
 }
