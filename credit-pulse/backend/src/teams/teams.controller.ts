@@ -1,8 +1,14 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 
 import { AuthGuard } from '../auth/auth.guard.js';
 import { CheckIsAdmin } from '../auth/check-is-admin.js';
+import { AddUserToTeamRequestDto } from './dto/add-user-to-team-request.dto.js';
+import { AddUserToTeamResponseDto } from './dto/add-user-to-team-response.dto.js';
 import { FetchAllTeamsResponseDto } from './dto/fetch-all-teams-response.dto.js';
+import { FetchTeamUsersRequestDto } from './dto/fetch-team-users-request.dto.js';
+import { FetchTeamUsersListResponseDto } from './dto/fetch-team-users-response.dto.js';
+import { RemoveUserFromTeamRequestDto } from './dto/remove-user-from-team-request.dto.js';
+import { RemoveUserFromTeamResponseDto } from './dto/remove-user-from-team-response.dto.js';
 import { TeamsService } from './teams.service.js';
 
 /**
@@ -27,5 +33,38 @@ export class TeamsController {
     // Call the fetchAllTeams function in the TeamsService
     // to retrieve all teams from the database.
     return await this.TeamsService.fetchAllTeams();
+  }
+  @UseGuards(AuthGuard, CheckIsAdmin)
+  @Post('fetch-users')
+  /**
+   * Retrieves all users belonging to a given team.
+   *
+   * @param fetchTeamUsersRequestDto - The FetchTeamUsersRequestDto object containing the team ID.
+   *
+   * @returns A promise that resolves to a FetchTeamUsersListResponseDto object containing the team's users.
+   */
+  async fetchTeamUsers(
+    @Body()
+    fetchTeamUsersRequestDto: FetchTeamUsersRequestDto,
+  ): Promise<FetchTeamUsersListResponseDto> {
+    // Call the fetchTeamUsers function in the TeamsService
+    // to retrieve all users belonging to the given team.
+    return this.TeamsService.fetchTeamUsers(fetchTeamUsersRequestDto);
+  }
+
+  @UseGuards(AuthGuard, CheckIsAdmin)
+  @Post('add-user')
+  async addUserToTeam(
+    @Body() addUserToTeamRequestDto: AddUserToTeamRequestDto,
+  ): Promise<AddUserToTeamResponseDto> {
+    return this.TeamsService.addUserToTeam(addUserToTeamRequestDto);
+  }
+
+  @UseGuards(AuthGuard, CheckIsAdmin)
+  @Patch('remove-user')
+  async removeUserFromTeam(
+    @Body() removeUserFromTeamRequestDto: RemoveUserFromTeamRequestDto,
+  ): Promise<RemoveUserFromTeamResponseDto> {
+    return this.TeamsService.removeUserFromTeam(removeUserFromTeamRequestDto);
   }
 }

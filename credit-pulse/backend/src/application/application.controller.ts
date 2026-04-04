@@ -21,6 +21,7 @@ import { JwtPayload } from '../common/types/jwtpayload.js';
 import { ApplicationService } from './application.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
 import { GetContactDetailsRequestDto } from './dto/getContactDetailsRequest.dto.js';
+import { GetDocumentDetailsRequestDto } from './dto/getDocumentDetailsRequest.dto.js';
 import { GetEducationDetailsRequestDto } from './dto/getEducationDetailsRequest.dto.js';
 import { GetFinancialDetailsRequestDto } from './dto/getFinancialDetailsRequest.dto.js';
 import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
@@ -99,7 +100,13 @@ export class ApplicationController {
 
   @Get('financial-details')
   @HttpCode(HttpStatus.OK)
-  async getFinancialDetails(@Body() dto: GetFinancialDetailsRequestDto) {
+  async getFinancialDetails(@Query() dto: GetFinancialDetailsRequestDto) {
     return await this.applicationService.getFinancialDetails(dto);
+  }
+
+  @Get('document-details')
+  @HttpCode(HttpStatus.OK)
+  async getDocumentDetails(@Query() dto: GetDocumentDetailsRequestDto) {
+    return await this.applicationService.getDocumentDetails(dto);
   }
 }
