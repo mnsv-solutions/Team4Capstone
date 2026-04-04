@@ -18,6 +18,8 @@ import { GetContactDetailsRequestDto } from './dto/getContactDetailsRequest.dto.
 import { GetContactDetailsResponseDto } from './dto/getContactDetailsResponse.dto.js';
 import { GetEducationDetailsRequestDto } from './dto/getEducationDetailsRequest.dto.js';
 import { GetEducationDetailsResponseDto } from './dto/getEducationDetailsResponse.dto.js';
+import { GetFinancialDetailsRequestDto } from './dto/getFinancialDetailsRequest.dto.js';
+import { GetFinancialDetailsResponseDto } from './dto/getFinancialDetailsResponse.dto.js';
 import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
 import { GetPersonalInformationResponseDto } from './dto/getPersonalInformationResponse.dto.js';
 
@@ -954,6 +956,81 @@ export class ApplicationService {
       fieldOfStudy: educationDetail?.field_of_study || '',
       institutionName: educationDetail?.institution?.institution_name || '',
       graduationYear: educationDetail?.graduation_year?.toString() || '',
+    };
+  }
+
+  async getFinancialDetails(
+    dto: GetFinancialDetailsRequestDto,
+  ): Promise<GetFinancialDetailsResponseDto> {
+    const loanApp = await this.prisma.loan_application.findUnique({
+      where: { application_number: dto.applicationNumber },
+      include: {
+        sub_loan: {
+          include: {
+            customer: {
+              include: {
+                employment_details: {
+                  include: {
+                    employment_type: true,
+                  },
+                },
+                income_sources: true,
+                liabilities: true,
+                bank_details: {
+                  include: {
+                    bank: true,
+                    account_type: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!loanApp) {
+      throw new NotFoundException(`Application with number ${dto.applicationNumber} not found.`);
+    }
+
+    const primarySubLoan =
+      loanApp.sub_loan.find((sl) => sl.applicant_type === 0) || loanApp.sub_loan[0];
+    if (!primarySubLoan || !primarySubLoan.customer) {
+      throw new NotFoundException(
+        `Customer details not found for application ${dto.applicationNumber}.`,
+      );
+    }
+
+    const customer = primarySubLoan.customer;
+
+    const employmentDetail = customer.employment_details;
+    const otherIncomeSource = customer.income_sources?.find(
+      (inc) => inc.description === 'Other Income Sources' || inc.is_active,
+    );
+    const liabilityDetail = customer.liabilities?.find((l) => l.is_active);
+
+    const bankAccounts = (customer.bank_details || [])
+      .filter((b) => b.is_active)
+      .map((b) => ({
+        bankName: b.bank?.bank_name || '',
+        institutionNumber: '',
+        transitNumber: '',
+        accountNumber: b.account_number_masked || '',
+        accountType: b.account_type?.account_type_name || '',
+        swiftBic: '',
+        isRepaymentAccount: b.is_primary,
+      }));
+
+    return {
+      employmentStatus: employmentDetail?.employment_type?.employment_type_name || '',
+      employerName: employmentDetail?.employer_name || '',
+      jobTitle: employmentDetail?.job_title || '',
+      workExperience: employmentDetail?.work_experience_years?.toString() || '',
+      monthlyIncome: employmentDetail?.monthly_income?.toString() || '',
+      otherIncomeSources: otherIncomeSource?.monthly_amount?.toString() || '',
+      existingLoans: '',
+      totalMonthlyLoanPayments: liabilityDetail?.monthly_payment?.toString() || '',
+      bankAccounts,
     };
   }
 }
