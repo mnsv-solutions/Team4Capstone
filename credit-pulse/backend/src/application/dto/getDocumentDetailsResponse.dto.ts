@@ -1,5 +1,10 @@
+export class DocumentDetailItemDto {
+  file_name: string;
+  path: string;
+}
+
 export class GetDocumentDetailsResponseDto {
-  governmentIdProofUrl: string;
-  incomeProofUrl: string;
-  bankStatementUrl: string;
+  governmentIdProofUrl?: DocumentDetailItemDto;
+  incomeProofUrl?: DocumentDetailItemDto;
+  bankStatementUrl?: DocumentDetailItemDto;
 }
