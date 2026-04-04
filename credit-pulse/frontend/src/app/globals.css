@@ -1465,3 +1465,38 @@ html[data-theme="light"] .cp-dashboard-page-btn--active {
     flex-direction: column;
   }
 }
+.cp-dashboard-view-btn {
+  min-width: 88px;
+  height: 38px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  background: rgba(99, 102, 241, 0.14);
+  color: #c7d2fe;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.cp-dashboard-view-btn:hover {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #ffffff;
+}
+
+.cp-dashboard-view-btn:active {
+  transform: translateY(1px);
+}
+
+html[data-theme="light"] .cp-dashboard-view-btn {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.35);
+  color: #4338ca;
+}
+
+html[data-theme="light"] .cp-dashboard-view-btn:hover {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #ffffff;
+}
