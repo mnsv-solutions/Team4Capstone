@@ -14,14 +14,18 @@ export class AwsService {
     });
   }
 
-  async uploadToS3(bucket: string, key: string, body: Buffer): Promise<void> {
+  async uploadToS3(bucket: string, key: string, body: Buffer): Promise<string> {
     await this.client.send(
       new PutObjectCommand({
         Bucket: bucket,
         Key: key,
         Body: body,
+        ACL: 'public-read',
       }),
     );
+
+    const region = this.configService.get<string>('aws.region');
+    return `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
   }
 
   async getFileFromS3(bucket: string, key: string): Promise<Buffer> {
