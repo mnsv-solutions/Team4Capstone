@@ -100,7 +100,7 @@ export class ApplicationController {
 
   @Get('financial-details')
   @HttpCode(HttpStatus.OK)
-  async getFinancialDetails(@Body() dto: GetFinancialDetailsRequestDto) {
+  async getFinancialDetails(@Query() dto: GetFinancialDetailsRequestDto) {
     return await this.applicationService.getFinancialDetails(dto);
   }
 

@@ -726,7 +726,7 @@ export class ApplicationService {
     nationalityName?: string,
   ): Promise<string> {
     const defaultCode = countryName.substring(0, 3).toUpperCase().padEnd(3, 'X');
-    let country = await tx.countries.findFirst({
+    const country = await tx.countries.findFirst({
       where: {
         is_active: true,
         OR: [
@@ -1078,11 +1078,7 @@ export class ApplicationService {
       const lastPart = parts[parts.length - 1] || '';
 
       let file_name = lastPart;
-      try {
-        file_name = decodeURIComponent(lastPart);
-      } catch (e) {
-        // Fallback to un-decoded if error
-      }
+      file_name = decodeURIComponent(lastPart);
 
       const dashIndex = file_name.indexOf('-');
       if (dashIndex !== -1) {
