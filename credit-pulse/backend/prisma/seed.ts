@@ -288,8 +288,10 @@ async function seedBase() {
   await prisma.user_bank_account.deleteMany();
   await prisma.user_address.deleteMany();
   await prisma.user_profile.deleteMany();
+  await prisma.loan_product_config.deleteMany();
   await prisma.users.deleteMany();
   await prisma.loan_types.deleteMany();
+
   await prisma.institutions.deleteMany();
   await prisma.employment_types.deleteMany();
   await prisma.education_levels.deleteMany();
@@ -1072,6 +1074,63 @@ async function seedBase() {
       updated_by: updatedBy,
       is_active: true,
     },
+  });
+
+  await prisma.loan_product_config.createMany({
+    data: [
+      {
+        loan_type_id: personalLoanType.loan_type_id,
+        min_amount: '5000.00',
+        max_amount: '50000.00',
+        min_tenure_months: 6,
+        max_tenure_months: 60,
+        min_interest_rate: '10.50',
+        max_interest_rate: '18.00',
+        processing_fee_percent: '2.00',
+        created_by: createdBy,
+        updated_by: updatedBy,
+        is_active: true,
+      },
+      {
+        loan_type_id: educationLoanType.loan_type_id,
+        min_amount: '10000.00',
+        max_amount: '100000.00',
+        min_tenure_months: 12,
+        max_tenure_months: 84,
+        min_interest_rate: '8.50',
+        max_interest_rate: '14.00',
+        processing_fee_percent: '1.50',
+        created_by: createdBy,
+        updated_by: updatedBy,
+        is_active: true,
+      },
+      {
+        loan_type_id: businessLoanType.loan_type_id,
+        min_amount: '20000.00',
+        max_amount: '250000.00',
+        min_tenure_months: 12,
+        max_tenure_months: 72,
+        min_interest_rate: '11.00',
+        max_interest_rate: '19.50',
+        processing_fee_percent: '2.50',
+        created_by: createdBy,
+        updated_by: updatedBy,
+        is_active: true,
+      },
+      {
+        loan_type_id: mortgageLoanType.loan_type_id,
+        min_amount: '50000.00',
+        max_amount: '1000000.00',
+        min_tenure_months: 60,
+        max_tenure_months: 360,
+        min_interest_rate: '6.50',
+        max_interest_rate: '10.50',
+        processing_fee_percent: '1.00',
+        created_by: createdBy,
+        updated_by: updatedBy,
+        is_active: true,
+      },
+    ],
   });
 
   await prisma.user_profile.createMany({
@@ -5847,6 +5906,7 @@ async function seedTeamMembers() {
 
   console.log('Team members seeded successfully.');
 }
+
 async function main() {
   await seedBase();
   await seedSupplemental();
