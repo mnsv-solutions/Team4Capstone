@@ -33,26 +33,6 @@ type ContactAddressDto = {
   country: string;
 };
 
-type GetPersonalInformationResponseDto = {
-  firstName: string;
-  lastName: string;
-  dob: string;
-  gender: string;
-  maritalStatus: string;
-  nationality: string;
-  governmentIdType: string;
-  governmentIdNumber: string;
-  sinTaxId: string;
-};
-
-type PersonalInformationApiResponse =
-  | {
-      success?: boolean;
-      message?: string;
-      data?: GetPersonalInformationResponseDto;
-    }
-  | GetPersonalInformationResponseDto;
-
 type GetContactDetailsResponseDto = {
   email: string;
   mobile: string;
@@ -537,22 +517,6 @@ function getSafeAddress(address?: ContactAddressDto): ContactAddressDto {
   };
 }
 
-function extractPersonalInformationResponse(
-  response: PersonalInformationApiResponse
-): GetPersonalInformationResponseDto | null {
-  if (!response) return null;
-
-  if ("data" in response && response.data) {
-    return response.data;
-  }
-
-  if ("firstName" in response) {
-    return response as GetPersonalInformationResponseDto;
-  }
-
-  return null;
-}
-
 function extractContactDetailsResponse(
   response: ContactDetailsApiResponse
 ): GetContactDetailsResponseDto | null {
@@ -659,67 +623,13 @@ export default function ApplicationDetailsPage() {
     });
   }, [currentUserRole]);
 
-  async function fetchPersonalInformation() {
-    if (!token) return;
-    if (!isValidApplicationNumber(details.applicationNumber)) return;
-
-    try {
-      const response = await axios.get<PersonalInformationApiResponse>(
-        "/api/application/personal-information",
-        {
-          params: {
-            applicationNumber: details.applicationNumber.trim(),
-          },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      const personalData = extractPersonalInformationResponse(response.data);
-
-      if (!personalData) return;
-
-      setDetails((prev) => ({
-        ...prev,
-        firstName: personalData.firstName || "",
-        lastName: personalData.lastName || "",
-        dob: personalData.dob || "",
-        gender: personalData.gender || "",
-        maritalStatus: personalData.maritalStatus || "",
-        nationality: personalData.nationality || "",
-        governmentIdType: personalData.governmentIdType || "",
-        governmentIdNumber: personalData.governmentIdNumber || "",
-        sinTaxId: personalData.sinTaxId || "",
-      }));
-    } catch (error) {
-      console.error("Failed to fetch personal information:", error);
-
-      if (axios.isAxiosError(error)) {
-        const statusCode = error.response?.status;
-        const apiMessage = error.response?.data?.message;
-
-        if (
-          statusCode === 401 ||
-          apiMessage === "Invalid token" ||
-          apiMessage === "No token provided" ||
-          apiMessage === "User not authenticated"
-        ) {
-          logout();
-          router.push("/signin");
-          return;
-        }
-      }
-    }
-  }
-
   async function fetchContactDetails() {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
     try {
       const response = await axios.get<ContactDetailsApiResponse>(
-        "/api/application/contact-details",
+        "/api/application/contact-details", 
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -781,7 +691,6 @@ export default function ApplicationDetailsPage() {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
-    fetchPersonalInformation();
     fetchContactDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, details.applicationNumber]);
