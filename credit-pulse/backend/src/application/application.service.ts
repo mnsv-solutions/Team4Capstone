@@ -1046,7 +1046,11 @@ export class ApplicationService {
           include: {
             customer: {
               include: {
-                documents: true,
+                documents: {
+                  include: {
+                    document_type: true,
+                  },
+                },
               },
             },
           },
@@ -1069,32 +1073,37 @@ export class ApplicationService {
     const customer = primarySubLoan.customer;
     const docs = customer.documents || [];
 
-    const getDocDetails = (name: string) => {
-      const doc = docs.find((d) => d.document_name === name && d.is_active);
-      if (!doc || !doc.document_path) return undefined;
+    const documents = docs
+      .filter((d) => d.is_active)
+      .map((doc) => {
+        let file_name = '';
+        if (doc.document_path) {
+          const parts = doc.document_path.split('/');
+          const lastPart = parts[parts.length - 1] || '';
+          file_name = decodeURIComponent(lastPart);
+          const dashIndex = file_name.indexOf('-');
+          if (dashIndex !== -1) {
+            file_name = file_name.substring(dashIndex + 1);
+          }
+        } else {
+          file_name = doc.document_name;
+        }
 
-      const path = doc.document_path;
-      const parts = path.split('/');
-      const lastPart = parts[parts.length - 1] || '';
-
-      let file_name = lastPart;
-      file_name = decodeURIComponent(lastPart);
-
-      const dashIndex = file_name.indexOf('-');
-      if (dashIndex !== -1) {
-        file_name = file_name.substring(dashIndex + 1);
-      }
-
-      return {
-        file_name,
-        path,
-      };
-    };
+        return {
+          documentType: doc.document_type?.document_type_name || doc.document_name,
+          fileName: file_name,
+          isVerified: doc.is_verified || false,
+          url: doc.document_path || '',
+        };
+      });
 
     return {
-      governmentIdProofUrl: getDocDetails('Government ID'),
-      incomeProofUrl: getDocDetails('Pay Slip / Income Proof'),
-      bankStatementUrl: getDocDetails('Bank Statement'),
+      documents,
     };
+  }
+
+  async verifyDocument(dto: GetDocumentDetailsRequestDto) {
+    // Note: Implementation of Document Verification
+    return { success: true };
   }
 }

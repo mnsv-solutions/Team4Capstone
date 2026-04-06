@@ -109,4 +109,10 @@ export class ApplicationController {
   async getDocumentDetails(@Query() dto: GetDocumentDetailsRequestDto) {
     return await this.applicationService.getDocumentDetails(dto);
   }
+
+  @Post('document-verify')
+  @HttpCode(HttpStatus.OK)
+  async verifyDocument(@Query() dto: GetDocumentDetailsRequestDto) {
+    return await this.applicationService.verifyDocument(dto);
+  }
 }
