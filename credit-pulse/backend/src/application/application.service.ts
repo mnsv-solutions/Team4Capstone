@@ -24,6 +24,8 @@ import { GetFinancialDetailsRequestDto } from './dto/getFinancialDetailsRequest.
 import { GetFinancialDetailsResponseDto } from './dto/getFinancialDetailsResponse.dto.js';
 import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
 import { GetPersonalInformationResponseDto } from './dto/getPersonalInformationResponse.dto.js';
+import { VerifyDocumentRequestDto } from './dto/verifyDocumentRequest.dto.js';
+import { VerifyDocumentResponseDto } from './dto/verifyDocumentResponse.dto.js';
 
 type PrismaTransaction = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
 
@@ -1102,8 +1104,86 @@ export class ApplicationService {
     };
   }
 
-  async verifyDocument(dto: GetDocumentDetailsRequestDto) {
-    // Note: Implementation of Document Verification
-    return { success: true };
+  async verifyDocument(dto: VerifyDocumentRequestDto): Promise<VerifyDocumentResponseDto> {
+    const loanApp = await this.prisma.loan_application.findUnique({
+      where: { application_number: dto.applicationNumber },
+      include: {
+        sub_loan: {
+          include: {
+            customer: {
+              include: {
+                documents: {
+                  include: {
+                    document_type: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!loanApp) {
+      throw new NotFoundException(`Application with number ${dto.applicationNumber} not found.`);
+    }
+
+    const primarySubLoan =
+      loanApp.sub_loan.find((sl) => sl.applicant_type === 0) || loanApp.sub_loan[0];
+    if (!primarySubLoan || !primarySubLoan.customer) {
+      throw new NotFoundException(
+        `Customer details not found for application ${dto.applicationNumber}.`,
+      );
+    }
+
+    const customer = primarySubLoan.customer;
+
+    if (!dto.documents || dto.documents.length === 0) {
+      return { message: 'No documents provided for verification.' };
+    }
+
+    const docsToVerifyIds: string[] = [];
+
+    for (const docDto of dto.documents) {
+      const match = customer.documents.find((doc) => {
+        const typeMatch =
+          doc.document_type?.document_type_name === docDto.documentType ||
+          doc.document_name === docDto.documentType;
+
+        let file_name = '';
+        if (doc.document_path) {
+          const parts = doc.document_path.split('/');
+          const lastPart = parts[parts.length - 1] || '';
+          file_name = decodeURIComponent(lastPart);
+          const dashIndex = file_name.indexOf('-');
+          if (dashIndex !== -1) {
+            file_name = file_name.substring(dashIndex + 1);
+          }
+        } else {
+          file_name = doc.document_name;
+        }
+
+        return typeMatch && file_name === docDto.fileName && doc.is_active;
+      });
+
+      if (match) {
+        docsToVerifyIds.push(match.customer_document_id);
+      }
+    }
+
+    if (docsToVerifyIds.length > 0) {
+      await this.prisma.customer_document_details.updateMany({
+        where: {
+          customer_document_id: {
+            in: docsToVerifyIds,
+          },
+        },
+        data: {
+          is_verified: true,
+        },
+      });
+    }
+
+    return { message: `${docsToVerifyIds.length} document(s) verified successfully.` };
   }
 }

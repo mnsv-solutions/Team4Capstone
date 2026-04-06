@@ -25,6 +25,7 @@ import { GetDocumentDetailsRequestDto } from './dto/getDocumentDetailsRequest.dt
 import { GetEducationDetailsRequestDto } from './dto/getEducationDetailsRequest.dto.js';
 import { GetFinancialDetailsRequestDto } from './dto/getFinancialDetailsRequest.dto.js';
 import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
+import { VerifyDocumentRequestDto } from './dto/verifyDocumentRequest.dto.js';
 
 @Controller('application')
 @UseGuards(AuthGuard)
@@ -112,7 +113,7 @@ export class ApplicationController {
 
   @Post('document-verify')
   @HttpCode(HttpStatus.OK)
-  async verifyDocument(@Query() dto: GetDocumentDetailsRequestDto) {
+  async verifyDocument(@Body() dto: VerifyDocumentRequestDto) {
     return await this.applicationService.verifyDocument(dto);
   }
 }
