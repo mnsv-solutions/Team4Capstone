@@ -7,10 +7,13 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, logout } = useAuth();
+  const { isAuthenticated, isAdmin, isLoading, logout } = useAuth();
 
   const handleSignOut = () => {
+    // Clears saved login session
     logout();
+
+    // Sends user back to sign in page
     router.push("/signin");
   };
 
@@ -28,6 +31,12 @@ export default function Navbar() {
 
           {!isLoading && isAuthenticated && (
             <>
+              {isAdmin && (
+                <Link className="nav-link cp-navlink" href="/admin">
+                  Admin
+                </Link>
+              )}
+
               <Link className="nav-link cp-navlink" href="/dashboard">
                 Dashboard
               </Link>

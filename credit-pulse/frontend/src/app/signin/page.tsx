@@ -17,19 +17,26 @@ export default function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // Stops normal form refresh
     e.preventDefault();
+
+    // Prevents double click submit
     if (isSubmitting) return;
 
+    // Validates sign in fields before api call
     const validationErrors = validateSignIn(loginId, password);
     setErrors(validationErrors);
 
+    // Stops submit when validation fails
     if (Object.keys(validationErrors).length > 0) return;
 
+    // Starts loading state
     setIsSubmitting(true);
     setSuccessMsg("");
     setErrors({});
 
     try {
+      // Sends sign in request to backend
       const response = await axios.post("/api/auth/signin", {
         loginId,
         password,
@@ -37,6 +44,7 @@ export default function SignInPage() {
 
       const responseData = response.data;
 
+      // Reads access token from possible response shapes
       const accessToken =
         responseData?.accessToken ||
         responseData?.token ||
@@ -44,6 +52,7 @@ export default function SignInPage() {
         responseData?.data?.token ||
         null;
 
+      // Reads user object from possible response shapes
       const userData =
         responseData?.user ||
         responseData?.data?.user ||
@@ -51,6 +60,7 @@ export default function SignInPage() {
           loginId,
         };
 
+      // Stops flow if token is missing
       if (!accessToken) {
         setErrors({
           loginId: "Sign in succeeded, but no access token was returned.",
@@ -59,14 +69,25 @@ export default function SignInPage() {
         return;
       }
 
-      login(accessToken, userData);
+      // Saves login session and checks whether the user is admin
+      const isAdminUser = await login(accessToken, userData);
 
-      setSuccessMsg("Signed in successfully. Redirecting to dashboard...");
+      // Chooses page based on admin access result
+      const redirectPath = isAdminUser ? "/admin" : "/dashboard";
 
+      // Shows success message before redirect
+      setSuccessMsg(
+        isAdminUser
+          ? "Signed in successfully. Redirecting to admin page..."
+          : "Signed in successfully. Redirecting to dashboard..."
+      );
+
+      // Redirects after short delay
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push(redirectPath);
       }, 900);
     } catch (error) {
+      // Handles backend api errors
       if (axios.isAxiosError(error)) {
         const apiMessage = error.response?.data?.message;
         const errorMessage =
@@ -79,6 +100,7 @@ export default function SignInPage() {
         return;
       }
 
+      // Handles network or unknown errors
       setErrors({
         loginId:
           "Unable to reach the server. Please make sure the backend is running.",
@@ -89,6 +111,7 @@ export default function SignInPage() {
   };
 
   const handleSocial = (provider: "google" | "apple") => {
+    // Shows placeholder message for unavailable social login
     setErrors({
       loginId: `${
         provider === "google" ? "Google" : "Apple"
