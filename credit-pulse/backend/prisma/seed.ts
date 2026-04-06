@@ -282,6 +282,13 @@ async function seedBase() {
   await prisma.sub_loan.deleteMany();
   await prisma.loan_application.deleteMany();
   await prisma.application_status_audit.deleteMany();
+  await prisma.application_eligibility_summary.deleteMany();
+  await prisma.eligibility_rule.deleteMany();
+  await prisma.eligibility_rule_set.deleteMany();
+  await prisma.application_message_attachment.deleteMany();
+  await prisma.application_communication_history.deleteMany();
+  await prisma.team_members.deleteMany();
+  await prisma.teams.deleteMany();
   await prisma.customer.deleteMany();
   await prisma.user_employment.deleteMany();
   await prisma.user_education.deleteMany();
@@ -291,7 +298,6 @@ async function seedBase() {
   await prisma.loan_product_config.deleteMany();
   await prisma.users.deleteMany();
   await prisma.loan_types.deleteMany();
-
   await prisma.institutions.deleteMany();
   await prisma.employment_types.deleteMany();
   await prisma.education_levels.deleteMany();
