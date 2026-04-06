@@ -8,6 +8,7 @@ import { ApplicationStatusModule } from './application-status/application-status
 import { ApplicationModule } from './application/application.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { AwsService } from './aws/aws.service.js';
+import { CalculateEligibilityModule } from './calculate-eligibility/calculate-eligibility.module.js';
 import { CalculateRatiosModule } from './calculate-ratios/calculate-ratios.module.js';
 import { CreditScoreCheckModule } from './credit-score-check/credit-score-check.module.js';
 import { DashboardModule } from './dashboard/dashboard.module.js';
@@ -37,6 +38,7 @@ import { UsersModule } from './users/users.module.js';
     FetchAllUsersModule,
     TeamsModule,
     ProductsModule,
+    CalculateEligibilityModule,
   ],
   controllers: [AppController, HealthController],
   providers: [AppService, PrismaService, AwsService],
