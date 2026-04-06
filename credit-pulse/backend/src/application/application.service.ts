@@ -16,8 +16,12 @@ import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.
 import { CreateApplicationResponseDto } from './dto/createApplicationResponse.dto.js';
 import { GetContactDetailsRequestDto } from './dto/getContactDetailsRequest.dto.js';
 import { GetContactDetailsResponseDto } from './dto/getContactDetailsResponse.dto.js';
+import { GetDocumentDetailsRequestDto } from './dto/getDocumentDetailsRequest.dto.js';
+import { GetDocumentDetailsResponseDto } from './dto/getDocumentDetailsResponse.dto.js';
 import { GetEducationDetailsRequestDto } from './dto/getEducationDetailsRequest.dto.js';
 import { GetEducationDetailsResponseDto } from './dto/getEducationDetailsResponse.dto.js';
+import { GetFinancialDetailsRequestDto } from './dto/getFinancialDetailsRequest.dto.js';
+import { GetFinancialDetailsResponseDto } from './dto/getFinancialDetailsResponse.dto.js';
 import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
 import { GetPersonalInformationResponseDto } from './dto/getPersonalInformationResponse.dto.js';
 
@@ -47,22 +51,22 @@ export class ApplicationService {
     if (files?.governmentIdProof && files.governmentIdProof.length > 0) {
       const file = files.governmentIdProof[0];
       const key = `${projectId}/government/${Date.now()}-${file.originalname}`;
-      await this.awsService.uploadToS3(bucket, key, file.buffer);
-      uploadedPaths.governmentIdProof = key;
+      const url = await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.governmentIdProof = url;
     }
 
     if (files?.incomeProof && files.incomeProof.length > 0) {
       const file = files.incomeProof[0];
       const key = `${projectId}/income/${Date.now()}-${file.originalname}`;
-      await this.awsService.uploadToS3(bucket, key, file.buffer);
-      uploadedPaths.incomeProof = key;
+      const url = await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.incomeProof = url;
     }
 
     if (files?.bankStatement && files.bankStatement.length > 0) {
       const file = files.bankStatement[0];
       const key = `${projectId}/bankstatement/${Date.now()}-${file.originalname}`;
-      await this.awsService.uploadToS3(bucket, key, file.buffer);
-      uploadedPaths.bankStatement = key;
+      const url = await this.awsService.uploadToS3(bucket, key, file.buffer);
+      uploadedPaths.bankStatement = url;
     }
 
     const subLoan = await this.prisma.sub_loan.findFirst({
@@ -722,7 +726,7 @@ export class ApplicationService {
     nationalityName?: string,
   ): Promise<string> {
     const defaultCode = countryName.substring(0, 3).toUpperCase().padEnd(3, 'X');
-    let country = await tx.countries.findFirst({
+    const country = await tx.countries.findFirst({
       where: {
         is_active: true,
         OR: [
@@ -954,6 +958,143 @@ export class ApplicationService {
       fieldOfStudy: educationDetail?.field_of_study || '',
       institutionName: educationDetail?.institution?.institution_name || '',
       graduationYear: educationDetail?.graduation_year?.toString() || '',
+    };
+  }
+
+  async getFinancialDetails(
+    dto: GetFinancialDetailsRequestDto,
+  ): Promise<GetFinancialDetailsResponseDto> {
+    const loanApp = await this.prisma.loan_application.findUnique({
+      where: { application_number: dto.applicationNumber },
+      include: {
+        sub_loan: {
+          include: {
+            customer: {
+              include: {
+                employment_details: {
+                  include: {
+                    employment_type: true,
+                  },
+                },
+                income_sources: true,
+                liabilities: true,
+                bank_details: {
+                  include: {
+                    bank: true,
+                    account_type: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!loanApp) {
+      throw new NotFoundException(`Application with number ${dto.applicationNumber} not found.`);
+    }
+
+    const primarySubLoan =
+      loanApp.sub_loan.find((sl) => sl.applicant_type === 0) || loanApp.sub_loan[0];
+    if (!primarySubLoan || !primarySubLoan.customer) {
+      throw new NotFoundException(
+        `Customer details not found for application ${dto.applicationNumber}.`,
+      );
+    }
+
+    const customer = primarySubLoan.customer;
+
+    const employmentDetail = customer.employment_details;
+    const otherIncomeSource = customer.income_sources?.find(
+      (inc) => inc.description === 'Other Income Sources' || inc.is_active,
+    );
+    const liabilityDetail = customer.liabilities?.find((l) => l.is_active);
+
+    const bankAccounts = (customer.bank_details || [])
+      .filter((b) => b.is_active)
+      .map((b) => ({
+        bankName: b.bank?.bank_name || '',
+        institutionNumber: '',
+        transitNumber: '',
+        accountNumber: b.account_number_masked || '',
+        accountType: b.account_type?.account_type_name || '',
+        swiftBic: '',
+        isRepaymentAccount: b.is_primary,
+      }));
+
+    return {
+      employmentStatus: employmentDetail?.employment_type?.employment_type_name || '',
+      employerName: employmentDetail?.employer_name || '',
+      jobTitle: employmentDetail?.job_title || '',
+      workExperience: employmentDetail?.work_experience_years?.toString() || '',
+      monthlyIncome: employmentDetail?.monthly_income?.toString() || '',
+      otherIncomeSources: otherIncomeSource?.monthly_amount?.toString() || '',
+      existingLoans: '',
+      totalMonthlyLoanPayments: liabilityDetail?.monthly_payment?.toString() || '',
+      bankAccounts,
+    };
+  }
+
+  async getDocumentDetails(
+    dto: GetDocumentDetailsRequestDto,
+  ): Promise<GetDocumentDetailsResponseDto> {
+    const loanApp = await this.prisma.loan_application.findUnique({
+      where: { application_number: dto.applicationNumber },
+      include: {
+        sub_loan: {
+          include: {
+            customer: {
+              include: {
+                documents: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!loanApp) {
+      throw new NotFoundException(`Application with number ${dto.applicationNumber} not found.`);
+    }
+
+    const primarySubLoan =
+      loanApp.sub_loan.find((sl) => sl.applicant_type === 0) || loanApp.sub_loan[0];
+    if (!primarySubLoan || !primarySubLoan.customer) {
+      throw new NotFoundException(
+        `Customer details not found for application ${dto.applicationNumber}.`,
+      );
+    }
+
+    const customer = primarySubLoan.customer;
+    const docs = customer.documents || [];
+
+    const getDocDetails = (name: string) => {
+      const doc = docs.find((d) => d.document_name === name && d.is_active);
+      if (!doc || !doc.document_path) return undefined;
+
+      const path = doc.document_path;
+      const parts = path.split('/');
+      const lastPart = parts[parts.length - 1] || '';
+
+      let file_name = lastPart;
+      file_name = decodeURIComponent(lastPart);
+
+      const dashIndex = file_name.indexOf('-');
+      if (dashIndex !== -1) {
+        file_name = file_name.substring(dashIndex + 1);
+      }
+
+      return {
+        file_name,
+        path,
+      };
+    };
+
+    return {
+      governmentIdProofUrl: getDocDetails('Government ID'),
+      incomeProofUrl: getDocDetails('Pay Slip / Income Proof'),
+      bankStatementUrl: getDocDetails('Bank Statement'),
     };
   }
 }

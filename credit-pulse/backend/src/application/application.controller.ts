@@ -6,6 +6,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Query,
   Req,
   UploadedFiles,
   UseGuards,
@@ -20,7 +21,9 @@ import { JwtPayload } from '../common/types/jwtpayload.js';
 import { ApplicationService } from './application.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
 import { GetContactDetailsRequestDto } from './dto/getContactDetailsRequest.dto.js';
+import { GetDocumentDetailsRequestDto } from './dto/getDocumentDetailsRequest.dto.js';
 import { GetEducationDetailsRequestDto } from './dto/getEducationDetailsRequest.dto.js';
+import { GetFinancialDetailsRequestDto } from './dto/getFinancialDetailsRequest.dto.js';
 import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
 
 @Controller('application')
@@ -79,19 +82,31 @@ export class ApplicationController {
 
   @Get('personal-information')
   @HttpCode(HttpStatus.OK)
-  async getPersonalInformation(@Body() dto: GetPersonalInformationRequestDto) {
+  async getPersonalInformation(@Query() dto: GetPersonalInformationRequestDto) {
     return await this.applicationService.getPersonalInformation(dto);
   }
 
   @Get('contact-details')
   @HttpCode(HttpStatus.OK)
-  async getContactDetails(@Body() dto: GetContactDetailsRequestDto) {
+  async getContactDetails(@Query() dto: GetContactDetailsRequestDto) {
     return await this.applicationService.getContactDetails(dto);
   }
 
   @Get('education-details')
   @HttpCode(HttpStatus.OK)
-  async getEducationDetails(@Body() dto: GetEducationDetailsRequestDto) {
+  async getEducationDetails(@Query() dto: GetEducationDetailsRequestDto) {
     return await this.applicationService.getEducationDetails(dto);
+  }
+
+  @Get('financial-details')
+  @HttpCode(HttpStatus.OK)
+  async getFinancialDetails(@Query() dto: GetFinancialDetailsRequestDto) {
+    return await this.applicationService.getFinancialDetails(dto);
+  }
+
+  @Get('document-details')
+  @HttpCode(HttpStatus.OK)
+  async getDocumentDetails(@Query() dto: GetDocumentDetailsRequestDto) {
+    return await this.applicationService.getDocumentDetails(dto);
   }
 }
