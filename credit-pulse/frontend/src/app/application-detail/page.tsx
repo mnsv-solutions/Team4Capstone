@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronDown,
   ChevronUp,
@@ -20,7 +20,6 @@ import {
   Paperclip,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
-import { COMMUNICATION_PROPERTIES } from "./communication-properties";
 
 type VerificationStatus = "VERIFIED" | "NOT_VERIFIED" | "";
 
@@ -49,6 +48,71 @@ type ContactDetailsApiResponse =
       data?: GetContactDetailsResponseDto;
     }
   | GetContactDetailsResponseDto;
+
+type PersonalDetailsResponseDto = {
+  firstName: string;
+  lastName: string;
+  dob: string;
+  gender: string;
+  maritalStatus: string;
+  nationality: string;
+  governmentIdType: string;
+  governmentIdNumber: string;
+  sinTaxId: string;
+};
+
+type PersonalDetailsApiResponse =
+  | {
+      success?: boolean;
+      message?: string;
+      data?: PersonalDetailsResponseDto;
+    }
+  | PersonalDetailsResponseDto;
+
+type EducationDetailsResponseDto = {
+  highestEducation: string;
+  fieldOfStudy: string;
+  institutionName: string;
+  graduationYear: string;
+};
+
+type EducationDetailsApiResponse =
+  | {
+      success?: boolean;
+      message?: string;
+      data?: EducationDetailsResponseDto;
+    }
+  | EducationDetailsResponseDto;
+
+type FinancialBankAccount = {
+  bankName: string;
+  institutionNumber: string;
+  transitNumber: string;
+  accountNumber: string;
+  accountType: string;
+  swiftBic: string;
+  isRepaymentAccount: boolean;
+};
+
+type FinancialDetailsResponseDto = {
+  employmentStatus: string;
+  employerName: string;
+  jobTitle: string;
+  workExperience: string;
+  monthlyIncome: string;
+  otherIncomeSources: string;
+  existingLoans: string;
+  totalMonthlyLoanPayments: string;
+  bankAccounts: FinancialBankAccount[];
+};
+
+type FinancialDetailsApiResponse =
+  | {
+      success?: boolean;
+      message?: string;
+      data?: FinancialDetailsResponseDto;
+    }
+  | FinancialDetailsResponseDto;
 
 type CommunicationAttachment = {
   documentName: string;
@@ -237,10 +301,6 @@ type AttachmentDownloadInfo = {
   unavailableAfterRefresh: boolean;
 };
 
-const HARDCODED_APPLICATION_NUMBER = COMMUNICATION_PROPERTIES.APPLICATION_NUMBER;
-const HARDCODED_CUSTOMER_USER_ID = COMMUNICATION_PROPERTIES.CUSTOMER_USER_ID;
-const HARDCODED_SYSTEM_USER_ID = COMMUNICATION_PROPERTIES.SYSTEM_USER_ID;
-
 const accordionSections: {
   key: AccordionKey;
   title: string;
@@ -266,7 +326,7 @@ const accordionSections: {
 ];
 
 const initialDetails: ApplicationDetailsState = {
-  applicationNumber: HARDCODED_APPLICATION_NUMBER,
+  applicationNumber: "",
   applicationStatus: "",
   loanProduct: "",
 
@@ -339,15 +399,13 @@ const initialDetails: ApplicationDetailsState = {
 };
 
 function getRecipientUserId(recipientType: string): string {
-  return recipientType.trim().toUpperCase() === "CUSTOMER"
-    ? HARDCODED_CUSTOMER_USER_ID
-    : HARDCODED_SYSTEM_USER_ID;
+  return recipientType.trim().toUpperCase() === "CUSTOMER" ? "" : "";
 }
 
 const initialCommunicationForm = (): CommunicationFormState => ({
   senderType: "SOURCING_OFFICER",
   recipientType: "CUSTOMER",
-  recipientUserId: getRecipientUserId("CUSTOMER"),
+  recipientUserId: "",
   messageCategory: "QUERY",
   messageText: "",
   sendEmail: false,
@@ -441,14 +499,11 @@ function getSenderTypeForRole(role: UserRole): string {
 }
 
 function getRecipientOptionsForSender(senderType: string): string[] {
-  const allRoles = [
-    "CUSTOMER",
-    "SOURCING_OFFICER",
-    "UNDERWRITER",
-    "DISBURSAL_OFFICER",
-  ];
+  if (senderType === "CUSTOMER") {
+    return ["SOURCING_OFFICER"];
+  }
 
-  return allRoles.filter((role) => role !== senderType);
+  return ["CUSTOMER"];
 }
 
 function getDefaultRecipientTypeForSender(senderType: string): string {
@@ -533,13 +588,64 @@ function extractContactDetailsResponse(
   return null;
 }
 
+function extractPersonalDetailsResponse(
+  response: PersonalDetailsApiResponse
+): PersonalDetailsResponseDto | null {
+  if (!response) return null;
+
+  if ("data" in response && response.data) {
+    return response.data;
+  }
+
+  if ("firstName" in response) {
+    return response as PersonalDetailsResponseDto;
+  }
+
+  return null;
+}
+
+function extractEducationDetailsResponse(
+  response: EducationDetailsApiResponse
+): EducationDetailsResponseDto | null {
+  if (!response) return null;
+
+  if ("data" in response && response.data) {
+    return response.data;
+  }
+
+  if ("highestEducation" in response) {
+    return response as EducationDetailsResponseDto;
+  }
+
+  return null;
+}
+
+function extractFinancialDetailsResponse(
+  response: FinancialDetailsApiResponse
+): FinancialDetailsResponseDto | null {
+  if (!response) return null;
+
+  if ("data" in response && response.data) {
+    return response.data;
+  }
+
+  if ("employmentStatus" in response) {
+    return response as FinancialDetailsResponseDto;
+  }
+
+  return null;
+}
+
 export default function ApplicationDetailsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const applicationNumberFromUrl = searchParams.get("applicationNumber") || "";
+
   const { token, isAuthenticated, isLoading: authLoading, logout } = useAuth();
 
   const [details, setDetails] = useState<ApplicationDetailsState>({
     ...initialDetails,
-    applicationNumber: HARDCODED_APPLICATION_NUMBER,
+    applicationNumber: applicationNumberFromUrl,
   });
 
   const [openSections, setOpenSections] = useState<Record<AccordionKey, boolean>>({
@@ -592,6 +698,15 @@ export default function ApplicationDetailsPage() {
   }, [details.firstName, details.lastName, details.loanProduct, details.applicationStatus]);
 
   useEffect(() => {
+    if (applicationNumberFromUrl) {
+      setDetails((prev) => ({
+        ...prev,
+        applicationNumber: applicationNumberFromUrl,
+      }));
+    }
+  }, [applicationNumberFromUrl]);
+
+  useEffect(() => {
     return () => {
       createdBlobUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
     };
@@ -623,13 +738,66 @@ export default function ApplicationDetailsPage() {
     });
   }, [currentUserRole]);
 
+  async function fetchPersonalDetails() {
+    if (!token) return;
+    if (!isValidApplicationNumber(details.applicationNumber)) return;
+
+    try {
+      const response = await axios.get<PersonalDetailsApiResponse>(
+        "/api/application/personal-information",
+        {
+          params: {
+            applicationNumber: details.applicationNumber.trim(),
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const personalData = extractPersonalDetailsResponse(response.data);
+
+      if (!personalData) return;
+
+      setDetails((prev) => ({
+        ...prev,
+        firstName: personalData.firstName || "",
+        lastName: personalData.lastName || "",
+        dob: personalData.dob || "",
+        gender: personalData.gender || "",
+        maritalStatus: personalData.maritalStatus || "",
+        nationality: personalData.nationality || "",
+        governmentIdType: personalData.governmentIdType || "",
+        governmentIdNumber: personalData.governmentIdNumber || "",
+        sinTaxId: personalData.sinTaxId || "",
+      }));
+    } catch (error) {
+      console.error("Failed to fetch personal details:", error);
+
+      if (axios.isAxiosError(error)) {
+        const statusCode = error.response?.status;
+        const apiMessage = error.response?.data?.message;
+
+        if (
+          statusCode === 401 ||
+          apiMessage === "Invalid token" ||
+          apiMessage === "No token provided" ||
+          apiMessage === "User not authenticated"
+        ) {
+          logout();
+          router.push("/signin");
+        }
+      }
+    }
+  }
+
   async function fetchContactDetails() {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
     try {
       const response = await axios.get<ContactDetailsApiResponse>(
-        "/api/application/contact-details", 
+        "/api/application/contact-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -681,7 +849,107 @@ export default function ApplicationDetailsPage() {
         ) {
           logout();
           router.push("/signin");
-          return;
+        }
+      }
+    }
+  }
+
+  async function fetchEducationDetails() {
+    if (!token) return;
+    if (!isValidApplicationNumber(details.applicationNumber)) return;
+
+    try {
+      const response = await axios.get<EducationDetailsApiResponse>(
+        "/api/application/education-details",
+        {
+          params: {
+            applicationNumber: details.applicationNumber.trim(),
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const educationData = extractEducationDetailsResponse(response.data);
+
+      if (!educationData) return;
+
+      setDetails((prev) => ({
+        ...prev,
+        highestEducation: educationData.highestEducation || "",
+        fieldOfStudy: educationData.fieldOfStudy || "",
+        institutionName: educationData.institutionName || "",
+        graduationYear: educationData.graduationYear || "",
+      }));
+    } catch (error) {
+      console.error("Failed to fetch education details:", error);
+
+      if (axios.isAxiosError(error)) {
+        const statusCode = error.response?.status;
+        const apiMessage = error.response?.data?.message;
+
+        if (
+          statusCode === 401 ||
+          apiMessage === "Invalid token" ||
+          apiMessage === "No token provided" ||
+          apiMessage === "User not authenticated"
+        ) {
+          logout();
+          router.push("/signin");
+        }
+      }
+    }
+  }
+
+  async function fetchFinancialDetails() {
+    if (!token) return;
+    if (!isValidApplicationNumber(details.applicationNumber)) return;
+
+    try {
+      const response = await axios.get<FinancialDetailsApiResponse>(
+        "/api/application/financial-details",
+        {
+          params: {
+            applicationNumber: details.applicationNumber.trim(),
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const financialData = extractFinancialDetailsResponse(response.data);
+
+      if (!financialData) return;
+
+      setDetails((prev) => ({
+        ...prev,
+        employmentStatus: financialData.employmentStatus || "",
+        employerName: financialData.employerName || "",
+        jobTitle: financialData.jobTitle || "",
+        workExperience: financialData.workExperience || "",
+        monthlyIncome: financialData.monthlyIncome || "",
+        otherIncomeSources: financialData.otherIncomeSources || "",
+        existingLoans: financialData.existingLoans || "",
+        totalMonthlyLoanPayments: financialData.totalMonthlyLoanPayments || "",
+        bankAccounts: financialData.bankAccounts || [],
+      }));
+    } catch (error) {
+      console.error("Failed to fetch financial details:", error);
+
+      if (axios.isAxiosError(error)) {
+        const statusCode = error.response?.status;
+        const apiMessage = error.response?.data?.message;
+
+        if (
+          statusCode === 401 ||
+          apiMessage === "Invalid token" ||
+          apiMessage === "No token provided" ||
+          apiMessage === "User not authenticated"
+        ) {
+          logout();
+          router.push("/signin");
         }
       }
     }
@@ -691,7 +959,10 @@ export default function ApplicationDetailsPage() {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
+    fetchPersonalDetails();
     fetchContactDetails();
+    fetchEducationDetails();
+    fetchFinancialDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, details.applicationNumber]);
 
@@ -940,8 +1211,13 @@ export default function ApplicationDetailsPage() {
       return;
     }
 
-    if (!communicationForm.recipientUserId.trim()) {
-      setCommunicationError("Recipient User ID is missing.");
+    if (
+      communicationForm.recipientType !== "CUSTOMER" &&
+      !communicationForm.recipientUserId.trim()
+    ) {
+      setCommunicationError(
+        "Recipient User ID is required for internal recipient types."
+      );
       return;
     }
 
@@ -959,7 +1235,6 @@ export default function ApplicationDetailsPage() {
         applicationNumber: details.applicationNumber.trim(),
         senderType: senderTypeFromLogin,
         recipientType: communicationForm.recipientType,
-        recipientUserId: communicationForm.recipientUserId.trim(),
         messageText: communicationForm.messageText.trim(),
         messageCategory: communicationForm.messageCategory,
         isInternal,
@@ -970,6 +1245,13 @@ export default function ApplicationDetailsPage() {
           : undefined,
       };
 
+      if (
+        communicationForm.recipientType !== "CUSTOMER" &&
+        communicationForm.recipientUserId.trim()
+      ) {
+        payload.recipientUserId = communicationForm.recipientUserId.trim();
+      }
+
       await axios.post("/api/push-communication", payload, {
         headers: {
           "Content-Type": "application/json",
@@ -977,9 +1259,7 @@ export default function ApplicationDetailsPage() {
         },
       });
 
-      setCommunicationSuccess(
-        "Communication saved successfully. Attached files are temporary until backend storage is implemented."
-      );
+      setCommunicationSuccess("Communication sent successfully.");
 
       setCommunicationForm({
         ...initialCommunicationForm(),

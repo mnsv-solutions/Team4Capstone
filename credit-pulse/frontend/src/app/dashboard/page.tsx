@@ -205,6 +205,10 @@ export default function DashboardPage() {
     return `${rate} • ${tenure}`;
   }
 
+  function handleViewApplication(item: DashboardApplication) {
+    router.push(`/application-detail?applicationNumber=${item.applicationNumber}`);
+  }
+
   if (authLoading) {
     return (
       <main className="cp-dashboard-page">
@@ -306,13 +310,14 @@ export default function DashboardPage() {
                   <th>Balance</th>
                   <th>Next Payment</th>
                   <th>Created</th>
+                  <th>Action</th>
                 </tr>
               </thead>
 
               <tbody>
                 {isLoading ? (
                   <tr>
-                    <td colSpan={8}>
+                    <td colSpan={9}>
                       <div className="cp-dashboard-empty-state">
                         Loading applications...
                       </div>
@@ -320,7 +325,7 @@ export default function DashboardPage() {
                   </tr>
                 ) : filteredApplications.length === 0 ? (
                   <tr>
-                    <td colSpan={8}>
+                    <td colSpan={9}>
                       <div className="cp-dashboard-empty-state">
                         No applications found for the current search or filter.
                       </div>
@@ -385,6 +390,16 @@ export default function DashboardPage() {
                         <div className="cp-dashboard-secondary-text">
                           {formatDate(item.applicationCreationDate)}
                         </div>
+                      </td>
+
+                      <td>
+                        <button
+                          type="button"
+                          className="cp-dashboard-view-btn"
+                          onClick={() => handleViewApplication(item)}
+                        >
+                          View
+                        </button>
                       </td>
                     </tr>
                   ))
