@@ -445,6 +445,7 @@ model customer_document_details {
   document_path        String  @db.VarChar(500)
   mime_type            String? @db.VarChar(100)
   file_size_bytes      BigInt?
+  is_verified          Boolean @default(false)
   is_active            Boolean @default(true)
 
   customer      customer       @relation(fields: [customer_id], references: [customer_id], onDelete: Cascade)

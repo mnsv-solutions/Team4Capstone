@@ -24,6 +24,8 @@ import { GetFinancialDetailsRequestDto } from './dto/getFinancialDetailsRequest.
 import { GetFinancialDetailsResponseDto } from './dto/getFinancialDetailsResponse.dto.js';
 import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRequest.dto.js';
 import { GetPersonalInformationResponseDto } from './dto/getPersonalInformationResponse.dto.js';
+import { VerifyDocumentRequestDto } from './dto/verifyDocumentRequest.dto.js';
+import { VerifyDocumentResponseDto } from './dto/verifyDocumentResponse.dto.js';
 
 type PrismaTransaction = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
 
@@ -1046,7 +1048,11 @@ export class ApplicationService {
           include: {
             customer: {
               include: {
-                documents: true,
+                documents: {
+                  include: {
+                    document_type: true,
+                  },
+                },
               },
             },
           },
@@ -1069,32 +1075,115 @@ export class ApplicationService {
     const customer = primarySubLoan.customer;
     const docs = customer.documents || [];
 
-    const getDocDetails = (name: string) => {
-      const doc = docs.find((d) => d.document_name === name && d.is_active);
-      if (!doc || !doc.document_path) return undefined;
+    const documents = docs
+      .filter((d) => d.is_active)
+      .map((doc) => {
+        let file_name = '';
+        if (doc.document_path) {
+          const parts = doc.document_path.split('/');
+          const lastPart = parts[parts.length - 1] || '';
+          file_name = decodeURIComponent(lastPart);
+          const dashIndex = file_name.indexOf('-');
+          if (dashIndex !== -1) {
+            file_name = file_name.substring(dashIndex + 1);
+          }
+        } else {
+          file_name = doc.document_name;
+        }
 
-      const path = doc.document_path;
-      const parts = path.split('/');
-      const lastPart = parts[parts.length - 1] || '';
-
-      let file_name = lastPart;
-      file_name = decodeURIComponent(lastPart);
-
-      const dashIndex = file_name.indexOf('-');
-      if (dashIndex !== -1) {
-        file_name = file_name.substring(dashIndex + 1);
-      }
-
-      return {
-        file_name,
-        path,
-      };
-    };
+        return {
+          documentType: doc.document_type?.document_type_name || doc.document_name,
+          fileName: file_name,
+          isVerified: doc.is_verified || false,
+          url: doc.document_path || '',
+        };
+      });
 
     return {
-      governmentIdProofUrl: getDocDetails('Government ID'),
-      incomeProofUrl: getDocDetails('Pay Slip / Income Proof'),
-      bankStatementUrl: getDocDetails('Bank Statement'),
+      documents,
     };
+  }
+
+  async verifyDocument(dto: VerifyDocumentRequestDto): Promise<VerifyDocumentResponseDto> {
+    const loanApp = await this.prisma.loan_application.findUnique({
+      where: { application_number: dto.applicationNumber },
+      include: {
+        sub_loan: {
+          include: {
+            customer: {
+              include: {
+                documents: {
+                  include: {
+                    document_type: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!loanApp) {
+      throw new NotFoundException(`Application with number ${dto.applicationNumber} not found.`);
+    }
+
+    const primarySubLoan =
+      loanApp.sub_loan.find((sl) => sl.applicant_type === 0) || loanApp.sub_loan[0];
+    if (!primarySubLoan || !primarySubLoan.customer) {
+      throw new NotFoundException(
+        `Customer details not found for application ${dto.applicationNumber}.`,
+      );
+    }
+
+    const customer = primarySubLoan.customer;
+
+    if (!dto.documents || dto.documents.length === 0) {
+      return { message: 'No documents provided for verification.' };
+    }
+
+    const docsToVerifyIds: string[] = [];
+
+    for (const docDto of dto.documents) {
+      const match = customer.documents.find((doc) => {
+        const typeMatch =
+          doc.document_type?.document_type_name === docDto.documentType ||
+          doc.document_name === docDto.documentType;
+
+        let file_name = '';
+        if (doc.document_path) {
+          const parts = doc.document_path.split('/');
+          const lastPart = parts[parts.length - 1] || '';
+          file_name = decodeURIComponent(lastPart);
+          const dashIndex = file_name.indexOf('-');
+          if (dashIndex !== -1) {
+            file_name = file_name.substring(dashIndex + 1);
+          }
+        } else {
+          file_name = doc.document_name;
+        }
+
+        return typeMatch && file_name === docDto.fileName && doc.is_active;
+      });
+
+      if (match) {
+        docsToVerifyIds.push(match.customer_document_id);
+      }
+    }
+
+    if (docsToVerifyIds.length > 0) {
+      await this.prisma.customer_document_details.updateMany({
+        where: {
+          customer_document_id: {
+            in: docsToVerifyIds,
+          },
+        },
+        data: {
+          is_verified: true,
+        },
+      });
+    }
+
+    return { message: `${docsToVerifyIds.length} document(s) verified successfully.` };
   }
 }

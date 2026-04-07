@@ -1,10 +1,10 @@
 export class DocumentDetailItemDto {
-  file_name: string;
-  path: string;
+  documentType: string;
+  fileName: string;
+  isVerified: boolean;
+  url: string;
 }
 
 export class GetDocumentDetailsResponseDto {
-  governmentIdProofUrl?: DocumentDetailItemDto;
-  incomeProofUrl?: DocumentDetailItemDto;
-  bankStatementUrl?: DocumentDetailItemDto;
+  documents: DocumentDetailItemDto[];
 }
