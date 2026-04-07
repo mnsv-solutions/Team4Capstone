@@ -1070,7 +1070,7 @@ html[data-theme="dark"] .cp-loan-form input[type="date"]::-webkit-calendar-picke
 .cp-dashboard-shell {
   max-width: 1320px;
   margin: 0 auto;
-  padding: 0 12px;
+  padding: 0;
 }
 
 .cp-dashboard-header {
@@ -1170,7 +1170,7 @@ html[data-theme="dark"] .cp-loan-form input[type="date"]::-webkit-calendar-picke
 
 .cp-dashboard-filter-bar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
   margin-bottom: 22px;
 }
@@ -1652,7 +1652,7 @@ html[data-theme="light"] .cp-dashboard-page-btn--active {
 
 .cp-admin-upload-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: end;
   margin-bottom: 22px;
@@ -1758,6 +1758,18 @@ html[data-theme="light"] .cp-dashboard-page-btn--active {
 .cp-admin-field:focus {
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.cp-admin-field-invalid {
+  border-color: rgba(248, 113, 113, 0.8);
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.16);
+}
+
+.cp-admin-field-error {
+  margin: 6px 0 0;
+  color: #fecaca;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .cp-admin-select {
@@ -1952,6 +1964,23 @@ html[data-theme="light"] .cp-admin-tab-btn-active {
   color: white;
 }
 
+html[data-theme="light"] .cp-admin-action-group button:not(.cp-admin-action-btn-danger),
+html[data-theme="light"] .cp-admin-status-pill,
+html[data-theme="light"] .cp-admin-upload-box,
+html[data-theme="light"] .cp-admin-summary-card {
+  color: #111827;
+}
+
+html[data-theme="light"] .cp-admin-summary-card,
+html[data-theme="light"] .cp-admin-table-wrap,
+html[data-theme="light"] .cp-admin-upload-card {
+  border-color: rgba(209, 213, 219, 0.8);
+}
+
+html[data-theme="light"] .cp-admin-action-group button:hover {
+  background-color: #f8fafc;
+}
+
 html[data-theme="light"] .cp-admin-eyebrow {
   color: #4338ca;
 }
@@ -1992,7 +2021,7 @@ html[data-theme="light"] .cp-admin-action-btn-danger {
 
 @media (max-width: 991px) {
   .cp-admin-container {
-    padding: 0 16px;
+    padding: 0;
   }
 
   .cp-admin-topnav {
@@ -2015,7 +2044,7 @@ html[data-theme="light"] .cp-admin-action-btn-danger {
 
 @media (max-width: 575px) {
   .cp-admin-container {
-    padding: 0 12px;
+    padding: 0;
   }
 
   .cp-admin-panel,
@@ -2057,10 +2086,10 @@ html[data-theme="light"] .cp-admin-action-btn-danger {
 }
 
 .cp-admin-container {
-  width: 100%;
+  width: 100%;  
   max-width: 1520px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0;
 }
 
 .cp-admin-topnav {
@@ -2216,7 +2245,7 @@ html[data-theme="light"] .cp-admin-action-btn-danger {
 
 .cp-admin-upload-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 18px;
   align-items: end;
   margin-bottom: 22px;
@@ -2301,7 +2330,6 @@ html[data-theme="light"] .cp-admin-action-btn-danger {
 }
 
 .cp-admin-field {
-  width: 100%;
   min-height: 52px;
   padding: 12px 14px;
   border-radius: 12px;
@@ -2322,6 +2350,18 @@ html[data-theme="light"] .cp-admin-action-btn-danger {
 .cp-admin-field:focus {
   border-color: #6366f1;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+}
+
+.cp-admin-field-invalid {
+  border-color: rgba(248, 113, 113, 0.8);
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.16);
+}
+
+.cp-admin-field-error {
+  margin: 6px 0 0;
+  color: #fecaca;
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .cp-admin-select {
@@ -2516,6 +2556,23 @@ html[data-theme="light"] .cp-admin-tab-btn-active {
   color: white;
 }
 
+html[data-theme="light"] .cp-admin-action-group button:not(.cp-admin-action-btn-danger),
+html[data-theme="light"] .cp-admin-status-pill,
+html[data-theme="light"] .cp-admin-upload-box,
+html[data-theme="light"] .cp-admin-summary-card {
+  color: #111827;
+}
+
+html[data-theme="light"] .cp-admin-summary-card,
+html[data-theme="light"] .cp-admin-table-wrap,
+html[data-theme="light"] .cp-admin-upload-card {
+  border-color: rgba(209, 213, 219, 0.8);
+}
+
+html[data-theme="light"] .cp-admin-action-group button:hover {
+  background-color: #f8fafc;
+}
+
 html[data-theme="light"] .cp-admin-eyebrow {
   color: #4338ca;
 }
@@ -2556,7 +2613,7 @@ html[data-theme="light"] .cp-admin-action-btn-danger {
 
 @media (max-width: 991px) {
   .cp-admin-container {
-    padding: 0 16px;
+    padding: 0;
   }
 
   .cp-admin-topnav {
@@ -2579,7 +2636,7 @@ html[data-theme="light"] .cp-admin-action-btn-danger {
 
 @media (max-width: 575px) {
   .cp-admin-container {
-    padding: 0 12px;
+    padding: 0;
   }
 
   .cp-admin-panel,
@@ -2611,3 +2668,5 @@ html[data-theme="light"] .cp-admin-action-btn-danger {
     min-width: 120px;
   }
 }
+
+
