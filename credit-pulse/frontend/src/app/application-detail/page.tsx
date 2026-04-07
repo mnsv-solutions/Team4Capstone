@@ -114,6 +114,65 @@ type FinancialDetailsApiResponse =
     }
   | FinancialDetailsResponseDto;
 
+/* DOCUMENT TYPES */
+type DocumentDetailItemDto = {
+  documentType?: string;
+  fileName?: string;
+  file_name?: string;
+  url?: string;
+  path?: string;
+  isVerified?: boolean;
+  verificationStatus?: VerificationStatus;
+};
+
+type GetDocumentDetailsResponseDto = {
+  documents: DocumentDetailItemDto[];
+};
+
+type DocumentDetailsApiResponse =
+  | GetDocumentDetailsResponseDto
+  | {
+      success?: boolean;
+      message?: string;
+      data?: GetDocumentDetailsResponseDto | DocumentDetailItemDto[];
+      documents?: DocumentDetailItemDto[];
+    }
+  | DocumentDetailItemDto[];
+
+type CreditScoreCheckResponseDto = {
+  application_id?: string;
+  cibil_report_id?: string | null;
+  request_id?: string | null;
+  bureau_name?: string;
+  bureau_reference_id?: string | null;
+  bureau_status?: string;
+  credit_score?: number | string | null;
+  score_band?: string | null;
+  risk_level?: string | null;
+  remarks?: string | null;
+  raw_response?: {
+    header?: {
+      reportDate?: string;
+      status?: string;
+    };
+  } | null;
+};
+
+type CalculateRatiosResponseDto = {
+  message: string;
+  applicationNumber: string;
+  customerId: string;
+  monthlyIncome: number;
+  annualIncome: number;
+  totalMonthlyDebtPayments: number;
+  proposedEmi: number;
+  requestedLoanAmount: number;
+  dbr: number;
+  emiToIncome: number;
+  creditUtilization: number;
+  loanToIncome: number;
+};
+
 type CommunicationAttachment = {
   documentName: string;
   originalFileName: string;
@@ -636,6 +695,29 @@ function extractFinancialDetailsResponse(
   return null;
 }
 
+function extractDocumentDetailsResponse(
+  response: DocumentDetailsApiResponse
+): DocumentDetailItemDto[] {
+  if (!response) return [];
+
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if ("data" in response && Array.isArray(response.data)) {
+    return response.data;
+  }
+
+  if ("data" in response && response.data && "documents" in response.data) {
+    return response.data.documents || [];
+  }
+
+  if ("documents" in response && Array.isArray(response.documents)) {
+    return response.documents;
+  }
+
+  return [];
+}
 export default function ApplicationDetailsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -654,7 +736,7 @@ export default function ApplicationDetailsPage() {
     education: false,
     financial: false,
     bank: false,
-    documents: false,
+    documents: true, 
     cibil: false,
     repayment: false,
     ratios: false,
@@ -663,6 +745,121 @@ export default function ApplicationDetailsPage() {
     underwriterDecision: false,
     communicationHistory: true,
   });
+
+  const [documentLoading, setDocumentLoading] = useState(false);
+  const [documentError, setDocumentError] = useState("");
+  const [documentSuccess, setDocumentSuccess] = useState("");
+
+  
+  async function fetchDocumentDetails() {
+    if (!token) return;
+    if (!isValidApplicationNumber(details.applicationNumber)) return;
+
+    try {
+      setDocumentLoading(true);
+      setDocumentError("");
+
+      const response = await axios.get<DocumentDetailsApiResponse>(
+        "/api/application/document-details",
+        {
+          params: {
+            applicationNumber: details.applicationNumber.trim(),
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("RAW DOCUMENT RESPONSE:", response.data);
+
+      const data = extractDocumentDetailsResponse(response.data);
+
+      console.log("EXTRACTED DOCUMENTS:", data);
+
+      const rows: DocumentRow[] = data.map((doc, index) => ({
+        id: `${doc.documentType || "doc"}-${index}`,
+        documentType: doc.documentType || "Unknown Document",
+        fileName: doc.fileName || doc.file_name || "",
+        downloadUrl: doc.url || doc.path || "",
+        verificationStatus:
+          doc.verificationStatus ||
+          (doc.isVerified === true
+            ? "VERIFIED"
+            : doc.isVerified === false
+            ? "NOT_VERIFIED"
+            : ""),
+      }));
+
+      setDetails((prev) => ({
+        ...prev,
+        documentRows: rows,
+      }));
+
+      setDocumentSuccess("Documents loaded successfully.");
+    } catch (error) {
+      console.error("Document fetch error:", error);
+      setDocumentError("Failed to fetch documents.");
+    } finally {
+      setDocumentLoading(false);
+    }
+  }
+
+ 
+  async function saveDocumentVerification() {
+    if (!token) return;
+
+    try {
+      setDocumentError("");
+      setDocumentSuccess("");
+
+      const verifiedDocs = details.documentRows
+        .filter((doc) => doc.verificationStatus === "VERIFIED")
+        .map((doc) => ({
+          documentType: doc.documentType,
+          fileName: doc.fileName,
+        }));
+
+      const payload = {
+        applicationNumber: details.applicationNumber.trim(),
+        documents: verifiedDocs,
+      };
+
+      console.log("VERIFY PAYLOAD:", payload);
+
+      await axios.post("/api/application/document-verify", payload, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      setDocumentSuccess("Documents verified successfully.");
+
+      // 🔁 Refresh after save
+      fetchDocumentDetails();
+    } catch (error) {
+      console.error("Verification error:", error);
+      setDocumentError("Failed to verify documents.");
+    }
+  }
+
+  
+  function updateVerificationStatus(id: string, status: VerificationStatus) {
+    setDetails((prev) => ({
+      ...prev,
+      documentRows: prev.documentRows.map((doc) =>
+        doc.id === id ? { ...doc, verificationStatus: status } : doc
+      ),
+    }));
+  }
+
+ 
+  useEffect(() => {
+    if (!token) return;
+    if (!isValidApplicationNumber(details.applicationNumber)) return;
+
+    fetchDocumentDetails();
+  }, [token, details.applicationNumber]);
 
   const [communicationHistory, setCommunicationHistory] = useState<CommunicationHistoryItem[]>([]);
   const [communicationLoading, setCommunicationLoading] = useState(false);
@@ -1084,8 +1281,7 @@ export default function ApplicationDetailsPage() {
       unavailableAfterRefresh: false,
     };
   }
-
-  async function fetchSingleCommunicationHistory(isInternal: boolean) {
+    async function fetchSingleCommunicationHistory(isInternal: boolean) {
     const response = await axios.post<CommunicationFetchResponse>(
       "/api/fetch-communication-history",
       {
@@ -1412,6 +1608,14 @@ export default function ApplicationDetailsPage() {
           <div className="alert alert-danger mt-3">{communicationError}</div>
         ) : null}
 
+        {documentSuccess ? (
+          <div className="alert alert-success mt-3">{documentSuccess}</div>
+        ) : null}
+
+        {documentError ? (
+          <div className="alert alert-danger mt-3">{documentError}</div>
+        ) : null}
+
         <div className="cp-loan-form">
           {renderSectionShell(
             accordionSections[0],
@@ -1499,8 +1703,7 @@ export default function ApplicationDetailsPage() {
               </div>
             </div>
           )}
-
-          {renderSectionShell(
+                    {renderSectionShell(
             accordionSections[1],
             <div className="row g-3">
               <div className="col-12 col-lg-4">
@@ -1818,50 +2021,106 @@ export default function ApplicationDetailsPage() {
           {renderSectionShell(
             accordionSections[5],
             <div className="cp-loan-table-wrap">
-              <div className="table-responsive">
-                <table className="table align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th>Document Type</th>
-                      <th>File Name</th>
-                      <th>Verification Status</th>
-                      <th>Download</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {details.documentRows.length === 0 ? (
+              {documentLoading ? (
+                <div className="cp-loan-note">Loading document details...</div>
+              ) : (
+                <div className="table-responsive">
+                    <table className="table cp-loan-doc-table align-middle mb-0">
+                      <thead>
                       <tr>
-                        <td colSpan={4} className="cp-loan-table-empty">
-                          No documents available.
-                        </td>
+                        <th>Document Type</th>
+                        <th>File Name</th>
+                        <th>Verification Status</th>
+                        <th>Download</th>
                       </tr>
-                    ) : (
-                      details.documentRows.map((doc) => (
-                        <tr key={doc.id}>
-                          <td>{doc.documentType || "-"}</td>
-                          <td>{doc.fileName || "-"}</td>
-                          <td>{doc.verificationStatus || "-"}</td>
-                          <td>
-                            {doc.downloadUrl ? (
-                              <a
-                                href={doc.downloadUrl}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="cp-loan-attachment-link"
-                              >
-                                <Download size={14} />
-                                <span>Open</span>
-                              </a>
-                            ) : (
-                              <span className="cp-loan-note">No file</span>
-                            )}
+                    </thead>
+                    <tbody>
+                      {details.documentRows.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="cp-loan-table-empty">
+                            No documents available.
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      ) : (
+                        details.documentRows.map((doc) => (
+                          <tr key={doc.id}>
+                            <td>{doc.documentType || "-"}</td>
+                            <td>{doc.fileName || "-"}</td>
+                            <td>
+                              <div className="d-flex flex-column gap-2">
+                                <div className="form-check">
+                                  <input
+                                    className="form-check-input"
+                                    type="radio"
+                                    name={`verification-${doc.id}`}
+                                    id={`verified-${doc.id}`}
+                                    checked={doc.verificationStatus === "VERIFIED"}
+                                    onChange={() =>
+                                      updateVerificationStatus(doc.id, "VERIFIED")
+                                    }
+                                  />
+                                  <label
+                                    className="form-check-label"
+                                    htmlFor={`verified-${doc.id}`}
+                                  >
+                                    Verified
+                                  </label>
+                                </div>
+
+                                <div className="form-check">
+                                  <input
+                                    className="form-check-input"
+                                    type="radio"
+                                    name={`verification-${doc.id}`}
+                                    id={`not-verified-${doc.id}`}
+                                    checked={doc.verificationStatus === "NOT_VERIFIED"}
+                                    onChange={() =>
+                                      updateVerificationStatus(doc.id, "NOT_VERIFIED")
+                                    }
+                                  />
+                                  <label
+                                    className="form-check-label"
+                                    htmlFor={`not-verified-${doc.id}`}
+                                  >
+                                    Not Verified
+                                  </label>
+                                </div>
+                              </div>
+                            </td>
+                            <td>
+                              {doc.downloadUrl ? (
+                                <a
+                                  href={doc.downloadUrl}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="cp-loan-attachment-link"
+                                >
+                                  <Download size={14} />
+                                  <span>Open</span>
+                                </a>
+                              ) : (
+                                <span className="cp-loan-note">No file</span>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+
+                  {details.documentRows.length > 0 ? (
+                    <div className="mt-3 d-flex justify-content-end">
+                      <button
+                        type="button"
+                        className="btn btn-primary cp-loan-btn-next"
+                        onClick={saveDocumentVerification}
+                      >
+                        Save Verification
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+              )}
             </div>
           )}
 
