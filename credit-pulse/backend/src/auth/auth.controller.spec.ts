@@ -1,5 +1,7 @@
 import { jest } from '@jest/globals';
 
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { AuthController } from './auth.controller.js';
@@ -9,7 +11,7 @@ import { SignUpRequestDto, SignUpResponseDto } from './dto/signup.dto.js';
 
 describe('AuthController', () => {
   let controller: AuthController;
-  let authService: { signIn: jest.Mock; signUp: jest.Mock };
+  let authService: { signIn: jest.Mock<any>; signUp: jest.Mock<any> };
 
   beforeEach(async () => {
     authService = {
@@ -19,7 +21,11 @@ describe('AuthController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: authService }],
+      providers: [
+        { provide: AuthService, useValue: authService },
+        { provide: JwtService, useValue: {} },
+        { provide: ConfigService, useValue: {} },
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);

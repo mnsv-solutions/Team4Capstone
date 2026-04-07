@@ -7,14 +7,18 @@ import { AuthGuard } from './auth.guard.js';
 
 describe('AuthGuard', () => {
   let guard: AuthGuard;
-  let jwtService: { verifyAsync: jest.Mock };
+  let jwtService: { verifyAsync: jest.Mock<any> };
+  let configService: { get: jest.Mock<any> };
 
   beforeEach(() => {
     jwtService = {
       verifyAsync: jest.fn(),
     };
+    configService = {
+      get: jest.fn().mockReturnValue('secret'),
+    };
 
-    guard = new AuthGuard(jwtService as unknown as JwtService);
+    guard = new AuthGuard(jwtService as unknown as JwtService, configService as any);
   });
 
   it('should be defined', () => {
@@ -48,7 +52,7 @@ describe('AuthGuard', () => {
     await expect(guard.canActivate(context as never)).rejects.toThrow(
       new UnauthorizedException('Invalid token'),
     );
-    expect(jwtService.verifyAsync).toHaveBeenCalledWith('invalid-token');
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('invalid-token', { secret: 'secret' });
   });
 
   it('should attach payload to request and return true for valid token', async () => {
@@ -65,7 +69,7 @@ describe('AuthGuard', () => {
     jwtService.verifyAsync.mockResolvedValue(payload);
 
     await expect(guard.canActivate(context as never)).resolves.toBe(true);
-    expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-token');
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-token', { secret: 'secret' });
     expect(request.user).toEqual(payload);
   });
 

@@ -94,19 +94,19 @@ describe('PrismaService', () => {
 
   it('onModuleInit should connect and log success', async () => {
     const mockContext = {
-      $connect: jest.fn().mockResolvedValue(undefined),
+      $connect: jest.fn<any>().mockResolvedValue(undefined),
       logger: { log: jest.fn() },
     };
 
     await PrismaService.prototype.onModuleInit.call(mockContext as unknown as PrismaService);
 
     expect(mockContext.$connect).toHaveBeenCalledTimes(1);
-    expect(mockContext.logger.log).toHaveBeenCalledWith('Database connected');
+    expect(mockContext.logger.log).toHaveBeenCalledWith('Database connected successfully');
   });
 
   it('onModuleDestroy should disconnect and log success', async () => {
     const mockContext = {
-      $disconnect: jest.fn().mockResolvedValue(undefined),
+      $disconnect: jest.fn<any>().mockResolvedValue(undefined),
       logger: { log: jest.fn() },
     };
 

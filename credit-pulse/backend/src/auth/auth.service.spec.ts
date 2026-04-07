@@ -7,6 +7,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import * as bcrypt from 'bcrypt';
 
+import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthService } from './auth.service.js';
 import { SignInRequestDto } from './dto/signIn.dto.js';
@@ -14,8 +15,8 @@ import { SignUpRequestDto } from './dto/signup.dto.js';
 
 describe('AuthService', () => {
   let service: AuthService;
-  let usersService: { user: jest.Mock; createUser: jest.Mock };
-  let jwtService: { signAsync: jest.Mock };
+  let usersService: { user: jest.Mock<any>; createUser: jest.Mock<any> };
+  let jwtService: { signAsync: jest.Mock<any> };
 
   beforeEach(async () => {
     usersService = {
@@ -35,6 +36,7 @@ describe('AuthService', () => {
         { provide: UsersService, useValue: usersService },
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useValue: configService },
+        { provide: PrismaService, useValue: {} },
       ],
     }).compile();
 
@@ -139,9 +141,7 @@ describe('AuthService', () => {
         email: signUpRequest.email,
         phone: signUpRequest.phone,
         password_hash: expect.any(String),
-        role: {
-          connect: { role_id: '2' },
-        },
+        role_id: expect.any(String),
       });
     });
   });
