@@ -1586,3 +1586,328 @@ html[data-theme="dark"] .cp-loan-doc-table .form-check-input:checked {
 html[data-theme="dark"] .cp-loan-doc-table .cp-loan-attachment-link {
   color: #93c5fd;
 }
+/* =========================
+   LOAN APPLICATION UI FIXES
+========================= */
+
+.cp-loan-top {
+  margin-bottom: 10px;
+}
+
+.cp-loan-progress-wrap {
+  margin: 24px 0 30px;
+}
+
+.cp-loan-steps-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.cp-loan-step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 120px;
+  text-align: center;
+}
+
+.cp-loan-step-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 999px;
+  border: 2px solid #cbd5e1;
+  background: #ffffff;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.cp-loan-step-circle.active {
+  border-color: #2563eb;
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.cp-loan-step-circle.completed {
+  border-color: #16a34a;
+  background: #16a34a;
+  color: #ffffff;
+}
+
+.cp-loan-step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  line-height: 1.35;
+}
+
+.cp-loan-step-label.active {
+  color: #111827;
+}
+
+.cp-loan-progress-bar {
+  width: 100%;
+  height: 10px;
+  border-radius: 999px;
+  background: #e5e7eb;
+  overflow: hidden;
+}
+
+.cp-loan-progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb 0%, #6366f1 100%);
+  transition: width 0.3s ease;
+}
+
+.cp-loan-step-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+}
+
+.cp-loan-step-icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 16px;
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cp-loan-step-heading-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.cp-loan-step-count {
+  font-size: 13px;
+  font-weight: 700;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.cp-loan-section-title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.cp-loan-subtitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 6px;
+}
+
+.cp-loan-upload-helper {
+  font-size: 14px;
+  color: #64748b;
+}
+
+.cp-loan-upload-error {
+  border-color: #dc2626 !important;
+  background: #fef2f2;
+}
+
+.cp-loan-consent-box {
+  margin-top: 20px;
+  padding: 18px;
+  border-radius: 16px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+}
+
+.cp-loan-bank-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.cp-loan-bank-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cp-loan-bank-icon {
+  width: 22px;
+  height: 22px;
+  color: #2563eb;
+}
+
+.cp-loan-add-btn,
+.cp-loan-delete-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 700;
+  border-radius: 10px;
+}
+
+.cp-loan-alert-inline {
+  margin-bottom: 14px;
+}
+
+.cp-loan-radio-wrap {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #dbe3ee;
+  background: #f8fafc;
+}
+
+/* =========================
+   DARK MODE FIXES FOR NEW LOAN UI
+========================= */
+
+html[data-theme="dark"] .cp-loan-step-circle {
+  background: #0f172a;
+  border-color: #475569;
+  color: #cbd5e1;
+}
+
+html[data-theme="dark"] .cp-loan-step-circle.active {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .cp-loan-step-circle.completed {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+html[data-theme="dark"] .cp-loan-step-label {
+  color: #94a3b8;
+}
+
+html[data-theme="dark"] .cp-loan-step-label.active {
+  color: #f8fafc;
+}
+
+html[data-theme="dark"] .cp-loan-progress-bar {
+  background: #334155;
+}
+
+html[data-theme="dark"] .cp-loan-step-header {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+html[data-theme="dark"] .cp-loan-step-icon {
+  background: rgba(96, 165, 250, 0.14);
+  color: #93c5fd;
+}
+
+html[data-theme="dark"] .cp-loan-step-count {
+  color: #94a3b8;
+}
+
+html[data-theme="dark"] .cp-loan-section-title,
+html[data-theme="dark"] .cp-loan-subtitle {
+  color: #f8fafc;
+}
+
+html[data-theme="dark"] .cp-loan-upload-helper {
+  color: #94a3b8;
+}
+
+html[data-theme="dark"] .cp-loan-upload-error {
+  background: rgba(127, 29, 29, 0.18);
+  border-color: #ef4444 !important;
+}
+
+html[data-theme="dark"] .cp-loan-consent-box {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+html[data-theme="dark"] .cp-loan-bank-icon {
+  color: #93c5fd;
+}
+
+html[data-theme="dark"] .cp-loan-radio-wrap {
+  background: #0f172a;
+  border-color: #334155;
+}
+
+/* =========================
+   RESPONSIVE FIXES FOR NEW LOAN UI
+========================= */
+
+@media (max-width: 991px) {
+  .cp-loan-step-header {
+    padding: 16px;
+  }
+
+  .cp-loan-section-title {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 767px) {
+  .cp-loan-steps-row {
+    gap: 14px;
+  }
+
+  .cp-loan-step-item {
+    min-width: calc(50% - 7px);
+  }
+
+  .cp-loan-step-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .cp-loan-bank-topbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .cp-loan-add-btn,
+  .cp-loan-delete-btn {
+    justify-content: center;
+  }
+}
+
+@media (max-width: 575px) {
+  .cp-loan-step-item {
+    min-width: 100%;
+  }
+
+  .cp-loan-step-circle {
+    width: 38px;
+    height: 38px;
+  }
+
+  .cp-loan-section-title {
+    font-size: 20px;
+  }
+
+  .cp-loan-subtitle {
+    font-size: 17px;
+  }
+}
