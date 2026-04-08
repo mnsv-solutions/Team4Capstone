@@ -140,17 +140,19 @@ model address_types {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model application_status {
-  status_id                                  String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  status_code                                String             @db.VarChar(30)
-  status_name                                String             @db.VarChar(80)
-  created_at                                 DateTime           @default(now()) @db.Timestamptz(6)
-  created_by                                 String?            @db.Uuid
-  updated_at                                 DateTime           @default(now()) @db.Timestamptz(6)
-  updated_by                                 String?            @db.Uuid
-  is_active                                  Boolean            @default(true)
-  users_application_status_created_byTousers users?             @relation("application_status_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_application_status_created_by")
-  users_application_status_updated_byTousers users?             @relation("application_status_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_application_status_updated_by")
+  status_id                                  String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  status_code                                String                       @db.VarChar(30)
+  status_name                                String                       @db.VarChar(80)
+  created_at                                 DateTime                     @default(now()) @db.Timestamptz(6)
+  created_by                                 String?                      @db.Uuid
+  updated_at                                 DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_by                                 String?                      @db.Uuid
+  is_active                                  Boolean                      @default(true)
+  users_application_status_created_byTousers users?                       @relation("application_status_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_application_status_created_by")
+  users_application_status_updated_byTousers users?                       @relation("application_status_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_application_status_updated_by")
   loan_application                           loan_application[]
+  application_action_history_from            application_action_history[] @relation("application_action_history_from_status")
+  application_action_history_to              application_action_history[] @relation("application_action_history_to_status")
 
   @@index([is_active], map: "idx_application_status_is_active")
 }
@@ -488,16 +490,17 @@ model customer_income_sources {
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model has constraints using non-default deferring rules and requires additional setup for migrations. Visit https://pris.ly/d/constraint-deferring for more info.
 model decision_types {
-  decision_type_id                       String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  decision_code                          String   @db.VarChar(20)
-  decision_name                          String   @db.VarChar(80)
-  created_at                             DateTime @default(now()) @db.Timestamptz(6)
-  created_by                             String?  @db.Uuid
-  updated_at                             DateTime @default(now()) @db.Timestamptz(6)
-  updated_by                             String?  @db.Uuid
-  is_active                              Boolean  @default(true)
-  users_decision_types_created_byTousers users?   @relation("decision_types_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_decision_types_created_by")
-  users_decision_types_updated_byTousers users?   @relation("decision_types_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_decision_types_updated_by")
+  decision_type_id                       String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  decision_code                          String                       @db.VarChar(20)
+  decision_name                          String                       @db.VarChar(80)
+  created_at                             DateTime                     @default(now()) @db.Timestamptz(6)
+  created_by                             String?                      @db.Uuid
+  updated_at                             DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_by                             String?                      @db.Uuid
+  is_active                              Boolean                      @default(true)
+  users_decision_types_created_byTousers users?                       @relation("decision_types_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_decision_types_created_by")
+  users_decision_types_updated_byTousers users?                       @relation("decision_types_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_decision_types_updated_by")
+  application_action_history             application_action_history[]
 
   @@index([is_active], map: "idx_decision_types_is_active")
 }
@@ -591,6 +594,7 @@ model loan_application {
   application_message_attachment           application_message_attachment[]
   application_ratio_summary                application_ratio_summary?
   applicationEligibilitySummaries          application_eligibility_summary[]
+  application_action_history               application_action_history[]
 
   @@index([is_active], map: "idx_loan_application_active")
   @@index([status_id], map: "idx_loan_application_status")
@@ -817,56 +821,59 @@ model user_profile {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 /// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model users {
-  user_id                                                   String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  role_id                                                   String                @db.Uuid
-  first_name                                                String                @db.VarChar(80)
-  last_name                                                 String                @db.VarChar(80)
-  email                                                     String                @unique(map: "uq_users_email") @db.VarChar(255)
-  password_hash                                             String                @db.VarChar(255)
-  phone                                                     String?               @db.VarChar(20)
-  last_login_at                                             DateTime?             @db.Timestamptz(6)
-  failed_login_attempts                                     Int                   @default(0)
-  locked_until                                              DateTime?             @db.Timestamptz(6)
-  password_changed_at                                       DateTime?             @db.Timestamptz(6)
-  is_email_verified                                         Boolean               @default(false)
-  is_system_user                                            Boolean               @default(false)
-  is_active                                                 Boolean               @default(true)
-  is_blocked                                                Boolean               @default(false)
-  is_logged_in                                              Boolean               @default(false)
-  created_at                                                DateTime              @default(now()) @db.Timestamptz(6)
-  updated_at                                                DateTime              @default(now()) @db.Timestamptz(6)
-  address_types_address_types_created_byTousers             address_types[]       @relation("address_types_created_byTousers")
-  address_types_address_types_updated_byTousers             address_types[]       @relation("address_types_updated_byTousers")
-  application_status_application_status_created_byTousers   application_status[]  @relation("application_status_created_byTousers")
-  application_status_application_status_updated_byTousers   application_status[]  @relation("application_status_updated_byTousers")
-  banks_banks_created_byTousers                             banks[]               @relation("banks_created_byTousers")
-  banks_banks_updated_byTousers                             banks[]               @relation("banks_updated_byTousers")
-  customer_customer_created_byTousers                       customer[]            @relation("customer_created_byTousers")
-  customer_customer_updated_byTousers                       customer[]            @relation("customer_updated_byTousers")
-  decision_types_decision_types_created_byTousers           decision_types[]      @relation("decision_types_created_byTousers")
-  decision_types_decision_types_updated_byTousers           decision_types[]      @relation("decision_types_updated_byTousers")
-  education_levels_education_levels_created_byTousers       education_levels[]    @relation("education_levels_created_byTousers")
-  education_levels_education_levels_updated_byTousers       education_levels[]    @relation("education_levels_updated_byTousers")
-  employment_types_employment_types_created_byTousers       employment_types[]    @relation("employment_types_created_byTousers")
-  employment_types_employment_types_updated_byTousers       employment_types[]    @relation("employment_types_updated_byTousers")
-  institutions_institutions_created_byTousers               institutions[]        @relation("institutions_created_byTousers")
-  institutions_institutions_updated_byTousers               institutions[]        @relation("institutions_updated_byTousers")
-  loan_application_loan_application_created_byTousers       loan_application[]    @relation("loan_application_created_byTousers")
-  loan_application_loan_application_updated_byTousers       loan_application[]    @relation("loan_application_updated_byTousers")
-  loan_payment_loan_payment_created_byTousers               loan_payment[]        @relation("loan_payment_created_byTousers")
-  loan_payment_loan_payment_updated_byTousers               loan_payment[]        @relation("loan_payment_updated_byTousers")
-  loan_types_loan_types_created_byTousers                   loan_types[]          @relation("loan_types_created_byTousers")
-  loan_types_loan_types_updated_byTousers                   loan_types[]          @relation("loan_types_updated_byTousers")
-  repayment_schedule_repayment_schedule_created_byTousers   repayment_schedule[]  @relation("repayment_schedule_created_byTousers")
-  repayment_schedule_repayment_schedule_updated_byTousers   repayment_schedule[]  @relation("repayment_schedule_updated_byTousers")
-  roles_roles_created_byTousers                             roles[]               @relation("roles_created_byTousers")
-  roles_roles_updated_byTousers                             roles[]               @relation("roles_updated_byTousers")
-  sub_loan_sub_loan_created_byTousers                       sub_loan[]            @relation("sub_loan_created_byTousers")
-  sub_loan_sub_loan_updated_byTousers                       sub_loan[]            @relation("sub_loan_updated_byTousers")
+  user_id                                                   String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  role_id                                                   String                       @db.Uuid
+  first_name                                                String                       @db.VarChar(80)
+  last_name                                                 String                       @db.VarChar(80)
+  email                                                     String                       @unique(map: "uq_users_email") @db.VarChar(255)
+  password_hash                                             String                       @db.VarChar(255)
+  phone                                                     String?                      @db.VarChar(20)
+  last_login_at                                             DateTime?                    @db.Timestamptz(6)
+  failed_login_attempts                                     Int                          @default(0)
+  locked_until                                              DateTime?                    @db.Timestamptz(6)
+  password_changed_at                                       DateTime?                    @db.Timestamptz(6)
+  is_email_verified                                         Boolean                      @default(false)
+  is_system_user                                            Boolean                      @default(false)
+  is_active                                                 Boolean                      @default(true)
+  is_blocked                                                Boolean                      @default(false)
+  is_logged_in                                              Boolean                      @default(false)
+  created_at                                                DateTime                     @default(now()) @db.Timestamptz(6)
+  updated_at                                                DateTime                     @default(now()) @db.Timestamptz(6)
+  address_types_address_types_created_byTousers             address_types[]              @relation("address_types_created_byTousers")
+  address_types_address_types_updated_byTousers             address_types[]              @relation("address_types_updated_byTousers")
+  application_status_application_status_created_byTousers   application_status[]         @relation("application_status_created_byTousers")
+  application_status_application_status_updated_byTousers   application_status[]         @relation("application_status_updated_byTousers")
+  banks_banks_created_byTousers                             banks[]                      @relation("banks_created_byTousers")
+  banks_banks_updated_byTousers                             banks[]                      @relation("banks_updated_byTousers")
+  customer_customer_created_byTousers                       customer[]                   @relation("customer_created_byTousers")
+  customer_customer_updated_byTousers                       customer[]                   @relation("customer_updated_byTousers")
+  decision_types_decision_types_created_byTousers           decision_types[]             @relation("decision_types_created_byTousers")
+  decision_types_decision_types_updated_byTousers           decision_types[]             @relation("decision_types_updated_byTousers")
+  education_levels_education_levels_created_byTousers       education_levels[]           @relation("education_levels_created_byTousers")
+  education_levels_education_levels_updated_byTousers       education_levels[]           @relation("education_levels_updated_byTousers")
+  employment_types_employment_types_created_byTousers       employment_types[]           @relation("employment_types_created_byTousers")
+  employment_types_employment_types_updated_byTousers       employment_types[]           @relation("employment_types_updated_byTousers")
+  institutions_institutions_created_byTousers               institutions[]               @relation("institutions_created_byTousers")
+  institutions_institutions_updated_byTousers               institutions[]               @relation("institutions_updated_byTousers")
+  loan_application_loan_application_created_byTousers       loan_application[]           @relation("loan_application_created_byTousers")
+  loan_application_loan_application_updated_byTousers       loan_application[]           @relation("loan_application_updated_byTousers")
+  loan_payment_loan_payment_created_byTousers               loan_payment[]               @relation("loan_payment_created_byTousers")
+  loan_payment_loan_payment_updated_byTousers               loan_payment[]               @relation("loan_payment_updated_byTousers")
+  loan_types_loan_types_created_byTousers                   loan_types[]                 @relation("loan_types_created_byTousers")
+  loan_types_loan_types_updated_byTousers                   loan_types[]                 @relation("loan_types_updated_byTousers")
+  repayment_schedule_repayment_schedule_created_byTousers   repayment_schedule[]         @relation("repayment_schedule_created_byTousers")
+  repayment_schedule_repayment_schedule_updated_byTousers   repayment_schedule[]         @relation("repayment_schedule_updated_byTousers")
+  roles_roles_created_byTousers                             roles[]                      @relation("roles_created_byTousers")
+  roles_roles_updated_byTousers                             roles[]                      @relation("roles_updated_byTousers")
+  sub_loan_sub_loan_created_byTousers                       sub_loan[]                   @relation("sub_loan_created_byTousers")
+  sub_loan_sub_loan_updated_byTousers                       sub_loan[]                   @relation("sub_loan_updated_byTousers")
   user_bank_account                                         user_bank_account[]
   team_members                                              team_members[]
-  loan_product_config_loan_product_config_created_byTousers loan_product_config[] @relation("loan_product_config_created_byTousers")
-  loan_product_config_loan_product_config_updated_byTousers loan_product_config[] @relation("loan_product_config_updated_byTousers")
+  loan_product_config_loan_product_config_created_byTousers loan_product_config[]        @relation("loan_product_config_created_byTousers")
+  loan_product_config_loan_product_config_updated_byTousers loan_product_config[]        @relation("loan_product_config_updated_byTousers")
+  application_action_history_performed_by                   application_action_history[] @relation("application_action_history_performed_by")
+  application_action_history_created_by                     application_action_history[] @relation("application_action_history_created_by")
+  application_action_history_updated_by                     application_action_history[] @relation("application_action_history_updated_by")
 
   @@index([role_id, is_active], map: "idx_users_role_active")
 }
@@ -1122,4 +1129,44 @@ model loan_product_config {
   users_loan_product_config_updated_byTousers users?     @relation("loan_product_config_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_loan_product_config_updated_by")
 
   @@index([is_active], map: "idx_loan_product_config_is_active")
+}
+
+model application_action_history {
+  action_history_id      String   @id @default(uuid()) @db.Uuid
+  application_id         String   @db.Uuid
+  action_type            String   @db.VarChar(100)
+  from_status_id         String?  @db.Uuid
+  to_status_id           String   @db.Uuid
+  performed_by_user_id   String   @db.Uuid
+  performed_at           DateTime @default(now()) @db.Timestamptz(6)
+  performer_role_code    String   @db.VarChar(50)
+  decision_type_id       String?  @db.Uuid
+  remarks                String?  @db.Text
+  approved_loan_amount   Decimal? @db.Decimal(18, 2)
+  approved_interest_rate Decimal? @db.Decimal(5, 2)
+  approved_tenure_months Int?
+  approved_emi           Decimal? @db.Decimal(18, 2)
+  disbursed_amount       Decimal? @db.Decimal(18, 2)
+  metadata_json          Json?
+  created_at             DateTime @default(now()) @db.Timestamptz(6)
+  created_by             String   @db.Uuid
+  updated_at             DateTime @updatedAt @db.Timestamptz(6)
+  updated_by             String   @db.Uuid
+  is_active              Boolean  @default(true)
+
+  loan_application  loan_application    @relation(fields: [application_id], references: [application_id], onDelete: Cascade)
+  from_status       application_status? @relation("application_action_history_from_status", fields: [from_status_id], references: [status_id])
+  to_status         application_status  @relation("application_action_history_to_status", fields: [to_status_id], references: [status_id])
+  decision_type     decision_types?     @relation(fields: [decision_type_id], references: [decision_type_id])
+  performed_by_user users               @relation("application_action_history_performed_by", fields: [performed_by_user_id], references: [user_id])
+  created_by_user   users               @relation("application_action_history_created_by", fields: [created_by], references: [user_id])
+  updated_by_user   users               @relation("application_action_history_updated_by", fields: [updated_by], references: [user_id])
+
+  @@index([application_id], map: "idx_application_action_history_application_id")
+  @@index([action_type], map: "idx_application_action_history_action_type")
+  @@index([from_status_id], map: "idx_application_action_history_from_status_id")
+  @@index([to_status_id], map: "idx_application_action_history_to_status_id")
+  @@index([performed_by_user_id], map: "idx_application_action_history_performed_by_user_id")
+  @@index([decision_type_id], map: "idx_application_action_history_decision_type_id")
+  @@index([performed_at], map: "idx_application_action_history_performed_at")
 }
