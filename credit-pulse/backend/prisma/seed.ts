@@ -280,6 +280,7 @@ async function seedBase() {
   await prisma.loan_payment.deleteMany();
   await prisma.repayment_schedule.deleteMany();
   await prisma.sub_loan.deleteMany();
+  await prisma.application_action_history.deleteMany();
   await prisma.loan_application.deleteMany();
   await prisma.application_status_audit.deleteMany();
   await prisma.application_eligibility_summary.deleteMany();
@@ -5913,9 +5914,511 @@ async function seedTeamMembers() {
   console.log('Team members seeded successfully.');
 }
 
+async function getRequiredApplicationStatus(statusCode: string) {
+  const status = await prisma.application_status.findFirst({
+    where: { status_code: statusCode },
+    select: {
+      status_id: true,
+      status_code: true,
+      status_name: true,
+    },
+  });
+
+  if (!status) {
+    throw new Error(`Required seeded application status not found: ${statusCode}`);
+  }
+
+  return status;
+}
+
+async function getRequiredDecisionType(decisionCode: string) {
+  const decisionType = await prisma.decision_types.findFirst({
+    where: { decision_code: decisionCode },
+    select: {
+      decision_type_id: true,
+      decision_code: true,
+      decision_name: true,
+    },
+  });
+
+  if (!decisionType) {
+    throw new Error(`Required seeded decision type not found: ${decisionCode}`);
+  }
+
+  return decisionType;
+}
+
+async function seedApplicationActionHistory() {
+  console.log('Starting seed for application action history...');
+
+  const sukh = await getRequiredUser('sukh@creditpulse.com');
+  const miswa = await getRequiredUser('miswa@creditpulse.com');
+  const nirali = await getRequiredUser('nirali@creditpulse.com');
+  const amanCustomer = await getRequiredUser('aman.sharma@creditpulse.com');
+
+  const app1 = await getRequiredApplication('APPL0000000001');
+  const app2 = await getRequiredApplication('APPL0000000002');
+  const app3 = await getRequiredApplication('APPL0000000003');
+  const app4 = await getRequiredApplication('APPL0000000004');
+  const app5 = await getRequiredApplication('APPL0000000005');
+
+  const submittedStatus = await getRequiredApplicationStatus('SUBMITTED');
+  const creditCheckCompletedStatus = await getRequiredApplicationStatus('CREDIT_CHECK_COMPLETED');
+  const underReviewStatus = await getRequiredApplicationStatus('UNDER_REVIEW');
+  const approvedStatus = await getRequiredApplicationStatus('APPROVED');
+  const rejectedStatus = await getRequiredApplicationStatus('REJECTED');
+  const disbursedStatus = await getRequiredApplicationStatus('DISBURSED');
+
+  const approveDecision = await getRequiredDecisionType('APPROVE');
+  const rejectDecision = await getRequiredDecisionType('REJECT');
+
+  await prisma.application_action_history.deleteMany({
+    where: {
+      application_id: {
+        in: [
+          app1.application_id,
+          app2.application_id,
+          app3.application_id,
+          app4.application_id,
+          app5.application_id,
+        ],
+      },
+    },
+  });
+
+  await prisma.application_action_history.createMany({
+    data: [
+      {
+        application_id: app1.application_id,
+        action_type: 'APPLICATION_SUBMITTED',
+        from_status_id: null,
+        to_status_id: submittedStatus.status_id,
+        performed_by_user_id: amanCustomer.user_id,
+        performed_at: new Date('2026-03-20T09:00:00Z'),
+        performer_role_code: 'CUSTOMER',
+        decision_type_id: null,
+        remarks: 'Application submitted successfully by customer.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          source: 'PORTAL',
+          stageLabel: 'Initial submission',
+        },
+        created_at: new Date('2026-03-20T09:00:00Z'),
+        created_by: amanCustomer.user_id,
+        updated_at: new Date('2026-03-20T09:00:00Z'),
+        updated_by: amanCustomer.user_id,
+        is_active: true,
+      },
+
+      {
+        application_id: app2.application_id,
+        action_type: 'APPLICATION_SUBMITTED',
+        from_status_id: null,
+        to_status_id: submittedStatus.status_id,
+        performed_by_user_id: sukh.user_id,
+        performed_at: new Date('2026-03-21T10:00:00Z'),
+        performer_role_code: 'SOURCING_OFFICER',
+        decision_type_id: null,
+        remarks: 'Application submitted through assisted sourcing flow.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          source: 'ASSISTED_ENTRY',
+          stageLabel: 'Initial submission',
+        },
+        created_at: new Date('2026-03-21T10:00:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-21T10:00:00Z'),
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app2.application_id,
+        action_type: 'CREDIT_CHECK_COMPLETED',
+        from_status_id: submittedStatus.status_id,
+        to_status_id: creditCheckCompletedStatus.status_id,
+        performed_by_user_id: sukh.user_id,
+        performed_at: new Date('2026-03-21T11:15:00Z'),
+        performer_role_code: 'SOURCING_OFFICER',
+        decision_type_id: null,
+        remarks: 'Credit check completed successfully.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          bureauStatus: 'SUCCESS',
+          scoreBand: '700-749',
+        },
+        created_at: new Date('2026-03-21T11:15:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-21T11:15:00Z'),
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app2.application_id,
+        action_type: 'MOVED_TO_UNDER_REVIEW',
+        from_status_id: creditCheckCompletedStatus.status_id,
+        to_status_id: underReviewStatus.status_id,
+        performed_by_user_id: sukh.user_id,
+        performed_at: new Date('2026-03-21T12:00:00Z'),
+        performer_role_code: 'SOURCING_OFFICER',
+        decision_type_id: null,
+        remarks: 'Application moved to underwriter queue.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          queue: 'UNDERWRITER_TEAM',
+        },
+        created_at: new Date('2026-03-21T12:00:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-21T12:00:00Z'),
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+
+      {
+        application_id: app3.application_id,
+        action_type: 'APPLICATION_SUBMITTED',
+        from_status_id: null,
+        to_status_id: submittedStatus.status_id,
+        performed_by_user_id: sukh.user_id,
+        performed_at: new Date('2026-03-22T09:30:00Z'),
+        performer_role_code: 'SOURCING_OFFICER',
+        decision_type_id: null,
+        remarks: 'Application submitted through assisted sourcing flow.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          source: 'ASSISTED_ENTRY',
+        },
+        created_at: new Date('2026-03-22T09:30:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-22T09:30:00Z'),
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app3.application_id,
+        action_type: 'CREDIT_CHECK_COMPLETED',
+        from_status_id: submittedStatus.status_id,
+        to_status_id: creditCheckCompletedStatus.status_id,
+        performed_by_user_id: sukh.user_id,
+        performed_at: new Date('2026-03-22T10:15:00Z'),
+        performer_role_code: 'SOURCING_OFFICER',
+        decision_type_id: null,
+        remarks: 'Credit check completed successfully.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          bureauStatus: 'SUCCESS',
+          riskLevel: 'LOW',
+        },
+        created_at: new Date('2026-03-22T10:15:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-22T10:15:00Z'),
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app3.application_id,
+        action_type: 'MOVED_TO_UNDER_REVIEW',
+        from_status_id: creditCheckCompletedStatus.status_id,
+        to_status_id: underReviewStatus.status_id,
+        performed_by_user_id: sukh.user_id,
+        performed_at: new Date('2026-03-22T11:00:00Z'),
+        performer_role_code: 'SOURCING_OFFICER',
+        decision_type_id: null,
+        remarks: 'Application moved to underwriter queue.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          queue: 'UNDERWRITER_TEAM',
+        },
+        created_at: new Date('2026-03-22T11:00:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-22T11:00:00Z'),
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app3.application_id,
+        action_type: 'UNDERWRITER_APPROVED',
+        from_status_id: underReviewStatus.status_id,
+        to_status_id: approvedStatus.status_id,
+        performed_by_user_id: miswa.user_id,
+        performed_at: new Date('2026-03-22T14:00:00Z'),
+        performer_role_code: 'UNDERWRITER',
+        decision_type_id: approveDecision.decision_type_id,
+        remarks: 'Application approved after underwriting review.',
+        approved_loan_amount: '50000.00',
+        approved_interest_rate: '11.75',
+        approved_tenure_months: 18,
+        approved_emi: '3043.30',
+        disbursed_amount: null,
+        metadata_json: {
+          affordability: 'PASS',
+          riskLevel: 'LOW',
+        },
+        created_at: new Date('2026-03-22T14:00:00Z'),
+        created_by: miswa.user_id,
+        updated_at: new Date('2026-03-22T14:00:00Z'),
+        updated_by: miswa.user_id,
+        is_active: true,
+      },
+
+      {
+        application_id: app4.application_id,
+        action_type: 'APPLICATION_SUBMITTED',
+        from_status_id: null,
+        to_status_id: submittedStatus.status_id,
+        performed_by_user_id: sukh.user_id,
+        performed_at: new Date('2026-03-18T08:45:00Z'),
+        performer_role_code: 'SOURCING_OFFICER',
+        decision_type_id: null,
+        remarks: 'Application submitted through assisted sourcing flow.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          source: 'ASSISTED_ENTRY',
+        },
+        created_at: new Date('2026-03-18T08:45:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-18T08:45:00Z'),
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app4.application_id,
+        action_type: 'CREDIT_CHECK_COMPLETED',
+        from_status_id: submittedStatus.status_id,
+        to_status_id: creditCheckCompletedStatus.status_id,
+        performed_by_user_id: sukh.user_id,
+        performed_at: new Date('2026-03-18T09:20:00Z'),
+        performer_role_code: 'SOURCING_OFFICER',
+        decision_type_id: null,
+        remarks: 'Credit check completed successfully.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          bureauStatus: 'SUCCESS',
+          riskLevel: 'VERY_LOW',
+        },
+        created_at: new Date('2026-03-18T09:20:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-18T09:20:00Z'),
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app4.application_id,
+        action_type: 'MOVED_TO_UNDER_REVIEW',
+        from_status_id: creditCheckCompletedStatus.status_id,
+        to_status_id: underReviewStatus.status_id,
+        performed_by_user_id: sukh.user_id,
+        performed_at: new Date('2026-03-18T10:00:00Z'),
+        performer_role_code: 'SOURCING_OFFICER',
+        decision_type_id: null,
+        remarks: 'Application moved to underwriter queue.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          queue: 'UNDERWRITER_TEAM',
+        },
+        created_at: new Date('2026-03-18T10:00:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-18T10:00:00Z'),
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app4.application_id,
+        action_type: 'UNDERWRITER_APPROVED',
+        from_status_id: underReviewStatus.status_id,
+        to_status_id: approvedStatus.status_id,
+        performed_by_user_id: miswa.user_id,
+        performed_at: new Date('2026-03-18T14:10:00Z'),
+        performer_role_code: 'UNDERWRITER',
+        decision_type_id: approveDecision.decision_type_id,
+        remarks: 'Application approved after underwriting review.',
+        approved_loan_amount: '125000.00',
+        approved_interest_rate: '7.95',
+        approved_tenure_months: 36,
+        approved_emi: '3914.16',
+        disbursed_amount: null,
+        metadata_json: {
+          affordability: 'PASS',
+          riskLevel: 'VERY_LOW',
+        },
+        created_at: new Date('2026-03-18T14:10:00Z'),
+        created_by: miswa.user_id,
+        updated_at: new Date('2026-03-18T14:10:00Z'),
+        updated_by: miswa.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app4.application_id,
+        action_type: 'DISBURSAL_COMPLETED',
+        from_status_id: approvedStatus.status_id,
+        to_status_id: disbursedStatus.status_id,
+        performed_by_user_id: nirali.user_id,
+        performed_at: new Date('2026-03-19T10:30:00Z'),
+        performer_role_code: 'DISBURSAL_OFFICER',
+        decision_type_id: null,
+        remarks: 'Loan amount disbursed successfully.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: '125000.00',
+        metadata_json: {
+          transferReference: 'DISB-CP-20260319-0004',
+          payoutStatus: 'SUCCESS',
+        },
+        created_at: new Date('2026-03-19T10:30:00Z'),
+        created_by: nirali.user_id,
+        updated_at: new Date('2026-03-19T10:30:00Z'),
+        updated_by: nirali.user_id,
+        is_active: true,
+      },
+
+      {
+        application_id: app5.application_id,
+        action_type: 'APPLICATION_SUBMITTED',
+        from_status_id: null,
+        to_status_id: submittedStatus.status_id,
+        performed_by_user_id: amanCustomer.user_id,
+        performed_at: new Date('2026-03-23T08:30:00Z'),
+        performer_role_code: 'CUSTOMER',
+        decision_type_id: null,
+        remarks: 'Application submitted successfully by customer.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          source: 'PORTAL',
+        },
+        created_at: new Date('2026-03-23T08:30:00Z'),
+        created_by: amanCustomer.user_id,
+        updated_at: new Date('2026-03-23T08:30:00Z'),
+        updated_by: amanCustomer.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app5.application_id,
+        action_type: 'CREDIT_CHECK_COMPLETED',
+        from_status_id: submittedStatus.status_id,
+        to_status_id: creditCheckCompletedStatus.status_id,
+        performed_by_user_id: sukh.user_id,
+        performed_at: new Date('2026-03-23T09:20:00Z'),
+        performer_role_code: 'SOURCING_OFFICER',
+        decision_type_id: null,
+        remarks: 'Credit check completed successfully.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          bureauStatus: 'SUCCESS',
+          riskLevel: 'HIGH',
+        },
+        created_at: new Date('2026-03-23T09:20:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-23T09:20:00Z'),
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app5.application_id,
+        action_type: 'MOVED_TO_UNDER_REVIEW',
+        from_status_id: creditCheckCompletedStatus.status_id,
+        to_status_id: underReviewStatus.status_id,
+        performed_by_user_id: sukh.user_id,
+        performed_at: new Date('2026-03-23T10:00:00Z'),
+        performer_role_code: 'SOURCING_OFFICER',
+        decision_type_id: null,
+        remarks: 'Application moved to underwriter queue.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          queue: 'UNDERWRITER_TEAM',
+        },
+        created_at: new Date('2026-03-23T10:00:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-23T10:00:00Z'),
+        updated_by: sukh.user_id,
+        is_active: true,
+      },
+      {
+        application_id: app5.application_id,
+        action_type: 'UNDERWRITER_REJECTED',
+        from_status_id: underReviewStatus.status_id,
+        to_status_id: rejectedStatus.status_id,
+        performed_by_user_id: miswa.user_id,
+        performed_at: new Date('2026-03-23T14:00:00Z'),
+        performer_role_code: 'UNDERWRITER',
+        decision_type_id: rejectDecision.decision_type_id,
+        remarks: 'Application rejected after underwriting review.',
+        approved_loan_amount: null,
+        approved_interest_rate: null,
+        approved_tenure_months: null,
+        approved_emi: null,
+        disbursed_amount: null,
+        metadata_json: {
+          rejectionReason: 'High risk and weak affordability profile',
+        },
+        created_at: new Date('2026-03-23T14:00:00Z'),
+        created_by: miswa.user_id,
+        updated_at: new Date('2026-03-23T14:00:00Z'),
+        updated_by: miswa.user_id,
+        is_active: true,
+      },
+    ],
+  });
+
+  console.log('Application action history seeded successfully.');
+}
+
 async function main() {
   await seedBase();
   await seedSupplemental();
+  await seedApplicationActionHistory();
   await seedApplicationCommunication();
   await seedEligibilityEngine();
   await seedTeams();
