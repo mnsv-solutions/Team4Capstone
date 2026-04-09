@@ -18,6 +18,9 @@ RUN npm install --workspace=credit-pulse/backend
 # Copy only the backend code
 COPY credit-pulse/backend ./credit-pulse/backend
 
+# Generate Prisma Client
+RUN npm run prisma:generate
+
 # Build backend and frontend applications
 RUN npm run build:backend
 
@@ -32,6 +35,7 @@ COPY --from=builder /app/package.json ./package.json
 
 # Copy NestJS build output
 COPY --from=builder /app/credit-pulse/backend/dist ./credit-pulse/backend/dist
+COPY --from=builder /app/credit-pulse/backend/generated ./credit-pulse/backend/generated
 COPY --from=builder /app/credit-pulse/backend/package.json ./credit-pulse/backend/package.json
 COPY --from=builder /app/credit-pulse/backend/tsconfig.build.json ./credit-pulse/backend/tsconfig.build.json
 COPY --from=builder /app/credit-pulse/backend/tsconfig.json ./credit-pulse/backend/tsconfig.json
