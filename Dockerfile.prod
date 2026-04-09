@@ -3,6 +3,9 @@ FROM node:25-alpine AS builder
 
 WORKDIR /app
 
+# Create AWS credentials file
+RUN --mount=type=secret,id=aws,target=/root/.aws/credentials
+
 # Copy root package.json
 COPY package.json ./
 

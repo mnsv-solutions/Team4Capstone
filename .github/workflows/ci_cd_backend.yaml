@@ -28,7 +28,7 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v6
 
-      - name: Docker setup
+      - name: Setup Docker Buildx
         uses: docker/setup-buildx-action@v3
 
       - name: Configure AWS Credentials
@@ -41,6 +41,14 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v3
+
+      - name: Create AWS Credentials File
+        run: |
+          cat <<EOF > aws-credentials
+          [default]
+          aws_access_key_id = ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key = ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          EOF
         
       - name: Create Configuration File
         run: |
@@ -48,9 +56,11 @@ jobs:
           
       - name: Build and Push Docker Image
         id: build-Image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           push: true
-          tags: ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY}}:${{ github.sha }}
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
           file: Dockerfile.prod
+          secret-files: |
+            aws=./aws-credentials
