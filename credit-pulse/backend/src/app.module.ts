@@ -15,7 +15,7 @@ import { DashboardModule } from './dashboard/dashboard.module.js';
 import { FetchAllUsersModule } from './fetch-all-users/fetch-all-users.module.js';
 import { GenerateRepaymentScheduleModule } from './generate-repayment-schedule/generate-repayment-schedule.module.js';
 import { HealthController } from './health/health.controller.js';
-import { PrismaService } from './prisma/prisma.service.js';
+import { PrismaModule } from './prisma/prisma.module.js';
 import { ProductsModule } from './products/products.module.js';
 import { TeamsModule } from './teams/teams.module.js';
 import { UpdateUserStatusModule } from './update-user-status/update-user-status.module.js';
@@ -39,8 +39,9 @@ import { UsersModule } from './users/users.module.js';
     TeamsModule,
     ProductsModule,
     CalculateEligibilityModule,
+    PrismaModule,
   ],
   controllers: [AppController, HealthController],
-  providers: [AppService, PrismaService, AwsService],
+  providers: [AppService, AwsService],
 })
 export class AppModule {}

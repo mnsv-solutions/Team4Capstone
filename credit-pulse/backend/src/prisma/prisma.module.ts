@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 
 import { PrismaService } from './prisma.service.js';
 
@@ -11,6 +11,7 @@ import { PrismaService } from './prisma.service.js';
  * By exporting PrismaService, other modules can inject
  * and use it for database operations.
  */
+@Global()
 @Module({
   // Services created and managed by this module
   providers: [PrismaService],
