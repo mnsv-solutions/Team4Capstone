@@ -1,0 +1,56 @@
+name: CI/CD - Backend
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: 
+    - "prod"
+    paths:
+      - "credit-pulse/backend/**"
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TASK_DEFINITION_JSON: "task-definition.json"
+
+concurrency:
+  group: "credit-pulse-backend"
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Docker setup
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHubActions
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v3
+        
+      - name: Create Configuration File
+        run: |
+          echo "${{ secrets.APP_CONFIG_YAML }}" > credit-pulse/backend/config/config.prod.yaml
+          
+      - name: Build and Push Docker Image
+        id: build-Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY}}:${{ github.sha }}
+          file: Dockerfile.prod
