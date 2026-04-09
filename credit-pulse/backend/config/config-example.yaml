@@ -12,6 +12,7 @@ db:
     username: your_postgres_username
     password: your_postgres_password
     database: your_postgres_database
+    ssl: false # When using AWS RDS, set this to true and add the global-bundle.pem file to the credit-pulse/backend folder.
 
 # jwt: Configuration for JSON Web Tokens (JWT) used for authentication.
 jwt:
@@ -23,7 +24,7 @@ aws:
   region: your_aws_region
   profile: your_aws_profile
   s3:
-    bucketName: your_s3_bucket_name
+    bucket: your_s3_bucket_name
 
 # bcrypt: Configuration for bcrypt hashing.
 bcrypt:

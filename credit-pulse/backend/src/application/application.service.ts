@@ -45,7 +45,7 @@ export class ApplicationService {
       bankStatement?: any[];
     },
   ) {
-    const bucket = this.configService.get<string>('aws.s3.bucketName') || 'credit-pulse-bucket';
+    const bucket = this.configService.get<string>('aws.s3.bucket', 'team4-capstone-conestoga');
     const projectId = applicationId;
 
     const uploadedPaths: any = {};

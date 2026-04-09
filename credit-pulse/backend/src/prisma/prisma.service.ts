@@ -70,6 +70,12 @@ export class PrismaService extends PrismaClient {
       throw new Error('Missing database configuration');
     }
 
+    const sslEnabled = configService.get<boolean>('db.postgres.ssl', false);
+    if (sslEnabled) {
+     const certPath = "../../global-bundle.pem"
+     return `postgresql://${user}:${password}@${host}:${port}/${database}?schema=${schema}&sslmode=verify-full&sslrootcert=${certPath}`; 
+    }
+
     // Construct the database URL using the extracted configuration.
     return `postgresql://${user}:${password}@${host}:${port}/${database}?schema=${schema}`;
   }
