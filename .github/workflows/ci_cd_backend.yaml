@@ -36,7 +36,7 @@ jobs:
         with:
           aws-region: ${{ vars.AWS_REGION }}
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
-          role-session-name: GitHubActions
+          role-session-name: GitHubActions-Build
       
       - name: Login to Amazon ECR
         id: login-ecr
@@ -65,3 +65,43 @@ jobs:
           file: Dockerfile.prod
           secret-files: |
             aws=./aws-credentials
+
+      - name: Export Image Tag to Output
+        run: echo "image=${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: prod
+    needs: build
+    steps:
+      - name: Create Task Definition JSON
+        id: create-json-api
+        uses: jsdaniell/create-json@v1
+        with:
+          name: ${{ env.TASK_DEFINITION_JSON }}
+          json: ${{ secrets.ECS_TASK_DEFINITION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHubActions-Deploy
+      
+      - name: Render ECS Task Definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.TASK_DEFINITION_JSON }}
+          container-name: credit-pulse-backend
+          image: ${{ needs.build.outputs.image }}
+
+      - name: Deploy Amazon ECS task definition for API
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: credit-pulse-svc
+          cluster: credit-pulse
+          wait-for-service-stability: true
+      
