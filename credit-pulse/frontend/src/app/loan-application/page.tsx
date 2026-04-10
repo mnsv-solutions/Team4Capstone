@@ -314,6 +314,7 @@ export default function LoanApplicationPage() {
       otherIncomeSources: formDataInput.otherIncomeSources || "",
       existingLoans: formDataInput.existingLoans || "",
       totalMonthlyLoanPayments: formDataInput.totalMonthlyLoanPayments || "",
+    
 
       bankAccounts: formDataInput.bankAccounts.map((account) => ({
         bankName: account.bankName,
@@ -1576,7 +1577,7 @@ export default function LoanApplicationPage() {
               >
                 {isSubmitting ? "Submitting..." : "Submit Application"}
               </button>
-            )}
+            )}   
           </div>
 
           {submitted && !successMsg && Object.keys(errors).length > 0 && (
