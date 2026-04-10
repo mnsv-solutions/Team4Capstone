@@ -6,7 +6,6 @@ import process from 'node:process';
 
 import configuration from '../config/configuration.js';
 import { PrismaClient } from '../generated/prisma/client.js';
-import { join } from 'node:path';
 
 function getDatabaseUrl(): string {
   const appConfig = configuration();
@@ -25,7 +24,7 @@ function getDatabaseUrl(): string {
 
   const sslEnabled = postgresConfig?.ssl ?? false;
   if (sslEnabled) {
-    const certPath = "./global-bundle.pem"
+    const certPath = './global-bundle.pem';
     return `postgresql://${user}:${password}@${host}:${port}/${database}?schema=${schema}&sslmode=verify-full&sslrootcert=${certPath}`;
   }
 
