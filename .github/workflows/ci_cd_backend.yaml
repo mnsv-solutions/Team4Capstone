@@ -23,7 +23,7 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
-    environment: production
+    environment: prod
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
@@ -51,8 +51,9 @@ jobs:
           EOF
         
       - name: Create Configuration File
+        working-directory: credit-pulse/backend/config
         run: |
-          echo "${{ secrets.APP_CONFIG_YAML }}" > credit-pulse/backend/config/config.prod.yaml
+          echo "${{ secrets.APP_CONFIG_YAML }}" > config.prod.yaml
           
       - name: Build and Push Docker Image
         id: build-Image

@@ -19,7 +19,7 @@ RUN npm install --workspace=credit-pulse/backend
 COPY credit-pulse/backend ./credit-pulse/backend
 
 # Generate Prisma Client
-RUN npm run prisma:generate
+RUN npm run prisma:generate:prod
 
 # Build backend and frontend applications
 RUN npm run build:backend
