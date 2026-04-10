@@ -9,6 +9,7 @@ import { ApplicationService } from './application.service.js';
 import { AssignApplicationModule } from './assignment/application-assignment.module.js';
 import { ApplicationCommunicationModule } from './communication/application-communication.module.js';
 import { FetchCreditScoreModule } from './fetch-credit-score/fetch-credit-score.module.js';
+import { FetchLoanParametersModule } from './fetch-loan-parameters/fetch-loan-parameters.module.js';
 import { FetchTeamApplicationsModule } from './fetch-team-applications/fetch-team-applications.module.js';
 import { ApplicationStageModule } from './stage/application-stage.module.js';
 
@@ -21,6 +22,7 @@ import { ApplicationStageModule } from './stage/application-stage.module.js';
     AssignApplicationModule,
     FetchTeamApplicationsModule,
     FetchCreditScoreModule,
+    FetchLoanParametersModule,
   ],
   controllers: [ApplicationController],
   providers: [ApplicationService, JwtService, AwsService],
