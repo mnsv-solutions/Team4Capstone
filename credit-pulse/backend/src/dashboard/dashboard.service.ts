@@ -131,7 +131,7 @@ export class DashboardService {
   }
 
   // This method gets applications that were created by the logged-in user.
-  private async fetchCreatedApplications(userId: string): Promise<DashboardApplicationRow[]> {
+  private fetchCreatedApplications(userId: string): Promise<DashboardApplicationRow[]> {
     return this.prisma.$queryRaw<DashboardApplicationRow[]>`
       SELECT
           la.application_id AS "applicationId",
@@ -189,7 +189,7 @@ export class DashboardService {
   }
 
   // This method gets applications that are currently assigned to the logged-in user.
-  private async fetchAssignedApplications(userId: string): Promise<DashboardApplicationRow[]> {
+  private fetchAssignedApplications(userId: string): Promise<DashboardApplicationRow[]> {
     return this.prisma.$queryRaw<DashboardApplicationRow[]>`
       SELECT
           la.application_id AS "applicationId",
