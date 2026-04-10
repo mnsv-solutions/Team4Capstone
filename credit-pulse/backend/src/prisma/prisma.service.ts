@@ -3,6 +3,8 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
+import * as path from 'path';
+
 //Importing the auto-generated database client based on the schema.
 import { PrismaClient } from '../../generated/prisma/client.js';
 
@@ -68,6 +70,12 @@ export class PrismaService extends PrismaClient {
     // Check if all the required database configuration values are present.
     if (!host || !port || !user || !password || !database || !schema) {
       throw new Error('Missing database configuration');
+    }
+
+    const sslEnabled = configService.get<boolean>('db.postgres.ssl', false);
+    if (sslEnabled) {
+      const certPath = path.join(process.cwd(), 'global-bundle.pem');
+      return `postgresql://${user}:${password}@${host}:${port}/${database}?schema=${schema}&sslmode=verify-full&sslrootcert=${certPath}`;
     }
 
     // Construct the database URL using the extracted configuration.

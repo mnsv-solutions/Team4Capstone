@@ -16,7 +16,7 @@
     "start:local": "NODE_ENV=local nest start --watch",
     "start:debug": "NODE_ENV=local nest start --debug --watch",
     "start:dev": "nest start --watch",
-    "start:prod": "NODE_ENV=prod node dist/main",
+    "start:prod": "NODE_ENV=prod nest start",
     "test": "NODE_OPTIONS=--experimental-vm-modules jest --config ./jest.config.mjs",
     "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --config ./jest.config.mjs --watch",
     "test:cov": "NODE_OPTIONS=--experimental-vm-modules jest --config ./jest.config.mjs --coverage",

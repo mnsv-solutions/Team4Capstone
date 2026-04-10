@@ -6,6 +6,7 @@ import process from 'node:process';
 
 import configuration from '../config/configuration.js';
 import { PrismaClient } from '../generated/prisma/client.js';
+import { join } from 'node:path';
 
 function getDatabaseUrl(): string {
   const appConfig = configuration();
@@ -20,6 +21,12 @@ function getDatabaseUrl(): string {
 
   if (!host || !port || !user || !password || !database || !schema) {
     throw new Error('Missing database configuration in config.<env>.yaml');
+  }
+
+  const sslEnabled = postgresConfig?.ssl ?? false;
+  if (sslEnabled) {
+    const certPath = "./global-bundle.pem"
+    return `postgresql://${user}:${password}@${host}:${port}/${database}?schema=${schema}&sslmode=verify-full&sslrootcert=${certPath}`;
   }
 
   return `postgresql://${user}:${password}@${host}:${port}/${database}?schema=${schema}`;
