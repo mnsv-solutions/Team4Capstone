@@ -24,6 +24,8 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     environment: prod
+    outputs:
+      image: ${{ steps.image-tag.outputs.image }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@v6
@@ -56,7 +58,7 @@ jobs:
           echo "${{ secrets.APP_CONFIG_YAML }}" > config.prod.yaml
           
       - name: Build and Push Docker Image
-        id: build-Image
+        id: build-image
         uses: docker/build-push-action@v7
         with:
           context: .
@@ -67,6 +69,7 @@ jobs:
             aws=./aws-credentials
 
       - name: Export Image Tag to Output
+        id: image-tag
         run: echo "image=${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_OUTPUT
 
   deploy:
