@@ -6,11 +6,20 @@ import { AwsService } from '../aws/aws.service.js';
 import { PrismaModule } from '../prisma/prisma.module.js';
 import { ApplicationController } from './application.controller.js';
 import { ApplicationService } from './application.service.js';
+import { AssignApplicationModule } from './assignment/application-assignment.module.js';
 import { ApplicationCommunicationModule } from './communication/application-communication.module.js';
+import { FetchTeamApplicationsModule } from './fetch-team-applications/fetch-team-applications.module.js';
 import { ApplicationStageModule } from './stage/application-stage.module.js';
 
 @Module({
-  imports: [PrismaModule, ConfigModule, ApplicationCommunicationModule, ApplicationStageModule],
+  imports: [
+    PrismaModule,
+    ConfigModule,
+    ApplicationCommunicationModule,
+    ApplicationStageModule,
+    AssignApplicationModule,
+    FetchTeamApplicationsModule,
+  ],
   controllers: [ApplicationController],
   providers: [ApplicationService, JwtService, AwsService],
 })

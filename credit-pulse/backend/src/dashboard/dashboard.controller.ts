@@ -2,49 +2,35 @@ import { Controller, Get, Req, UnauthorizedException, UseGuards } from '@nestjs/
 
 import { Request } from 'express';
 
-// Local imports for the Dashboard Controller
 import { AuthGuard } from '../auth/auth.guard.js';
 import { JwtPayload } from '../common/types/jwtpayload.js';
 import { DashboardService } from './dashboard.service.js';
 import { DashboardDto } from './dto/dashboard.dto.js';
 
-/**
- * Type representing an Express Request object with an optional user property.
- * This is used to type-check requests that have been authenticated.
- */
+// This type is used for requests that include user details from the JWT token.
 type AuthenticatedRequest = Request & {
-  // The user that made the request, if authenticated.
-  // This is populated by the AuthGuard.
   user?: JwtPayload;
 };
 
-/**
- * The Dashboard Controller.
- * This controller handles requests related to the dashboard.
- */
+// This controller handles dashboard related API requests.
 @Controller('dashboard')
 @UseGuards(AuthGuard)
 export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
-  @Get('applications')
-  /**
-   * Retrieves the applications created by a user.
-   * This endpoint is protected by the AuthGuard, so only authenticated users can access it.
-   * @param req - The authenticated request.
-   * The request object contains a 'user' property, which is populated by the AuthGuard if the user is successfully authenticated.
-   * The 'user' property contains the user ID, which is used to identify the applications created by the user.
-   * @returns An array of Dashboard Dto objects, representing the applications
-   * created by the user.
-   */
-  async getApplications(@Req() req: AuthenticatedRequest): Promise<DashboardDto[]> {
-    const userId = req.user?.sub;
 
-    // If the user ID is not present, the user is not authenticated.
-    if (!userId) {
+  // This API returns the list of applications shown on the dashboard.
+  @Get('applications')
+  async getApplications(@Req() req: AuthenticatedRequest): Promise<DashboardDto[]> {
+    // This gets the logged-in user ID and role ID from the token.
+    const userId = req.user?.sub;
+    const roleId = req.user?.role_id;
+
+    // This checks whether the user is properly authenticated.
+    if (!userId || !roleId) {
       throw new UnauthorizedException('User not authenticated');
     }
 
-    // Retrieve the applications created by the user.
-    return this.dashboardService.getApplicationsCreatedByUser(userId);
+    // This sends the user details to the service layer to fetch dashboard applications.
+    return this.dashboardService.getApplicationsForDashboard(userId, roleId);
   }
 }

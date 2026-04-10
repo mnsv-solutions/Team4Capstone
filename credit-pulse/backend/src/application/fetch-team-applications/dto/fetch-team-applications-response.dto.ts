@@ -1,15 +1,15 @@
-// This DTO is used to send dashboard application details in the response.
-export class DashboardDto {
+// This DTO is used to return team dashboard application details.
+export class TeamDashboardDto {
   // This is the unique ID of the application.
   applicationId?: string;
 
-  // This is the application number used for reference.
+  // This is the application number shown for reference.
   applicationNumber?: string;
 
   // This stores the customer's full name, if available.
   customerName?: string | null;
 
-  // This stores the loan or application type, if available.
+  // This stores the application or loan type, if available.
   type?: string | null;
 
   // This stores the main loan amount, if available.
@@ -30,7 +30,7 @@ export class DashboardDto {
   // This stores the next payment amount.
   nextPayment?: number;
 
-  // This stores the next payment due date, if available.
+  // This stores the due date of the next payment, if available.
   nextPaymentDate?: Date | null;
 
   // This shows the current application status.
@@ -38,4 +38,7 @@ export class DashboardDto {
 
   // This stores the date when the application was created.
   applicationCreationDate?: Date;
+
+  // This shows the user currently assigned to the application, if available.
+  assignedTo?: string | null;
 }
