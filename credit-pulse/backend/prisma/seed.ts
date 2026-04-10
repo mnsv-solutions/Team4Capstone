@@ -5248,7 +5248,8 @@ async function seedEligibilityEngine() {
         operator: '>=',
         threshold_value: '650',
         severity: 'SOFT_FAIL',
-        failure_message: 'Credit score is below the preferred threshold.',
+        failure_message:
+          'Credit score ({{currentValue}}) is below the preferred threshold ({{thresholdValue}}).',
         evaluation_order: 1,
         is_active: true,
         created_by: victor.user_id,
@@ -5262,7 +5263,8 @@ async function seedEligibilityEngine() {
         operator: '>=',
         threshold_value: '600',
         severity: 'HARD_FAIL',
-        failure_message: 'Credit score is below the minimum allowed threshold.',
+        failure_message:
+          'Credit score ({{currentValue}}) is below the minimum allowed threshold ({{thresholdValue}}).',
         evaluation_order: 2,
         is_active: true,
         created_by: victor.user_id,
@@ -5276,7 +5278,8 @@ async function seedEligibilityEngine() {
         operator: '<=',
         threshold_value: '40',
         severity: 'SOFT_FAIL',
-        failure_message: 'Debt burden ratio is above the preferred limit.',
+        failure_message:
+          'Debt burden ratio ({{currentValue}}) is above the preferred limit ({{thresholdValue}}).',
         evaluation_order: 3,
         is_active: true,
         created_by: victor.user_id,
@@ -5290,7 +5293,8 @@ async function seedEligibilityEngine() {
         operator: '<=',
         threshold_value: '50',
         severity: 'HARD_FAIL',
-        failure_message: 'Debt burden ratio exceeds the maximum allowed limit.',
+        failure_message:
+          'Debt burden ratio ({{currentValue}}) exceeds the maximum allowed limit ({{thresholdValue}}).',
         evaluation_order: 4,
         is_active: true,
         created_by: victor.user_id,
@@ -5304,7 +5308,8 @@ async function seedEligibilityEngine() {
         operator: '<=',
         threshold_value: '35',
         severity: 'SOFT_FAIL',
-        failure_message: 'EMI-to-income ratio is above the preferred limit.',
+        failure_message:
+          'EMI-to-income ratio ({{currentValue}}) is above the preferred limit ({{thresholdValue}}).',
         evaluation_order: 5,
         is_active: true,
         created_by: victor.user_id,
@@ -5318,7 +5323,8 @@ async function seedEligibilityEngine() {
         operator: '<=',
         threshold_value: '45',
         severity: 'HARD_FAIL',
-        failure_message: 'EMI-to-income ratio exceeds the maximum allowed limit.',
+        failure_message:
+          'EMI-to-income ratio ({{currentValue}}) exceeds the maximum allowed limit ({{thresholdValue}}).',
         evaluation_order: 6,
         is_active: true,
         created_by: victor.user_id,
@@ -5332,7 +5338,8 @@ async function seedEligibilityEngine() {
         operator: '<=',
         threshold_value: '60',
         severity: 'SOFT_FAIL',
-        failure_message: 'Credit utilization is above the preferred limit.',
+        failure_message:
+          'Credit utilization ({{currentValue}}) is above the preferred limit ({{thresholdValue}}).',
         evaluation_order: 7,
         is_active: true,
         created_by: victor.user_id,
@@ -5346,7 +5353,8 @@ async function seedEligibilityEngine() {
         operator: '<=',
         threshold_value: '80',
         severity: 'HARD_FAIL',
-        failure_message: 'Credit utilization exceeds the maximum allowed limit.',
+        failure_message:
+          'Credit utilization ({{currentValue}}) exceeds the maximum allowed limit ({{thresholdValue}}).',
         evaluation_order: 8,
         is_active: true,
         created_by: victor.user_id,
@@ -5360,7 +5368,8 @@ async function seedEligibilityEngine() {
         operator: '<=',
         threshold_value: '50',
         severity: 'SOFT_FAIL',
-        failure_message: 'Loan-to-income ratio is above the preferred limit.',
+        failure_message:
+          'Loan-to-income ratio ({{currentValue}}) is above the preferred limit ({{thresholdValue}}).',
         evaluation_order: 9,
         is_active: true,
         created_by: victor.user_id,
@@ -5374,7 +5383,8 @@ async function seedEligibilityEngine() {
         operator: '<=',
         threshold_value: '70',
         severity: 'HARD_FAIL',
-        failure_message: 'Loan-to-income ratio exceeds the maximum allowed limit.',
+        failure_message:
+          'Loan-to-income ratio ({{currentValue}}) exceeds the maximum allowed limit ({{thresholdValue}}).',
         evaluation_order: 10,
         is_active: true,
         created_by: victor.user_id,
@@ -5388,7 +5398,7 @@ async function seedEligibilityEngine() {
         operator: '=',
         expected_value: 'SUCCESS',
         severity: 'HARD_FAIL',
-        failure_message: 'Credit bureau status must be SUCCESS.',
+        failure_message: 'Credit bureau status ({{currentValue}}) must be {{expectedValue}}.',
         evaluation_order: 11,
         is_active: true,
         created_by: victor.user_id,
@@ -5402,7 +5412,8 @@ async function seedEligibilityEngine() {
         operator: '!=',
         expected_value: 'HIGH',
         severity: 'HARD_FAIL',
-        failure_message: 'Applicant is marked as HIGH risk.',
+        failure_message:
+          'Applicant risk level is {{currentValue}}, expected not equal to {{expectedValue}}.',
         evaluation_order: 12,
         is_active: true,
         created_by: victor.user_id,
@@ -5416,7 +5427,8 @@ async function seedEligibilityEngine() {
         operator: '>=',
         threshold_value: '25000',
         severity: 'SOFT_FAIL',
-        failure_message: 'Monthly income is below the preferred threshold.',
+        failure_message:
+          'Monthly income ({{currentValue}}) is below the preferred threshold ({{thresholdValue}}).',
         evaluation_order: 13,
         is_active: true,
         created_by: victor.user_id,
@@ -5430,7 +5442,8 @@ async function seedEligibilityEngine() {
         operator: '>=',
         threshold_value: '10000',
         severity: 'HARD_FAIL',
-        failure_message: 'Net surplus after EMI is below the minimum required threshold.',
+        failure_message:
+          'Net surplus after EMI ({{currentValue}}) is below the minimum required threshold ({{thresholdValue}}).',
         evaluation_order: 14,
         is_active: true,
         created_by: victor.user_id,
@@ -5444,7 +5457,8 @@ async function seedEligibilityEngine() {
         operator: '<=',
         threshold_value: '65',
         severity: 'HARD_FAIL',
-        failure_message: 'Applicant age at maturity exceeds the allowed maximum.',
+        failure_message:
+          'Applicant age at maturity ({{currentValue}}) exceeds the allowed maximum ({{thresholdValue}}).',
         evaluation_order: 15,
         is_active: true,
         created_by: victor.user_id,
@@ -5489,7 +5503,7 @@ async function seedEligibilityEngine() {
         rule_set_id: defaultRuleSet.rule_set_id,
         eligibility_status: 'CONDITIONALLY_ELIGIBLE',
         failed_rule_count: 1,
-        reason_json: ['Debt burden ratio is above the preferred limit.'],
+        reason_json: ['Debt burden ratio (42.1) is above the preferred limit (40).'],
         decision_snapshot_json: {
           credit_score: 801,
           dbr: 42.1,
@@ -5514,9 +5528,9 @@ async function seedEligibilityEngine() {
         eligibility_status: 'NOT_ELIGIBLE',
         failed_rule_count: 3,
         reason_json: [
-          'Applicant is marked as HIGH risk.',
-          'Credit utilization is above the preferred limit.',
-          'EMI-to-income ratio exceeds the maximum allowed limit.',
+          'Applicant risk level is HIGH, expected not equal to HIGH.',
+          'Credit utilization (62) is above the preferred limit (60).',
+          'EMI-to-income ratio (47.2) exceeds the maximum allowed limit (45).',
         ],
         decision_snapshot_json: {
           credit_score: 615,

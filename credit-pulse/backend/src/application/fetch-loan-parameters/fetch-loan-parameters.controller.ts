@@ -1,0 +1,53 @@
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
+
+import type { Request } from 'express';
+
+import { AuthGuard } from '../../auth/auth.guard.js';
+import { FetchLoanParametersRequestDto } from './dto/fetch-loan-parameters-request.dto.js';
+import { FetchLoanParametersResponseDto } from './dto/fetch-loan-parameters-response.dto.js';
+import { FetchLoanParametersService } from './fetch-loan-parameters.service.js';
+
+// This type stores the logged-in user ID coming from the JWT token.
+type JwtPayload = {
+  sub?: string;
+};
+
+// This request type is used when authenticated user details are attached to the request.
+type AuthenticatedRequest = Request & {
+  user?: JwtPayload;
+};
+
+// This controller handles the API for fetching complete loan parameter details.
+@Controller('application')
+@UseGuards(AuthGuard)
+export class FetchLoanParametersController {
+  constructor(private readonly fetchLoanParametersService: FetchLoanParametersService) {}
+
+  // This API gets repayment schedule, ratios, and eligibility details together.
+  @Post('fetch-loan-parameters')
+  @HttpCode(HttpStatus.OK)
+  async fetchLoanParameters(
+    @Body() dto: FetchLoanParametersRequestDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<FetchLoanParametersResponseDto> {
+    // This gets the logged-in user ID from the token.
+    const userId = req.user?.sub;
+
+    // This checks whether the user ID is available in the token.
+    if (!userId) {
+      throw new UnauthorizedException('Authenticated user not found in token.');
+    }
+
+    // This sends the request to the service layer to fetch all loan parameter details.
+    return this.fetchLoanParametersService.fetchLoanParameters(dto, userId);
+  }
+}

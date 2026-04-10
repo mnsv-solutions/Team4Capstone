@@ -387,11 +387,14 @@ export class CalculateEligibilityService {
   private buildRuleMessage(rule: EligibilityRuleRecord, currentValue: MetricValue): string {
     // The template is constructed from the rule's failure message template and/or the rule's failure message
     const template = rule.failure_message_template?.trim() || rule.failure_message;
-
+    const formattedThresholdValue =
+      rule.threshold_value !== null && rule.threshold_value !== undefined
+        ? String(Number(rule.threshold_value))
+        : '';
     // Replace placeholders with actual values
     return template
       .replaceAll('{{currentValue}}', this.stringifyValue(currentValue))
-      .replaceAll('{{thresholdValue}}', this.stringifyValue(rule.threshold_value))
+      .replaceAll('{{thresholdValue}}', this.stringifyValue(formattedThresholdValue))
       .replaceAll('{{thresholdMin}}', this.stringifyValue(rule.threshold_min))
       .replaceAll('{{thresholdMax}}', this.stringifyValue(rule.threshold_max))
       .replaceAll('{{expectedValue}}', this.stringifyValue(rule.expected_value))
