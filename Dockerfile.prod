@@ -39,6 +39,7 @@ COPY --from=builder /app/credit-pulse/backend/generated ./credit-pulse/backend/g
 COPY --from=builder /app/credit-pulse/backend/package.json ./credit-pulse/backend/package.json
 COPY --from=builder /app/credit-pulse/backend/tsconfig.build.json ./credit-pulse/backend/tsconfig.build.json
 COPY --from=builder /app/credit-pulse/backend/tsconfig.json ./credit-pulse/backend/tsconfig.json
+COPY --from=builder /app/credit-pulse/backend/global-bundle.pem ./credit-pulse/backend/global-bundle.pem
 
 # Expose NestJS backend default port
 EXPOSE 3001

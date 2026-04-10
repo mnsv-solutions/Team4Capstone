@@ -56,6 +56,11 @@ jobs:
         working-directory: credit-pulse/backend/config
         run: |
           echo "${{ secrets.APP_CONFIG_YAML }}" > config.prod.yaml
+      
+      - name: Download AWS RDS Global Bundle Certificate
+        working-directory: credit-pulse/backend
+        run: |
+          curl -o global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
           
       - name: Build and Push Docker Image
         id: build-image
