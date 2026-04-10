@@ -288,6 +288,7 @@ async function seedBase() {
   await prisma.eligibility_rule_set.deleteMany();
   await prisma.application_message_attachment.deleteMany();
   await prisma.application_communication_history.deleteMany();
+  await prisma.application_assignment.deleteMany();
   await prisma.team_members.deleteMany();
   await prisma.teams.deleteMany();
   await prisma.customer.deleteMany();
@@ -6415,14 +6416,317 @@ async function seedApplicationActionHistory() {
   console.log('Application action history seeded successfully.');
 }
 
+async function seedApplicationAssignments() {
+  console.log('Starting seed for application assignments...');
+
+  const sukh = await getRequiredUser('sukh@creditpulse.com');
+  const miswa = await getRequiredUser('miswa@creditpulse.com');
+  const nirali = await getRequiredUser('nirali@creditpulse.com');
+
+  const underwriterTeam = await prisma.teams.findFirst({
+    where: { team_code: 'UNDERWRITER_TEAM' },
+    select: { team_id: true, team_code: true },
+  });
+
+  const disbursalTeam = await prisma.teams.findFirst({
+    where: { team_code: 'DISBURSAL_TEAM' },
+    select: { team_id: true, team_code: true },
+  });
+
+  if (!underwriterTeam || !disbursalTeam) {
+    throw new Error('Required teams not found. Please run seedTeams() first.');
+  }
+
+  const app1 = await getRequiredApplication('APPL0000000001');
+  const app2 = await getRequiredApplication('APPL0000000002');
+  const app3 = await getRequiredApplication('APPL0000000003');
+  const app4 = await getRequiredApplication('APPL0000000004');
+  const app5 = await getRequiredApplication('APPL0000000005');
+  const app6 = await getRequiredApplication('APPL0000000006');
+  const app7 = await getRequiredApplication('APPL0000000007');
+  const app8 = await getRequiredApplication('APPL0000000008');
+  const app9 = await getRequiredApplication('APPL0000000009');
+  const app12 = await getRequiredApplication('APPL0000000012');
+
+  await prisma.application_assignment.deleteMany({
+    where: {
+      application_id: {
+        in: [
+          app1.application_id,
+          app2.application_id,
+          app3.application_id,
+          app4.application_id,
+          app5.application_id,
+          app6.application_id,
+          app7.application_id,
+          app8.application_id,
+          app9.application_id,
+          app12.application_id,
+        ],
+      },
+    },
+  });
+
+  await prisma.application_assignment.createMany({
+    data: [
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app1.application_id,
+        assigned_team_id: underwriterTeam.team_id,
+        assigned_user_id: null,
+        assignment_status: 'ACTIVE',
+        assigned_at: new Date('2026-03-20T09:05:00Z'),
+        assigned_by: sukh.user_id,
+        unassigned_at: null,
+        unassigned_by: null,
+        remarks: 'Newly created application assigned to underwriter team queue.',
+        is_current: true,
+        is_active: true,
+        created_at: new Date('2026-03-20T09:05:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-20T09:05:00Z'),
+        updated_by: sukh.user_id,
+      },
+
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app2.application_id,
+        assigned_team_id: underwriterTeam.team_id,
+        assigned_user_id: miswa.user_id,
+        assignment_status: 'ACTIVE',
+        assigned_at: new Date('2026-03-21T12:00:00Z'),
+        assigned_by: sukh.user_id,
+        unassigned_at: null,
+        unassigned_by: null,
+        remarks: 'Assigned to underwriter for review.',
+        is_current: true,
+        is_active: true,
+        created_at: new Date('2026-03-21T12:00:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-21T12:00:00Z'),
+        updated_by: sukh.user_id,
+      },
+
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app3.application_id,
+        assigned_team_id: underwriterTeam.team_id,
+        assigned_user_id: miswa.user_id,
+        assignment_status: 'COMPLETED',
+        assigned_at: new Date('2026-03-22T11:00:00Z'),
+        assigned_by: sukh.user_id,
+        unassigned_at: new Date('2026-03-22T14:00:00Z'),
+        unassigned_by: miswa.user_id,
+        remarks: 'Underwriter review completed and application approved.',
+        is_current: false,
+        is_active: true,
+        created_at: new Date('2026-03-22T11:00:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-22T14:00:00Z'),
+        updated_by: miswa.user_id,
+      },
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app3.application_id,
+        assigned_team_id: disbursalTeam.team_id,
+        assigned_user_id: nirali.user_id,
+        assignment_status: 'ACTIVE',
+        assigned_at: new Date('2026-03-22T14:05:00Z'),
+        assigned_by: miswa.user_id,
+        unassigned_at: null,
+        unassigned_by: null,
+        remarks: 'Moved to disbursal after underwriting approval.',
+        is_current: true,
+        is_active: true,
+        created_at: new Date('2026-03-22T14:05:00Z'),
+        created_by: miswa.user_id,
+        updated_at: new Date('2026-03-22T14:05:00Z'),
+        updated_by: miswa.user_id,
+      },
+
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app4.application_id,
+        assigned_team_id: underwriterTeam.team_id,
+        assigned_user_id: miswa.user_id,
+        assignment_status: 'COMPLETED',
+        assigned_at: new Date('2026-03-18T10:00:00Z'),
+        assigned_by: sukh.user_id,
+        unassigned_at: new Date('2026-03-18T14:10:00Z'),
+        unassigned_by: miswa.user_id,
+        remarks: 'Underwriter approved mortgage application.',
+        is_current: false,
+        is_active: true,
+        created_at: new Date('2026-03-18T10:00:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-18T14:10:00Z'),
+        updated_by: miswa.user_id,
+      },
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app4.application_id,
+        assigned_team_id: disbursalTeam.team_id,
+        assigned_user_id: nirali.user_id,
+        assignment_status: 'COMPLETED',
+        assigned_at: new Date('2026-03-18T14:15:00Z'),
+        assigned_by: miswa.user_id,
+        unassigned_at: new Date('2026-03-19T10:30:00Z'),
+        unassigned_by: nirali.user_id,
+        remarks: 'Disbursal completed successfully.',
+        is_current: false,
+        is_active: true,
+        created_at: new Date('2026-03-18T14:15:00Z'),
+        created_by: miswa.user_id,
+        updated_at: new Date('2026-03-19T10:30:00Z'),
+        updated_by: nirali.user_id,
+      },
+
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app5.application_id,
+        assigned_team_id: underwriterTeam.team_id,
+        assigned_user_id: miswa.user_id,
+        assignment_status: 'COMPLETED',
+        assigned_at: new Date('2026-03-23T10:00:00Z'),
+        assigned_by: sukh.user_id,
+        unassigned_at: new Date('2026-03-23T14:00:00Z'),
+        unassigned_by: miswa.user_id,
+        remarks: 'Underwriter rejected application.',
+        is_current: false,
+        is_active: true,
+        created_at: new Date('2026-03-23T10:00:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-23T14:00:00Z'),
+        updated_by: miswa.user_id,
+      },
+
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app6.application_id,
+        assigned_team_id: underwriterTeam.team_id,
+        assigned_user_id: null,
+        assignment_status: 'ACTIVE',
+        assigned_at: new Date('2026-03-23T09:10:00Z'),
+        assigned_by: sukh.user_id,
+        unassigned_at: null,
+        unassigned_by: null,
+        remarks: 'Application routed to underwriter team queue.',
+        is_current: true,
+        is_active: true,
+        created_at: new Date('2026-03-23T09:10:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-23T09:10:00Z'),
+        updated_by: sukh.user_id,
+      },
+
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app7.application_id,
+        assigned_team_id: underwriterTeam.team_id,
+        assigned_user_id: miswa.user_id,
+        assignment_status: 'ACTIVE',
+        assigned_at: new Date('2026-03-24T08:30:00Z'),
+        assigned_by: sukh.user_id,
+        unassigned_at: null,
+        unassigned_by: null,
+        remarks: 'Assigned to underwriter for active review.',
+        is_current: true,
+        is_active: true,
+        created_at: new Date('2026-03-24T08:30:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-24T08:30:00Z'),
+        updated_by: sukh.user_id,
+      },
+
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app8.application_id,
+        assigned_team_id: disbursalTeam.team_id,
+        assigned_user_id: nirali.user_id,
+        assignment_status: 'ACTIVE',
+        assigned_at: new Date('2026-03-24T11:00:00Z'),
+        assigned_by: miswa.user_id,
+        unassigned_at: null,
+        unassigned_by: null,
+        remarks: 'Approved application moved to disbursal team.',
+        is_current: true,
+        is_active: true,
+        created_at: new Date('2026-03-24T11:00:00Z'),
+        created_by: miswa.user_id,
+        updated_at: new Date('2026-03-24T11:00:00Z'),
+        updated_by: miswa.user_id,
+      },
+
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app9.application_id,
+        assigned_team_id: underwriterTeam.team_id,
+        assigned_user_id: miswa.user_id,
+        assignment_status: 'COMPLETED',
+        assigned_at: new Date('2026-03-17T10:00:00Z'),
+        assigned_by: sukh.user_id,
+        unassigned_at: new Date('2026-03-18T09:00:00Z'),
+        unassigned_by: miswa.user_id,
+        remarks: 'Underwriter approved business loan.',
+        is_current: false,
+        is_active: true,
+        created_at: new Date('2026-03-17T10:00:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-18T09:00:00Z'),
+        updated_by: miswa.user_id,
+      },
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app9.application_id,
+        assigned_team_id: disbursalTeam.team_id,
+        assigned_user_id: nirali.user_id,
+        assignment_status: 'COMPLETED',
+        assigned_at: new Date('2026-03-18T09:05:00Z'),
+        assigned_by: miswa.user_id,
+        unassigned_at: new Date('2026-03-19T12:30:00Z'),
+        unassigned_by: nirali.user_id,
+        remarks: 'Disbursal completed and case closed.',
+        is_current: false,
+        is_active: true,
+        created_at: new Date('2026-03-18T09:05:00Z'),
+        created_by: miswa.user_id,
+        updated_at: new Date('2026-03-19T12:30:00Z'),
+        updated_by: nirali.user_id,
+      },
+
+      {
+        assignment_id: crypto.randomUUID(),
+        application_id: app12.application_id,
+        assigned_team_id: underwriterTeam.team_id,
+        assigned_user_id: null,
+        assignment_status: 'ACTIVE',
+        assigned_at: new Date('2026-03-25T09:45:00Z'),
+        assigned_by: sukh.user_id,
+        unassigned_at: null,
+        unassigned_by: null,
+        remarks: 'Mortgage application pending underwriter pickup.',
+        is_current: true,
+        is_active: true,
+        created_at: new Date('2026-03-25T09:45:00Z'),
+        created_by: sukh.user_id,
+        updated_at: new Date('2026-03-25T09:45:00Z'),
+        updated_by: sukh.user_id,
+      },
+    ],
+  });
+
+  console.log('Application assignments seeded successfully.');
+}
+
 async function main() {
   await seedBase();
   await seedSupplemental();
+  await seedTeams();
+  await seedTeamMembers();
+  await seedApplicationAssignments();
   await seedApplicationActionHistory();
   await seedApplicationCommunication();
   await seedEligibilityEngine();
-  await seedTeams();
-  await seedTeamMembers();
 
   console.log('System users:');
 
