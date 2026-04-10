@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -11,7 +12,9 @@ import * as bcrypt from 'bcrypt';
 import { Prisma } from '../../generated/prisma/client.js';
 import { AwsService } from '../aws/aws.service.js';
 import { JwtPayload } from '../common/types/jwtpayload.js';
+import { CreditScoreCheckService } from '../credit-score-check/credit-score-check.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ApplicationCommunicationService } from './communication/application-communication.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
 import { CreateApplicationResponseDto } from './dto/createApplicationResponse.dto.js';
 import { GetContactDetailsRequestDto } from './dto/getContactDetailsRequest.dto.js';
@@ -26,6 +29,7 @@ import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRe
 import { GetPersonalInformationResponseDto } from './dto/getPersonalInformationResponse.dto.js';
 import { VerifyDocumentRequestDto } from './dto/verifyDocumentRequest.dto.js';
 import { VerifyDocumentResponseDto } from './dto/verifyDocumentResponse.dto.js';
+import { ApplicationStageService } from './stage/application-stage.service.js';
 
 type PrismaTransaction = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
 
@@ -35,7 +39,12 @@ export class ApplicationService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly awsService: AwsService,
+    private readonly applicationStageService: ApplicationStageService,
+    private readonly applicationCommunicationService: ApplicationCommunicationService,
+    private readonly creditScoreCheckService: CreditScoreCheckService,
   ) {}
+
+  private readonly logger = new Logger(ApplicationService.name);
 
   async uploadFiles(
     applicationId: string,
@@ -87,6 +96,8 @@ export class ApplicationService {
       } as any);
     });
 
+    this.logger.log(`Files uploaded successfully for application with ID: ${applicationId}`);
+
     return uploadedPaths;
   }
 
@@ -106,15 +117,18 @@ export class ApplicationService {
         }
 
         const userId = currentUser.sub;
+        const userRoleId = currentUser.role_id;
 
         const references = await this.resolveReferenceData(tx, createApplicationDto);
 
-        const customerId = await this.createCustomerRecord(
+        const customer = await this.createCustomerRecord(
           tx,
           createApplicationDto,
           userId,
           references,
         );
+
+        const customerId = customer.customer_id;
 
         await Promise.all([
           this.createAddressDetails(tx, customerId, createApplicationDto, references),
@@ -128,10 +142,13 @@ export class ApplicationService {
 
         const application = await this.createLoanApplication(
           tx,
-          customerId,
+          customer,
           userId,
+          userRoleId,
           references.statusId,
         );
+
+        this.logger.log(`Application created successfully with ID: ${application.application_id}`);
 
         return {
           application_id: application.application_id,
@@ -333,7 +350,13 @@ export class ApplicationService {
       select: { customer_id: true },
     });
 
-    return customer.customer_id;
+    return {
+      customer_id: customer.customer_id,
+      dob: dto.dob,
+      first_name: dto.firstName,
+      last_name: dto.lastName,
+      sin: dto.sinTaxId,
+    };
   }
 
   private async createAddressDetails(
@@ -655,8 +678,15 @@ export class ApplicationService {
 
   private async createLoanApplication(
     tx: PrismaTransaction,
-    customerId: string,
+    customer: {
+      customer_id: string;
+      dob: string;
+      first_name: string;
+      last_name: string;
+      sin: string;
+    },
     userId: string,
+    userRoleId: string,
     statusId: string,
   ) {
     const applicationNumber = await this.generateUniqueApplicationNumber(tx);
@@ -673,11 +703,89 @@ export class ApplicationService {
     await tx.sub_loan.create({
       data: {
         application_id: loanApplication.application_id,
-        customer_id: customerId,
+        customer_id: customer.customer_id,
         applicant_type: 0,
         created_by: userId,
       },
     });
+
+    // This block represents the asynchronous operations to be executed post-creation of the loan application
+    // This will be running in background so the response doesn't have to wait
+    void (async () => {
+      try {
+        // Fetching the user's role name
+        const roleName = await this.prisma.roles.findFirst({
+          where: {
+            role_id: userRoleId,
+          },
+          select: {
+            role_name: true,
+          },
+        });
+
+        // Build the message
+        const submissionMessage = `Application submitted on ${new Date().toDateString()} at ${new Date().toTimeString()} by ${roleName?.role_name || 'Unknown'}`;
+
+        // Pushing stage history as SUBMITTED
+        await this.applicationStageService.pushStage(userId, {
+          actionType: 'SUBMITTED',
+          applicationNumber: applicationNumber,
+          remarks: submissionMessage,
+        });
+
+        // Pushing communication for the submission
+        await this.applicationCommunicationService.createCommunication(
+          {
+            applicationNumber: applicationNumber,
+            senderType: roleName?.role_name || 'Unknown',
+            messageText: submissionMessage,
+            messageCategory: 'STATUS_UPDATE',
+            isInternal: false,
+            sendEmail: true,
+            sendSms: true,
+          },
+          userId,
+        );
+
+        // Checking Credit Score
+        await this.creditScoreCheckService.checkCreditScore(
+          {
+            applicationNumber: applicationNumber,
+            firstName: customer.first_name,
+            lastName: customer.last_name,
+            dateOfBirth: customer.dob,
+            sin: customer.sin,
+            consent: true,
+          },
+          userId,
+        );
+
+        const creditCheckMessage = `Credit Score Checked for application: ${applicationNumber} on ${new Date().toDateString()} at ${new Date().toTimeString()}`;
+
+        // Pushing stage history as CREDIT_SCORE_CHECKED
+        await this.applicationStageService.pushStage(userId, {
+          actionType: 'CREDIT_CHECK_COMPLETED',
+          applicationNumber: applicationNumber,
+          remarks: creditCheckMessage,
+        });
+
+        // Pushing communication for credit score checking
+        await this.applicationCommunicationService.createCommunication(
+          {
+            applicationNumber: applicationNumber,
+            senderType: roleName?.role_name || 'Unknown',
+            messageText: creditCheckMessage,
+            messageCategory: 'STATUS_UPDATE',
+            isInternal: false,
+            sendEmail: true,
+            sendSms: true,
+          },
+          userId,
+        );
+      } catch (error) {
+        this.logger.error('Failed to proceed with application flow:', error);
+      }
+    })();
 
     return {
       application_id: loanApplication.application_id,

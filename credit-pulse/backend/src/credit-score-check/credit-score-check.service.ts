@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { Prisma } from '../../generated/prisma/client.js';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -68,6 +68,8 @@ type CibilReportWithRelations = {
 export class CreditScoreCheckService {
   // Injects Prisma so database queries can be performed here
   constructor(private readonly prisma: PrismaService) {}
+
+  private readonly logger = new Logger(CreditScoreCheckService.name);
 
   /**
    * Performs a credit score check based on the provided request.
@@ -233,6 +235,10 @@ export class CreditScoreCheckService {
 
       return creditCheck;
     });
+
+    this.logger.log(
+      `Credit score check completed successfully for application with ID: ${application.application_id}`,
+    );
 
     return createdCheck as CreditScoreCheckResponseDto;
   }
