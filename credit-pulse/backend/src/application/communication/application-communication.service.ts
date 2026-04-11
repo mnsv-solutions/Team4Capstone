@@ -81,10 +81,14 @@ export class ApplicationCommunicationService {
     }
 
     // Internal recipients must always have a user id
-    if (dto.recipientType !== 'CUSTOMER' && !dto.recipientUserId) {
+    /*     if (
+      dto.recipientType !== 'CUSTOMER' &&
+      // dto.recipientType !== 'SOURCING_OFFICER' &&
+      !dto.recipientUserId
+    ) {
       throw new BadRequestException('recipientUserId is required for internal recipient types.');
     }
-
+    */
     // Starts with the passed recipient id if one was provided
     let resolvedRecipientUserId = dto.recipientUserId ?? null;
 

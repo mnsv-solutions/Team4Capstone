@@ -30,6 +30,11 @@ type StageConfig = {
 
 // This object defines the rules for each stage action in the application flow.
 const STAGE_CONFIG: Record<StageActionType, StageConfig> = {
+  CREATED: {
+    allowedRoles: ['SOURCING_OFFICER'],
+    fromStatuses: ['CREATED'],
+    toStatus: 'SUBMITTED',
+  },
   SUBMITTED: {
     allowedRoles: ['SOURCING_OFFICER'],
     fromStatuses: ['CREATED'],

@@ -861,6 +861,16 @@ async function seedBase() {
     },
   });
 
+  const createdStatus = await prisma.application_status.create({
+    data: {
+      status_code: 'CREATED',
+      status_name: 'Created',
+      created_by: createdBy,
+      updated_by: updatedBy,
+      is_active: true,
+    },
+  });
+
   const submittedStatus = await prisma.application_status.create({
     data: {
       status_code: 'SUBMITTED',
@@ -1929,7 +1939,7 @@ async function seedBase() {
   const app1 = await prisma.loan_application.create({
     data: {
       application_number: 'APPL0000000001',
-      status_id: submittedStatus.status_id,
+      status_id: createdStatus.status_id,
       loan_type_id: personalLoanType.loan_type_id,
       requested_amount: '15000.00',
       tenure_months: 12,
