@@ -711,7 +711,7 @@ export class ApplicationService {
       },
     });
 
-    // This block represents the asynchronous operations to be executed post-creation of the loan application
+    // This function represents the asynchronous operations to be executed post-creation of the loan application
     void this.processPostLoanApplicationTasks(applicationNumber, customer, userId, userRoleId);
 
     return {
@@ -744,8 +744,8 @@ export class ApplicationService {
 
       // Build the message
       const now = new Date();
-      const timeStamp = `${now.toLocaleDateString('en-US', { weekday: 'short' })} ${now.toLocaleDateString('en-US', { month: 'long' })}, ${now.getDate()} ${now.getFullYear()} at ${now.getHours() % 12 || 12}:${now.getMinutes().toString().padStart(2, '0')}${now.getHours() >= 12 ? 'pm' : 'am'}`;
-      const submissionMessage = `APPLICATION submitted on ${timeStamp} by ${roleName?.role_name || 'Unknown'}`;
+      const timeStamp = `${now.toLocaleDateString('en-US', { weekday: 'short' })} ${now.toLocaleDateString('en-US', { month: 'long' })}, ${now.getDate()} ${now.getFullYear()} at ${now.getHours() % 12 || 12}:${now.getMinutes().toString().padStart(2, '0')}${now.getHours() >= 12 ? 'PM' : 'AM'}`;
+      const submissionMessage = `${applicationNumber} submitted on ${timeStamp} by ${roleName?.role_name || 'Unknown'}`;
 
       // Pushing stage history and communication for the submission
       await this.pushStageAndCommunication(
