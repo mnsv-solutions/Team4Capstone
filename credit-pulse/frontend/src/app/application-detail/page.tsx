@@ -21,6 +21,7 @@ import {
   CheckCircle2,
   XCircle,
   Circle,
+  Sheet,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { COMMUNICATION_PROPERTIES } from "./communication-properties";
@@ -110,7 +111,9 @@ type FinancialDetailsResponseDto = {
   existingLoans: string;
   totalMonthlyLoanPayments: string;
   tenureMonths?: string;
-  bankAccounts: FinancialBankAccount[];
+  bankAccounts?: FinancialBankAccount[];
+  requestedLoanAmount?: string;
+  requestedInterestRate?: string;
 };
 
 type FinancialDetailsApiResponse =
@@ -152,40 +155,6 @@ type ApplicationStatusResponseDto = {
   statusName?: string;
   reasonCode?: string;
   message?: string;
-};
-
-type CreditScoreCheckResponseDto = {
-  application_id?: string;
-  cibil_report_id?: string | null;
-  request_id?: string | null;
-  bureau_name?: string;
-  bureau_reference_id?: string | null;
-  bureau_status?: string;
-  credit_score?: number | string | null;
-  score_band?: string | null;
-  risk_level?: string | null;
-  remarks?: string | null;
-  raw_response?: {
-    header?: {
-      reportDate?: string;
-      status?: string;
-    };
-  } | null;
-};
-
-type CalculateRatiosResponseDto = {
-  message: string;
-  applicationNumber: string;
-  customerId: string;
-  monthlyIncome: number;
-  annualIncome: number;
-  totalMonthlyDebtPayments: number;
-  proposedEmi: number;
-  requestedLoanAmount: number;
-  dbr: number;
-  emiToIncome: number;
-  creditUtilization: number;
-  loanToIncome: number;
 };
 
 type FetchUserRoleApiResponse = {
@@ -231,7 +200,7 @@ type CommunicationHistoryItem = {
   smsStatus: string;
   hasAttachment: boolean;
   createdAt: string;
-  attachments: CommunicationHistoryAttachment[];
+  attachments?: CommunicationHistoryAttachment[];
 };
 
 type CommunicationFetchResponse = {
@@ -261,6 +230,87 @@ type BankAccount = {
   accountType: string;
   swiftBic: string;
   isRepaymentAccount: boolean;
+};
+
+type LoanInstallmentDto = {
+  scheduleId?: string;
+  installmentNumber?: number;
+  dueDate?: string;
+  openingBalance?: number;
+  principalComponent?: number;
+  interestComponent?: number;
+  installmentAmount?: number;
+  closingBalance?: number;
+  paidAmount?: number;
+  paymentStatus?: string;
+  paidDate?: string | null;
+};
+
+type LoanRepaymentScheduleDto = {
+  message?: string;
+  applicationNumber?: string;
+  applicationId?: string;
+  emi?: number;
+  totalInstallments?: number;
+  installments?: LoanInstallmentDto[];
+};
+
+type LoanRatiosDto = {
+  message?: string;
+  applicationNumber?: string;
+  customerId?: string;
+  monthlyIncome?: number;
+  annualIncome?: number;
+  totalMonthlyDebtPayments?: number;
+  proposedEmi?: number;
+  requestedLoanAmount?: number;
+  dbr?: number;
+  emiToIncome?: number;
+  creditUtilization?: number;
+  loanToIncome?: number;
+};
+
+type LoanEligibilityDto = {
+  applicationNumber?: string;
+  ruleSetCode?: string;
+  ruleSetVersion?: number;
+  eligibilityStatus?: string;
+  message?: string;
+  failedRuleCount?: number;
+  reasons?: string[];
+  failedRules?: Array<Record<string, unknown>>;
+  metrics?: Record<string, unknown>;
+  calculatedAt?: string;
+};
+
+type FetchLoanParametersRequestDto = {
+  applicationNumber: string;
+  loanAmount: number;
+  interestRate: number;
+  tenureMonths: number;
+};
+
+type FetchLoanParametersResponseDto = {
+  message?: string;
+  applicationNumber?: string;
+  repaymentSchedule?: LoanRepaymentScheduleDto;
+  ratios?: LoanRatiosDto;
+  eligibility?: LoanEligibilityDto;
+};
+
+type FetchCreditDetailsResponseDto = {
+  score?: number;
+  risk_level?: string;
+  report_date?: string;
+  report_time?: string;
+  reference_id?: string;
+  total_accounts?: number;
+  active_accounts?: number;
+  closed_accounts?: number;
+  debt_to_income_estimate?: string;
+  credit_utilization_ratio?: string;
+  average_account_age_years?: string;
+  total_outstanding_balance?: string;
 };
 
 type AccordionKey =
@@ -332,6 +382,25 @@ type ApplicationDetailsState = {
   cibilStatus: string;
   cibilRemarks: string;
   cibilLastUpdated: string;
+  cibilRiskLevel: string;
+  cibilDebtToIncomeEstimate: string;
+  cibilCreditUtilizationRatio: string;
+  cibilAverageAccountAgeYears: string;
+  cibilTotalOutstandingBalance: string;
+  cibilTotalAccounts: string;
+  cibilActiveAccounts: string;
+  cibilClosedAccounts: string;
+  cibilReportDate: string;
+  cibilReportTime: string;
+  cibilReferenceId: string;
+
+  requestedLoanAmount: string;
+  requestedInterestRate: string;
+  requestedTenureMonths: string;
+
+  approvedLoanAmount: string;
+  approvedInterestRate: string;
+  approvedTenureMonths: string;
 
   emiAmount: string;
   totalRepayment: string;
@@ -367,6 +436,7 @@ type DecisionFormState = {
   underwriterComments: string;
   disbursalDecisionStatus: DisbursalDecisionOption;
   disbursalComments: string;
+  disbursedAmount: string;
 };
 
 type UserRole =
@@ -418,6 +488,7 @@ type PushStageRequestDto = {
   approvedInterestRate?: number;
   approvedTenureMonths?: number;
   approvedEmi?: number;
+  disbursedAmount?: number;
   metadataJson?: Record<string, unknown>;
 };
 
@@ -447,7 +518,7 @@ const APPLICATION_STATUS_STEPS: StatusStep[] = [
   },
   {
     key: "DISBURSAL_DECISION",
-    label: "Disbursal Decision",
+    label: "Completed / Rejected",
     activeLabel: "Completed / Rejected",
   },
 ];
@@ -473,7 +544,7 @@ const accordionSections: {
   { key: "documents", title: "Document Details", icon: <FileText size={18} /> },
   { key: "cibil", title: "CIBIL Details", icon: <ShieldCheck size={18} /> },
   { key: "repayment", title: "Repayment Schedule Details", icon: <Calculator size={18} /> },
-  { key: "ratios", title: "Ratios", icon: <Calculator size={18} /> },
+  { key: "ratios", title: "Loan Parameters", icon: <Calculator size={18} /> },
   { key: "eligibility", title: "Eligibility", icon: <ShieldCheck size={18} /> },
   {
     key: "underwriterReview",
@@ -601,6 +672,25 @@ const initialDetails: ApplicationDetailsState = {
   cibilStatus: "",
   cibilRemarks: "",
   cibilLastUpdated: "",
+  cibilRiskLevel: "",
+  cibilDebtToIncomeEstimate: "",
+  cibilCreditUtilizationRatio: "",
+  cibilAverageAccountAgeYears: "",
+  cibilTotalOutstandingBalance: "",
+  cibilTotalAccounts: "",
+  cibilActiveAccounts: "",
+  cibilClosedAccounts: "",
+  cibilReportDate: "",
+  cibilReportTime: "",
+  cibilReferenceId: "",
+
+  requestedLoanAmount: "",
+  requestedInterestRate: "",
+  requestedTenureMonths: "",
+
+  approvedLoanAmount: "",
+  approvedInterestRate: "",
+  approvedTenureMonths: "",
 
   emiAmount: "",
   totalRepayment: "",
@@ -625,6 +715,7 @@ const initialDecisionForm: DecisionFormState = {
   underwriterComments: "",
   disbursalDecisionStatus: "",
   disbursalComments: "",
+  disbursedAmount: "",
 };
 
 function getRecipientUserId(recipientType: string): string {
@@ -653,15 +744,11 @@ function formatDate(value: string) {
   return date.toLocaleDateString();
 }
 
-function formatTime(value: string) {
+function formatDateTime(value: string) {
   if (!value) return "-";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "-";
-  return date.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString();
 }
 
 function sanitizeDigits(value: string) {
@@ -676,6 +763,12 @@ function parseNumberValue(value: string | number | null | undefined) {
   const cleaned = String(value || "").replace(/[^0-9.-]/g, "");
   const parsed = Number(cleaned);
   return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatMoney(value: string | number | null | undefined) {
+  const parsed = parseNumberValue(value);
+  if (!parsed) return "0.00";
+  return parsed.toFixed(2);
 }
 
 function buildAttachmentFromFile(file: File): CommunicationAttachment {
@@ -752,12 +845,7 @@ function getIsInternalFromRecipient(recipientType: string) {
 
 function isPermanentAttachmentLink(path: string) {
   if (!path) return false;
-
-  return (
-    path.startsWith("http://") ||
-    path.startsWith("https://") ||
-    path.startsWith("/")
-  );
+  return path.startsWith("http://") || path.startsWith("https://") || path.startsWith("/");
 }
 
 function isTemporaryLocalPath(path: string) {
@@ -917,10 +1005,7 @@ function normalizeApplicationStatus(
     return "UNDERWRITER_REJECTED";
   }
 
-  if (
-    raw.includes("DISBURSAL_COMPLETED") ||
-    raw.includes("DISBURSED")
-  ) {
+  if (raw.includes("DISBURSAL_COMPLETED") || raw.includes("DISBURSED")) {
     return "DISBURSAL_COMPLETED";
   }
 
@@ -971,9 +1056,7 @@ function getDisplayStatusLabel(normalizedStatus: string): string {
     case "UNDER_REVIEW":
       return "Under Review";
     default:
-      return normalizedStatus
-        ? normalizedStatus.replace(/_/g, " ")
-        : "Status Pending";
+      return normalizedStatus ? normalizedStatus.replace(/_/g, " ") : "Status Pending";
   }
 }
 
@@ -1005,35 +1088,19 @@ function getVisibleSectionsForRole(role: UserRole): AccordionKey[] {
 }
 
 function canEditMainFields(role: UserRole): boolean {
-  return (
-    role === "UNDERWRITER" ||
-    role === "DISBURSAL_OFFICER" ||
-    role === "ADMIN"
-  );
+  return role === "UNDERWRITER" || role === "DISBURSAL_OFFICER" || role === "ADMIN";
 }
 
 function canEditDocuments(role: UserRole): boolean {
-  return (
-    role === "UNDERWRITER" ||
-    role === "DISBURSAL_OFFICER" ||
-    role === "ADMIN"
-  );
+  return role === "UNDERWRITER" || role === "DISBURSAL_OFFICER" || role === "ADMIN";
 }
 
 function canSaveDocumentVerification(role: UserRole): boolean {
-  return (
-    role === "UNDERWRITER" ||
-    role === "DISBURSAL_OFFICER" ||
-    role === "ADMIN"
-  );
+  return role === "UNDERWRITER" || role === "DISBURSAL_OFFICER" || role === "ADMIN";
 }
 
 function canSeeUnderwriterDecision(role: UserRole): boolean {
-  return (
-    role === "UNDERWRITER" ||
-    role === "DISBURSAL_OFFICER" ||
-    role === "ADMIN"
-  );
+  return role === "UNDERWRITER" || role === "DISBURSAL_OFFICER" || role === "ADMIN";
 }
 
 function canEditUnderwriterDecision(role: UserRole): boolean {
@@ -1047,6 +1114,107 @@ function canSeeDisbursalDecision(role: UserRole): boolean {
 function canEditDisbursalDecision(role: UserRole): boolean {
   return role === "DISBURSAL_OFFICER" || role === "ADMIN";
 }
+
+function getResolvedLoanParameterRequest(
+  details: ApplicationDetailsState
+): FetchLoanParametersRequestDto | null {
+  const approvedLoanAmount = parseNumberValue(details.approvedLoanAmount);
+  const approvedInterestRate = parseNumberValue(details.approvedInterestRate);
+  const approvedTenureMonths = parseNumberValue(details.approvedTenureMonths);
+
+  const requestedLoanAmount = parseNumberValue(details.requestedLoanAmount);
+  const requestedInterestRate = parseNumberValue(details.requestedInterestRate);
+  const requestedTenureMonths = parseNumberValue(
+    details.requestedTenureMonths || details.tenureMonths
+  );
+
+  const hasAnyApprovedValue =
+    approvedLoanAmount > 0 || approvedInterestRate > 0 || approvedTenureMonths > 0;
+
+  const loanAmount = hasAnyApprovedValue
+    ? approvedLoanAmount || requestedLoanAmount
+    : requestedLoanAmount;
+
+  const interestRate = hasAnyApprovedValue
+    ? approvedInterestRate || requestedInterestRate
+    : requestedInterestRate;
+
+  const tenureMonths = hasAnyApprovedValue
+    ? approvedTenureMonths || requestedTenureMonths
+    : requestedTenureMonths;
+
+  if (
+    !details.applicationNumber.trim() ||
+    loanAmount <= 0 ||
+    interestRate <= 0 ||
+    tenureMonths <= 0
+  ) {
+    return null;
+  }
+
+  return {
+    applicationNumber: details.applicationNumber.trim(),
+    loanAmount,
+    interestRate,
+    tenureMonths,
+  };
+}
+
+function escapeCsvValue(value: string | number | null | undefined) {
+  const safe = String(value ?? "");
+  if (safe.includes(",") || safe.includes('"') || safe.includes("\n")) {
+    return `"${safe.replace(/"/g, '""')}"`;
+  }
+  return safe;
+}
+
+function downloadRepaymentScheduleCsv(
+  applicationNumber: string,
+  installments: LoanInstallmentDto[]
+) {
+  if (!installments.length) return;
+
+  const headers = [
+    "Installment Number",
+    "Due Date",
+    "Opening Balance",
+    "Principal Component",
+    "Interest Component",
+    "Installment Amount",
+    "Closing Balance",
+    "Paid Amount",
+    "Payment Status",
+    "Paid Date",
+  ];
+
+  const rows = installments.map((item) => [
+    item.installmentNumber ?? "",
+    item.dueDate ? formatDate(item.dueDate) : "",
+    formatMoney(item.openingBalance),
+    formatMoney(item.principalComponent),
+    formatMoney(item.interestComponent),
+    formatMoney(item.installmentAmount),
+    formatMoney(item.closingBalance),
+    formatMoney(item.paidAmount),
+    item.paymentStatus ?? "",
+    item.paidDate ? formatDate(item.paidDate) : "",
+  ]);
+
+  const csv = [headers, ...rows]
+    .map((row) => row.map((cell) => escapeCsvValue(cell)).join(","))
+    .join("\n");
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `${applicationNumber || "repayment-schedule"}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
 export default function ApplicationDetailsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1059,11 +1227,11 @@ export default function ApplicationDetailsPage() {
     applicationNumber: applicationNumberFromUrl,
   });
 
+  const [repaymentSchedule, setRepaymentSchedule] = useState<LoanInstallmentDto[]>([]);
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>("UNKNOWN");
   const [roleLoading, setRoleLoading] = useState(false);
 
-  const [decisionForm, setDecisionForm] =
-    useState<DecisionFormState>(initialDecisionForm);
+  const [decisionForm, setDecisionForm] = useState<DecisionFormState>(initialDecisionForm);
   const [decisionLoading, setDecisionLoading] = useState(false);
   const [decisionError, setDecisionError] = useState("");
   const [decisionSuccess, setDecisionSuccess] = useState("");
@@ -1077,10 +1245,10 @@ export default function ApplicationDetailsPage() {
     financial: false,
     bank: false,
     documents: true,
-    cibil: false,
-    repayment: false,
-    ratios: false,
-    eligibility: false,
+    cibil: true,
+    repayment: true,
+    ratios: true,
+    eligibility: true,
     underwriterReview: false,
     underwriterDecision: false,
     communicationHistory: true,
@@ -1194,6 +1362,20 @@ export default function ApplicationDetailsPage() {
     details.loanProduct,
     normalizedApplicationStatus,
   ]);
+
+  const resolvedLoanRequest = useMemo(
+    () => getResolvedLoanParameterRequest(details),
+    [
+      details.applicationNumber,
+      details.approvedLoanAmount,
+      details.approvedInterestRate,
+      details.approvedTenureMonths,
+      details.requestedLoanAmount,
+      details.requestedInterestRate,
+      details.requestedTenureMonths,
+      details.tenureMonths,
+    ]
+  );
 
   useEffect(() => {
     if (applicationNumberFromUrl) {
@@ -1313,21 +1495,6 @@ export default function ApplicationDetailsPage() {
       }));
     } catch (error) {
       console.error("Failed to fetch application status:", error);
-
-      if (axios.isAxiosError(error)) {
-        const statusCode = error.response?.status;
-        const apiMessage = error.response?.data?.message;
-
-        if (
-          statusCode === 401 ||
-          apiMessage === "Invalid token" ||
-          apiMessage === "No token provided" ||
-          apiMessage === "User not authenticated"
-        ) {
-          logout();
-          router.push("/signin");
-        }
-      }
     }
   }
 
@@ -1338,6 +1505,7 @@ export default function ApplicationDetailsPage() {
     try {
       setDocumentLoading(true);
       setDocumentError("");
+      setDocumentSuccess("");
 
       const response = await axios.get<DocumentDetailsApiResponse>(
         "/api/application/document-details",
@@ -1351,7 +1519,7 @@ export default function ApplicationDetailsPage() {
         }
       );
 
-      const data = extractDocumentDetailsResponse(response.data);
+      const data = extractDocumentDetailsResponse(response.data) || [];
 
       const rows: DocumentRow[] = data.map((doc, index) => ({
         id: `${doc.documentType || "doc"}-${index}`,
@@ -1371,55 +1539,21 @@ export default function ApplicationDetailsPage() {
         ...prev,
         documentRows: rows,
       }));
-
-      setDocumentSuccess("Documents loaded successfully.");
     } catch (error) {
-      setDocumentError("Failed to fetch documents.");
+      console.error("Failed to fetch documents:", error);
+      setDocumentError("Failed to fetch document details.");
     } finally {
       setDocumentLoading(false);
     }
   }
 
-  async function pushDecisionMessage(messageText: string) {
+  async function fetchCreditDetails() {
     if (!token) return;
-
-    await axios.post(
-      "/api/push-communication",
-      {
-        applicationNumber: details.applicationNumber.trim(),
-        senderType: senderTypeFromLogin,
-        recipientType: "CUSTOMER",
-        messageText,
-        messageCategory: "STATUS_UPDATE",
-        isInternal: false,
-        sendEmail: false,
-        sendSms: false,
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
-  }
-
-  async function pushApplicationStage(payload: PushStageRequestDto) {
-    if (!token) return;
-
-    await axios.post("/api/application/push-stage", payload, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-  }
-
-  async function fetchStageHistory() {
-    if (!token) return [];
-    if (!isValidApplicationNumber(details.applicationNumber)) return [];
+    if (!isValidApplicationNumber(details.applicationNumber)) return;
 
     try {
-      const response = await axios.post<FetchStageHistoryResponse>(
-        "/api/application/fetch-stage-history",
+      const response = await axios.post<FetchCreditDetailsResponseDto>(
+        "/api/application/fetch-credit-details",
         {
           applicationNumber: details.applicationNumber.trim(),
         },
@@ -1430,201 +1564,116 @@ export default function ApplicationDetailsPage() {
         }
       );
 
-      return extractStageHistoryResponse(response.data);
+      const creditData = response.data;
+
+      setDetails((prev) => ({
+        ...prev,
+        cibilScore:
+          typeof creditData?.score !== "undefined" ? String(creditData.score) : "",
+        cibilRiskLevel: creditData?.risk_level || "",
+        cibilDebtToIncomeEstimate: creditData?.debt_to_income_estimate || "",
+        cibilCreditUtilizationRatio: creditData?.credit_utilization_ratio || "",
+        cibilAverageAccountAgeYears: creditData?.average_account_age_years || "",
+        cibilTotalOutstandingBalance: creditData?.total_outstanding_balance || "",
+        cibilTotalAccounts:
+          typeof creditData?.total_accounts !== "undefined"
+            ? String(creditData.total_accounts)
+            : "",
+        cibilActiveAccounts:
+          typeof creditData?.active_accounts !== "undefined"
+            ? String(creditData.active_accounts)
+            : "",
+        cibilClosedAccounts:
+          typeof creditData?.closed_accounts !== "undefined"
+            ? String(creditData.closed_accounts)
+            : "",
+        cibilReportDate: creditData?.report_date || "",
+        cibilReportTime: creditData?.report_time || "",
+        cibilReferenceId: creditData?.reference_id || "",
+      }));
     } catch (error) {
-      console.error("Failed to fetch stage history:", error);
-      return [];
+      console.error("Failed to fetch credit details:", error);
+
+      if (axios.isAxiosError(error) && error.response?.status === 404) {
+        setDocumentError("Credit check record not found for this application.");
+      }
     }
   }
 
-  async function hydrateDecisionStateFromStageHistory() {
-    const history = await fetchStageHistory();
-
-    if (!history.length) return;
-
-    const sortedHistory = [...history].sort((a, b) => {
-      const aTime = new Date(a.createdAt || "").getTime();
-      const bTime = new Date(b.createdAt || "").getTime();
-      return bTime - aTime;
-    });
-
-    const latestUnderwriter = sortedHistory.find(
-      (item) =>
-        item.actionType === "UNDERWRITER_APPROVED" ||
-        item.actionType === "UNDERWRITER_REJECTED"
-    );
-
-    const latestDisbursal = sortedHistory.find(
-      (item) =>
-        item.actionType === "DISBURSAL_COMPLETED" ||
-        item.actionType === "DISBURSAL_REJECTED"
-    );
-
-    setDecisionForm((prev) => ({
-      ...prev,
-      underwriterDecisionStatus:
-        latestUnderwriter?.actionType === "UNDERWRITER_APPROVED"
-          ? "APPROVED"
-          : latestUnderwriter?.actionType === "UNDERWRITER_REJECTED"
-          ? "REJECTED"
-          : prev.underwriterDecisionStatus,
-      underwriterComments:
-        latestUnderwriter?.remarks || prev.underwriterComments,
-      disbursalDecisionStatus:
-        latestDisbursal?.actionType === "DISBURSAL_COMPLETED"
-          ? "DISBURSED"
-          : latestDisbursal?.actionType === "DISBURSAL_REJECTED"
-          ? "REJECTED"
-          : prev.disbursalDecisionStatus,
-      disbursalComments: latestDisbursal?.remarks || prev.disbursalComments,
-    }));
-  }
-
-  async function handleSaveUnderwriterDecision() {
-  if (!canEditUnderwriterDecisionSection) return;
-
-  if (!decisionForm.underwriterDecisionStatus) {
-    setDecisionError("Please select underwriter decision.");
-    return;
-  }
-
-  if (!decisionForm.underwriterComments.trim()) {
-    setDecisionError("Please enter comments.");
-    return;
-  }
-
-  try {
-    setDecisionLoading(true);
-    setDecisionError("");
-    setDecisionSuccess("");
-    setUnderwriterSavedMessage("");
-    setDisbursalSavedMessage("");
-
-    const approvedTenureMonths = Math.max(1, parseNumberValue(details.tenureMonths));
-    const approvedEmi = Math.max(1, parseNumberValue(details.emiAmount));
-    const approvedLoanAmount = 1;
-    const approvedInterestRate = 9.25;
-
-    await pushApplicationStage({
-      applicationNumber: details.applicationNumber.trim(),
-      actionType:
-        decisionForm.underwriterDecisionStatus === "APPROVED"
-          ? "UNDERWRITER_APPROVED"
-          : "UNDERWRITER_REJECTED",
-      remarks: decisionForm.underwriterComments.trim(),
-      approvedLoanAmount,
-      approvedInterestRate,
-      approvedTenureMonths,
-      approvedEmi,
-      metadataJson: {
-        riskLevel: "LOW",
-        bureauStatus: "SUCCESS",
-        scoreBand: "700-749",
-        note: decisionForm.underwriterComments.trim(),
-      },
-    });
-
-    const message =
-      `${COMMUNICATION_PROPERTIES.CONSTANT1 || ""}${
-        COMMUNICATION_PROPERTIES.CONSTANT1 ? " " : ""
-      }${decisionForm.underwriterComments.trim()}`;
-
-    await pushDecisionMessage(message);
-    await fetchApplicationStatus();
-    await hydrateDecisionStateFromStageHistory();
-    await fetchCommunicationHistory();
-
-    setDecisionSuccess("Underwriter decision saved successfully.");
-    setUnderwriterSavedMessage("Underwriter decision saved successfully.");
-  } catch (error: any) {
-    setDecisionError(
-      error?.response?.data?.message ||
-        "Failed to save underwriter decision."
-    );
-  } finally {
-    setDecisionLoading(false);
-  }
-}
-
-  async function handleSaveDisbursalDecision() {
-  if (!canEditDisbursalDecisionSection) return;
-
-  if (!decisionForm.disbursalDecisionStatus) {
-    setDecisionError("Please select disbursal decision.");
-    return;
-  }
-
-  if (!decisionForm.disbursalComments.trim()) {
-    setDecisionError("Please enter comments.");
-    return;
-  }
-
-  try {
-    setDecisionLoading(true);
-    setDecisionError("");
-    setDecisionSuccess("");
-    setUnderwriterSavedMessage("");
-    setDisbursalSavedMessage("");
-
-    const approvedTenureMonths = Math.max(1, parseNumberValue(details.tenureMonths));
-    const approvedEmi = Math.max(1, parseNumberValue(details.emiAmount));
-    const approvedLoanAmount = 1;
-    const approvedInterestRate = 9.25;
-
-    await pushApplicationStage({
-      applicationNumber: details.applicationNumber.trim(),
-      actionType:
-        decisionForm.disbursalDecisionStatus === "DISBURSED"
-          ? "DISBURSAL_COMPLETED"
-          : "DISBURSAL_REJECTED",
-      remarks: decisionForm.disbursalComments.trim(),
-      approvedLoanAmount,
-      approvedInterestRate,
-      approvedTenureMonths,
-      approvedEmi,
-      metadataJson: {
-        decision: decisionForm.disbursalDecisionStatus,
-        note: decisionForm.disbursalComments.trim(),
-      },
-    });
-
-    const message =
-      `${COMMUNICATION_PROPERTIES.CONSTANT2 || ""}${
-        COMMUNICATION_PROPERTIES.CONSTANT2 ? " " : ""
-      }${decisionForm.disbursalComments.trim()}`;
-
-    await pushDecisionMessage(message);
-    await fetchApplicationStatus();
-    await hydrateDecisionStateFromStageHistory();
-    await fetchCommunicationHistory();
-
-    setDecisionSuccess("Disbursal decision saved successfully.");
-    setDisbursalSavedMessage("Disbursal decision saved successfully.");
-  } catch (error: any) {
-    setDecisionError(
-      error?.response?.data?.message ||
-        "Failed to save disbursal decision."
-    );
-  } finally {
-    setDecisionLoading(false);
-  }
-}
-
-  useEffect(() => {
+  async function fetchLoanParameters() {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
-    fetchDocumentDetails();
-    hydrateDecisionStateFromStageHistory();
-  }, [token, details.applicationNumber]);
+    const payload = getResolvedLoanParameterRequest(details);
+    if (!payload) return;
+
+    try {
+      const response = await axios.post<FetchLoanParametersResponseDto>(
+        "/api/application/fetch-loan-parameters",
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      const loanData = response.data;
+      const schedule = loanData?.repaymentSchedule;
+      const installments = Array.isArray(schedule?.installments)
+        ? schedule?.installments
+        : [];
+
+      setRepaymentSchedule(installments);
+
+      const firstInstallment = installments[0];
+      const lastInstallment = installments[installments.length - 1];
+
+      const emiAmount = schedule?.emi || 0;
+      const totalInstallments = schedule?.totalInstallments || 0;
+      const totalRepayment = emiAmount * totalInstallments;
+      const interestAmount =
+        totalRepayment > 0 && payload.loanAmount > 0
+          ? totalRepayment - payload.loanAmount
+          : 0;
+
+      setDetails((prev) => ({
+        ...prev,
+        emiAmount: emiAmount ? emiAmount.toFixed(2) : "",
+        totalRepayment: totalRepayment ? totalRepayment.toFixed(2) : "",
+        interestAmount: interestAmount ? interestAmount.toFixed(2) : "",
+        scheduleStartDate: firstInstallment?.dueDate || "",
+        scheduleEndDate: lastInstallment?.dueDate || "",
+
+        foirRatio:
+          loanData?.ratios?.dbr !== undefined ? String(loanData.ratios.dbr) : "",
+        dtiRatio:
+          loanData?.ratios?.emiToIncome !== undefined
+            ? String(loanData.ratios.emiToIncome)
+            : "",
+        ltvRatio:
+          loanData?.ratios?.creditUtilization !== undefined
+            ? String(loanData.ratios.creditUtilization)
+            : "",
+        dscrRatio:
+          loanData?.ratios?.loanToIncome !== undefined
+            ? String(loanData.ratios.loanToIncome)
+            : "",
+
+        eligibilityStatus: loanData?.eligibility?.eligibilityStatus || "",
+        eligibilityMessage: Array.isArray(loanData?.eligibility?.reasons)
+          ? loanData.eligibility.reasons.join("\n")
+          : loanData?.eligibility?.message || "",
+      }));
+    } catch (error) {
+      console.error("Failed to fetch loan parameters:", error);
+    }
+  }
 
   async function saveDocumentVerification() {
     if (!token || !isDocumentVerificationSavable) return;
 
     try {
-      setDocumentError("");
-      setDocumentSuccess("");
-
       const verifiedDocs = details.documentRows
         .filter((doc) => doc.verificationStatus === "VERIFIED")
         .map((doc) => ({
@@ -1632,22 +1681,24 @@ export default function ApplicationDetailsPage() {
           fileName: doc.fileName,
         }));
 
-      const payload = {
-        applicationNumber: details.applicationNumber.trim(),
-        documents: verifiedDocs,
-      };
-
-      await axios.post("/api/application/document-verify", payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      await axios.post(
+        "/api/application/document-verify",
+        {
+          applicationNumber: details.applicationNumber.trim(),
+          documents: verifiedDocs,
         },
-      });
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
 
-      setDocumentSuccess("Documents verified successfully.");
-      fetchDocumentDetails();
+      setDocumentSuccess("Document verification saved successfully.");
+      await fetchDocumentDetails();
     } catch (error) {
       console.error("Verification error:", error);
-      setDocumentError("Failed to verify documents.");
+      setDocumentError("Failed to save verification.");
     }
   }
 
@@ -1680,7 +1731,6 @@ export default function ApplicationDetailsPage() {
       );
 
       const personalData = extractPersonalDetailsResponse(response.data);
-
       if (!personalData) return;
 
       setDetails((prev) => ({
@@ -1697,21 +1747,6 @@ export default function ApplicationDetailsPage() {
       }));
     } catch (error) {
       console.error("Failed to fetch personal details:", error);
-
-      if (axios.isAxiosError(error)) {
-        const statusCode = error.response?.status;
-        const apiMessage = error.response?.data?.message;
-
-        if (
-          statusCode === 401 ||
-          apiMessage === "Invalid token" ||
-          apiMessage === "No token provided" ||
-          apiMessage === "User not authenticated"
-        ) {
-          logout();
-          router.push("/signin");
-        }
-      }
     }
   }
 
@@ -1733,7 +1768,6 @@ export default function ApplicationDetailsPage() {
       );
 
       const contactData = extractContactDetailsResponse(response.data);
-
       if (!contactData) return;
 
       const residentialAddress = getSafeAddress(contactData.residentialAddress);
@@ -1760,21 +1794,6 @@ export default function ApplicationDetailsPage() {
       }));
     } catch (error) {
       console.error("Failed to fetch contact details:", error);
-
-      if (axios.isAxiosError(error)) {
-        const statusCode = error.response?.status;
-        const apiMessage = error.response?.data?.message;
-
-        if (
-          statusCode === 401 ||
-          apiMessage === "Invalid token" ||
-          apiMessage === "No token provided" ||
-          apiMessage === "User not authenticated"
-        ) {
-          logout();
-          router.push("/signin");
-        }
-      }
     }
   }
 
@@ -1796,7 +1815,6 @@ export default function ApplicationDetailsPage() {
       );
 
       const educationData = extractEducationDetailsResponse(response.data);
-
       if (!educationData) return;
 
       setDetails((prev) => ({
@@ -1808,21 +1826,6 @@ export default function ApplicationDetailsPage() {
       }));
     } catch (error) {
       console.error("Failed to fetch education details:", error);
-
-      if (axios.isAxiosError(error)) {
-        const statusCode = error.response?.status;
-        const apiMessage = error.response?.data?.message;
-
-        if (
-          statusCode === 401 ||
-          apiMessage === "Invalid token" ||
-          apiMessage === "No token provided" ||
-          apiMessage === "User not authenticated"
-        ) {
-          logout();
-          router.push("/signin");
-        }
-      }
     }
   }
 
@@ -1844,7 +1847,6 @@ export default function ApplicationDetailsPage() {
       );
 
       const financialData = extractFinancialDetailsResponse(response.data);
-
       if (!financialData) return;
 
       setDetails((prev) => ({
@@ -1858,28 +1860,21 @@ export default function ApplicationDetailsPage() {
         existingLoans: financialData.existingLoans || "",
         totalMonthlyLoanPayments: financialData.totalMonthlyLoanPayments || "",
         tenureMonths: financialData.tenureMonths || "",
-        bankAccounts: financialData.bankAccounts || [],
+        requestedLoanAmount: prev.requestedLoanAmount || financialData.requestedLoanAmount || "",
+        requestedInterestRate:
+          prev.requestedInterestRate || financialData.requestedInterestRate || "",
+        requestedTenureMonths:
+          prev.requestedTenureMonths || financialData.tenureMonths || "",
+        bankAccounts: Array.isArray(financialData.bankAccounts)
+          ? financialData.bankAccounts
+          : [],
       }));
     } catch (error) {
       console.error("Failed to fetch financial details:", error);
-
-      if (axios.isAxiosError(error)) {
-        const statusCode = error.response?.status;
-        const apiMessage = error.response?.data?.message;
-
-        if (
-          statusCode === 401 ||
-          apiMessage === "Invalid token" ||
-          apiMessage === "No token provided" ||
-          apiMessage === "User not authenticated"
-        ) {
-          logout();
-          router.push("/signin");
-        }
-      }
     }
   }
-    useEffect(() => {
+
+  useEffect(() => {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
@@ -1887,6 +1882,8 @@ export default function ApplicationDetailsPage() {
     fetchContactDetails();
     fetchEducationDetails();
     fetchFinancialDetails();
+    fetchDocumentDetails();
+    fetchCreditDetails();
   }, [token, details.applicationNumber]);
 
   useEffect(() => {
@@ -1896,6 +1893,23 @@ export default function ApplicationDetailsPage() {
 
     fetchApplicationStatus();
   }, [token, details.applicationNumber, details.dob]);
+
+  useEffect(() => {
+    if (!token) return;
+    if (!isValidApplicationNumber(details.applicationNumber)) return;
+
+    fetchLoanParameters();
+  }, [
+    token,
+    details.applicationNumber,
+    details.approvedLoanAmount,
+    details.approvedInterestRate,
+    details.approvedTenureMonths,
+    details.requestedLoanAmount,
+    details.requestedInterestRate,
+    details.requestedTenureMonths,
+    details.tenureMonths,
+  ]);
 
   function toggleSection(section: AccordionKey) {
     if (!visibleSections.includes(section)) return;
@@ -2035,7 +2049,12 @@ export default function ApplicationDetailsPage() {
       }
     );
 
-    return response.data?.data?.communications ?? [];
+    const rows = response.data?.data?.communications ?? [];
+
+    return rows.map((item) => ({
+      ...item,
+      attachments: Array.isArray(item.attachments) ? item.attachments : [],
+    }));
   }
 
   async function fetchCommunicationHistory() {
@@ -2112,6 +2131,291 @@ export default function ApplicationDetailsPage() {
 
     fetchCommunicationHistory();
   }, [token, details.applicationNumber, historyScope]);
+
+  async function fetchStageHistory() {
+    if (!token) return [];
+    if (!isValidApplicationNumber(details.applicationNumber)) return [];
+
+    try {
+      const response = await axios.post<FetchStageHistoryResponse>(
+        "/api/application/fetch-stage-history",
+        {
+          applicationNumber: details.applicationNumber.trim(),
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      return extractStageHistoryResponse(response.data);
+    } catch (error) {
+      console.error("Failed to fetch stage history:", error);
+      return [];
+    }
+  }
+
+  async function hydrateDecisionStateFromStageHistory() {
+    const history = await fetchStageHistory();
+
+    if (!history.length) return;
+
+    const sortedHistory = [...history].sort((a, b) => {
+      const aTime = new Date(a.createdAt || "").getTime();
+      const bTime = new Date(b.createdAt || "").getTime();
+      return bTime - aTime;
+    });
+
+    const latestUnderwriter = sortedHistory.find(
+      (item) =>
+        item.actionType === "UNDERWRITER_APPROVED" ||
+        item.actionType === "UNDERWRITER_REJECTED"
+    );
+
+    const latestDisbursal = sortedHistory.find(
+      (item) =>
+        item.actionType === "DISBURSAL_COMPLETED" ||
+        item.actionType === "DISBURSAL_REJECTED"
+    );
+
+    setDecisionForm((prev) => ({
+      ...prev,
+      underwriterDecisionStatus:
+        latestUnderwriter?.actionType === "UNDERWRITER_APPROVED"
+          ? "APPROVED"
+          : latestUnderwriter?.actionType === "UNDERWRITER_REJECTED"
+          ? "REJECTED"
+          : prev.underwriterDecisionStatus,
+      underwriterComments: latestUnderwriter?.remarks || prev.underwriterComments,
+      disbursalDecisionStatus:
+        latestDisbursal?.actionType === "DISBURSAL_COMPLETED"
+          ? "DISBURSED"
+          : latestDisbursal?.actionType === "DISBURSAL_REJECTED"
+          ? "REJECTED"
+          : prev.disbursalDecisionStatus,
+      disbursalComments: latestDisbursal?.remarks || prev.disbursalComments,
+      disbursedAmount:
+        latestDisbursal?.metadataJson &&
+        typeof latestDisbursal.metadataJson["disbursedAmount"] !== "undefined"
+          ? String(latestDisbursal.metadataJson["disbursedAmount"])
+          : prev.disbursedAmount,
+    }));
+  }
+
+  function getApprovedLoanAmountForStage(): number {
+    const payload = getResolvedLoanParameterRequest(details);
+    return payload?.loanAmount && payload.loanAmount > 0 ? payload.loanAmount : 1;
+  }
+
+  function getApprovedInterestRateForStage(): number {
+    const payload = getResolvedLoanParameterRequest(details);
+    return payload?.interestRate && payload.interestRate > 0 ? payload.interestRate : 1;
+  }
+
+  function getApprovedTenureMonthsForStage(): number {
+    const payload = getResolvedLoanParameterRequest(details);
+    return payload?.tenureMonths && payload.tenureMonths > 0 ? payload.tenureMonths : 1;
+  }
+
+  async function pushDecisionMessage(messageText: string) {
+    if (!token) return;
+
+    await axios.post(
+      "/api/push-communication",
+      {
+        applicationNumber: details.applicationNumber.trim(),
+        senderType: senderTypeFromLogin,
+        recipientType: "CUSTOMER",
+        messageText,
+        messageCategory: "STATUS_UPDATE",
+        isInternal: false,
+        sendEmail: false,
+        sendSms: false,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+  }
+
+  async function pushApplicationStage(payload: PushStageRequestDto) {
+    if (!token) return;
+
+    await axios.post("/api/application/push-stage", payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async function handleSaveUnderwriterDecision() {
+    if (!canEditUnderwriterDecisionSection) {
+      setDecisionError("Only underwriter can save underwriter decision.");
+      return;
+    }
+
+    if (!decisionForm.underwriterDecisionStatus) {
+      setDecisionError("Please select underwriter decision.");
+      return;
+    }
+
+    if (!decisionForm.underwriterComments.trim()) {
+      setDecisionError("Please enter comments.");
+      return;
+    }
+
+    if (!isValidApplicationNumber(details.applicationNumber)) {
+      setDecisionError("Invalid application number.");
+      return;
+    }
+
+    try {
+      setDecisionLoading(true);
+      setDecisionError("");
+      setDecisionSuccess("");
+      setUnderwriterSavedMessage("");
+      setDisbursalSavedMessage("");
+
+      const approvedTenureMonths = getApprovedTenureMonthsForStage();
+      const approvedEmi = Math.max(1, parseNumberValue(details.emiAmount));
+      const approvedLoanAmount = getApprovedLoanAmountForStage();
+      const approvedInterestRate = getApprovedInterestRateForStage();
+
+      await pushApplicationStage({
+        applicationNumber: details.applicationNumber.trim(),
+        actionType:
+          decisionForm.underwriterDecisionStatus === "APPROVED"
+            ? "UNDERWRITER_APPROVED"
+            : "UNDERWRITER_REJECTED",
+        remarks: decisionForm.underwriterComments.trim(),
+        approvedLoanAmount,
+        approvedInterestRate,
+        approvedTenureMonths,
+        approvedEmi,
+        metadataJson: {
+          riskLevel: details.cibilRiskLevel || "LOW",
+          bureauStatus: "SUCCESS",
+          scoreBand: details.cibilScore || "700-749",
+          note: decisionForm.underwriterComments.trim(),
+        },
+      });
+
+      const message = `${COMMUNICATION_PROPERTIES.CONSTANT1 || ""}${
+        COMMUNICATION_PROPERTIES.CONSTANT1 ? " " : ""
+      }${decisionForm.underwriterComments.trim()}`;
+
+      await pushDecisionMessage(message);
+      await fetchApplicationStatus();
+      await hydrateDecisionStateFromStageHistory();
+      await fetchCommunicationHistory();
+
+      setDecisionSuccess("Underwriter decision saved successfully.");
+      setUnderwriterSavedMessage("Underwriter decision saved successfully.");
+    } catch (error: any) {
+      setDecisionError(
+        error?.response?.data?.message || "Failed to save underwriter decision."
+      );
+    } finally {
+      setDecisionLoading(false);
+    }
+  }
+
+  async function handleSaveDisbursalDecision() {
+    if (!canEditDisbursalDecisionSection) {
+      setDecisionError("Only disbursal officer can save disbursal decision.");
+      return;
+    }
+
+    if (!decisionForm.disbursalDecisionStatus) {
+      setDecisionError("Please select disbursal decision.");
+      return;
+    }
+
+    if (!decisionForm.disbursalComments.trim()) {
+      setDecisionError("Please enter comments.");
+      return;
+    }
+
+    if (!isValidApplicationNumber(details.applicationNumber)) {
+      setDecisionError("Invalid application number.");
+      return;
+    }
+
+    const approvedTenureMonths = getApprovedTenureMonthsForStage();
+    const approvedEmi = Math.max(1, parseNumberValue(details.emiAmount));
+    const approvedLoanAmount = getApprovedLoanAmountForStage();
+    const approvedInterestRate = getApprovedInterestRateForStage();
+    const disbursedAmount = parseNumberValue(decisionForm.disbursedAmount);
+
+    if (
+      decisionForm.disbursalDecisionStatus === "DISBURSED" &&
+      disbursedAmount <= 0
+    ) {
+      setDecisionError("Please enter disbursed amount.");
+      return;
+    }
+
+    try {
+      setDecisionLoading(true);
+      setDecisionError("");
+      setDecisionSuccess("");
+      setUnderwriterSavedMessage("");
+      setDisbursalSavedMessage("");
+
+      await pushApplicationStage({
+        applicationNumber: details.applicationNumber.trim(),
+        actionType:
+          decisionForm.disbursalDecisionStatus === "DISBURSED"
+            ? "DISBURSAL_COMPLETED"
+            : "DISBURSAL_REJECTED",
+        remarks: decisionForm.disbursalComments.trim(),
+        approvedLoanAmount,
+        approvedInterestRate,
+        approvedTenureMonths,
+        approvedEmi,
+        disbursedAmount:
+          decisionForm.disbursalDecisionStatus === "DISBURSED"
+            ? disbursedAmount
+            : undefined,
+        metadataJson: {
+          decision: decisionForm.disbursalDecisionStatus,
+          note: decisionForm.disbursalComments.trim(),
+          disbursedAmount:
+            decisionForm.disbursalDecisionStatus === "DISBURSED"
+              ? disbursedAmount
+              : undefined,
+        },
+      });
+
+      const message = `${COMMUNICATION_PROPERTIES.CONSTANT2 || ""}${
+        COMMUNICATION_PROPERTIES.CONSTANT2 ? " " : ""
+      }${decisionForm.disbursalComments.trim()}`;
+
+      await pushDecisionMessage(message);
+      await fetchApplicationStatus();
+      await hydrateDecisionStateFromStageHistory();
+      await fetchCommunicationHistory();
+
+      setDecisionSuccess("Disbursal decision saved successfully.");
+      setDisbursalSavedMessage("Disbursal decision saved successfully.");
+    } catch (error: any) {
+      setDecisionError(
+        error?.response?.data?.message || "Failed to save disbursal decision."
+      );
+    } finally {
+      setDecisionLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!token) return;
+    if (!isValidApplicationNumber(details.applicationNumber)) return;
+
+    hydrateDecisionStateFromStageHistory();
+  }, [token, details.applicationNumber]);
 
   async function handleSendCommunication(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -2282,12 +2586,13 @@ export default function ApplicationDetailsPage() {
 
   function renderStaticField(
     label: string,
-    value: string | number | boolean | null | undefined
+    value: string | number | boolean | null | undefined,
+    colClassName = "col-12 col-md-4"
   ) {
     return (
-      <div className="col-12 col-md-4">
+      <div className={colClassName}>
         <label className="form-label fw-semibold">{label}</label>
-        <input className="form-control" value={value ?? ""} readOnly />
+        <input className="form-control" value={String(value ?? "")} readOnly />
       </div>
     );
   }
@@ -2301,8 +2606,7 @@ export default function ApplicationDetailsPage() {
       </main>
     );
   }
-
-  return (
+    return (
     <main className="cp-loan-page">
       <section className="cp-loan-card">
         <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
@@ -2391,11 +2695,7 @@ export default function ApplicationDetailsPage() {
                     )}
                   </div>
 
-                  <div
-                    className={`cp-app-status-label ${
-                      isReached ? "active" : ""
-                    }`}
-                  >
+                  <div className={`cp-app-status-label ${isReached ? "active" : ""}`}>
                     {getStepLabel(step, normalizedApplicationStatus)}
                   </div>
                 </div>
@@ -2427,27 +2727,33 @@ export default function ApplicationDetailsPage() {
             <div className="alert alert-success mb-3">{decisionSuccess}</div>
           ) : null}
 
+          {documentError ? (
+            <div className="alert alert-danger mb-3">{documentError}</div>
+          ) : null}
+
+          {documentSuccess ? (
+            <div className="alert alert-success mb-3">{documentSuccess}</div>
+          ) : null}
+
+          {communicationError ? (
+            <div className="alert alert-danger mb-3">{communicationError}</div>
+          ) : null}
+
+          {communicationSuccess ? (
+            <div className="alert alert-success mb-3">{communicationSuccess}</div>
+          ) : null}
+
           {renderSectionShell(
             accordionSections[0],
             <div className="row g-3">
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">First Name</label>
-                <input
-                  className="form-control"
-                  value={details.firstName}
-                  onChange={(e) => updateDetail("firstName", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.firstName} readOnly />
               </div>
 
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">Last Name</label>
-                <input
-                  className="form-control"
-                  value={details.lastName}
-                  onChange={(e) => updateDetail("lastName", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.lastName} readOnly />
               </div>
 
               <div className="col-12 col-md-4">
@@ -2456,39 +2762,23 @@ export default function ApplicationDetailsPage() {
                   type="date"
                   className="form-control"
                   value={details.dob}
-                  onChange={(e) => updateDetail("dob", e.target.value)}
-                  disabled={!isMainFieldsEditable}
+                  readOnly
                 />
               </div>
 
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">Gender</label>
-                <input
-                  className="form-control"
-                  value={details.gender}
-                  onChange={(e) => updateDetail("gender", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.gender} readOnly />
               </div>
 
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">Marital Status</label>
-                <input
-                  className="form-control"
-                  value={details.maritalStatus}
-                  onChange={(e) => updateDetail("maritalStatus", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.maritalStatus} readOnly />
               </div>
 
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">Nationality</label>
-                <input
-                  className="form-control"
-                  value={details.nationality}
-                  onChange={(e) => updateDetail("nationality", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.nationality} readOnly />
               </div>
 
               <div className="col-12 col-md-4">
@@ -2496,8 +2786,7 @@ export default function ApplicationDetailsPage() {
                 <input
                   className="form-control"
                   value={details.governmentIdType}
-                  onChange={(e) => updateDetail("governmentIdType", e.target.value)}
-                  disabled={!isMainFieldsEditable}
+                  readOnly
                 />
               </div>
 
@@ -2506,19 +2795,13 @@ export default function ApplicationDetailsPage() {
                 <input
                   className="form-control"
                   value={details.governmentIdNumber}
-                  onChange={(e) => updateDetail("governmentIdNumber", e.target.value)}
-                  disabled={!isMainFieldsEditable}
+                  readOnly
                 />
               </div>
 
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">SIN / Tax ID</label>
-                <input
-                  className="form-control"
-                  value={details.sinTaxId}
-                  onChange={(e) => updateDetail("sinTaxId", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.sinTaxId} readOnly />
               </div>
             </div>
           )}
@@ -2528,74 +2811,37 @@ export default function ApplicationDetailsPage() {
             <div className="row g-3">
               <div className="col-12 col-lg-4">
                 <label className="form-label fw-semibold">Email Address</label>
-                <input
-                  className="form-control"
-                  value={details.email}
-                  onChange={(e) => updateDetail("email", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.email} readOnly />
               </div>
 
               <div className="col-12 col-lg-4">
                 <label className="form-label fw-semibold">Mobile Number</label>
-                <input
-                  className="form-control"
-                  value={details.mobile}
-                  onChange={(e) => updateDetail("mobile", sanitizeDigits(e.target.value))}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.mobile} readOnly />
               </div>
 
               <div className="col-12 col-lg-4">
                 <label className="form-label fw-semibold">Alternate Phone</label>
-                <input
-                  className="form-control"
-                  value={details.alternatePhone}
-                  onChange={(e) =>
-                    updateDetail("alternatePhone", sanitizeDigits(e.target.value))
-                  }
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.alternatePhone} readOnly />
               </div>
 
               <div className="col-12 col-md-6">
                 <label className="form-label fw-semibold">Residential Address Line 1</label>
-                <input
-                  className="form-control"
-                  value={details.residentialLine1}
-                  onChange={(e) => updateDetail("residentialLine1", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.residentialLine1} readOnly />
               </div>
 
               <div className="col-12 col-md-6">
                 <label className="form-label fw-semibold">Residential Address Line 2</label>
-                <input
-                  className="form-control"
-                  value={details.residentialLine2}
-                  onChange={(e) => updateDetail("residentialLine2", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.residentialLine2} readOnly />
               </div>
 
               <div className="col-12 col-md-3">
                 <label className="form-label fw-semibold">Residential City</label>
-                <input
-                  className="form-control"
-                  value={details.residentialCity}
-                  onChange={(e) => updateDetail("residentialCity", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.residentialCity} readOnly />
               </div>
 
               <div className="col-12 col-md-3">
                 <label className="form-label fw-semibold">Residential Province / State</label>
-                <input
-                  className="form-control"
-                  value={details.residentialState}
-                  onChange={(e) => updateDetail("residentialState", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.residentialState} readOnly />
               </div>
 
               <div className="col-12 col-md-3">
@@ -2603,19 +2849,13 @@ export default function ApplicationDetailsPage() {
                 <input
                   className="form-control"
                   value={details.residentialPostalCode}
-                  onChange={(e) => updateDetail("residentialPostalCode", e.target.value)}
-                  disabled={!isMainFieldsEditable}
+                  readOnly
                 />
               </div>
 
               <div className="col-12 col-md-3">
                 <label className="form-label fw-semibold">Residential Country</label>
-                <input
-                  className="form-control"
-                  value={details.residentialCountry}
-                  onChange={(e) => updateDetail("residentialCountry", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
+                <input className="form-control" value={details.residentialCountry} readOnly />
               </div>
 
               <div className="col-12">
@@ -2625,10 +2865,7 @@ export default function ApplicationDetailsPage() {
                     className="form-check-input"
                     type="checkbox"
                     checked={details.mailingSameAsResidential}
-                    onChange={(e) =>
-                      updateDetail("mailingSameAsResidential", e.target.checked)
-                    }
-                    disabled={!isMainFieldsEditable}
+                    readOnly
                   />
                   <label htmlFor="mailingSameAsResidential" className="form-check-label">
                     Mailing address same as residential
@@ -2640,62 +2877,32 @@ export default function ApplicationDetailsPage() {
                 <>
                   <div className="col-12 col-md-6">
                     <label className="form-label fw-semibold">Mailing Address Line 1</label>
-                    <input
-                      className="form-control"
-                      value={details.mailingLine1}
-                      onChange={(e) => updateDetail("mailingLine1", e.target.value)}
-                      disabled={!isMainFieldsEditable}
-                    />
+                    <input className="form-control" value={details.mailingLine1} readOnly />
                   </div>
 
                   <div className="col-12 col-md-6">
                     <label className="form-label fw-semibold">Mailing Address Line 2</label>
-                    <input
-                      className="form-control"
-                      value={details.mailingLine2}
-                      onChange={(e) => updateDetail("mailingLine2", e.target.value)}
-                      disabled={!isMainFieldsEditable}
-                    />
+                    <input className="form-control" value={details.mailingLine2} readOnly />
                   </div>
 
                   <div className="col-12 col-md-3">
                     <label className="form-label fw-semibold">Mailing City</label>
-                    <input
-                      className="form-control"
-                      value={details.mailingCity}
-                      onChange={(e) => updateDetail("mailingCity", e.target.value)}
-                      disabled={!isMainFieldsEditable}
-                    />
+                    <input className="form-control" value={details.mailingCity} readOnly />
                   </div>
 
                   <div className="col-12 col-md-3">
                     <label className="form-label fw-semibold">Mailing Province / State</label>
-                    <input
-                      className="form-control"
-                      value={details.mailingState}
-                      onChange={(e) => updateDetail("mailingState", e.target.value)}
-                      disabled={!isMainFieldsEditable}
-                    />
+                    <input className="form-control" value={details.mailingState} readOnly />
                   </div>
 
                   <div className="col-12 col-md-3">
                     <label className="form-label fw-semibold">Mailing Postal Code</label>
-                    <input
-                      className="form-control"
-                      value={details.mailingPostalCode}
-                      onChange={(e) => updateDetail("mailingPostalCode", e.target.value)}
-                      disabled={!isMainFieldsEditable}
-                    />
+                    <input className="form-control" value={details.mailingPostalCode} readOnly />
                   </div>
 
                   <div className="col-12 col-md-3">
                     <label className="form-label fw-semibold">Mailing Country</label>
-                    <input
-                      className="form-control"
-                      value={details.mailingCountry}
-                      onChange={(e) => updateDetail("mailingCountry", e.target.value)}
-                      disabled={!isMainFieldsEditable}
-                    />
+                    <input className="form-control" value={details.mailingCountry} readOnly />
                   </div>
                 </>
               ) : null}
@@ -2705,145 +2912,32 @@ export default function ApplicationDetailsPage() {
           {renderSectionShell(
             accordionSections[2],
             <div className="row g-3">
-              <div className="col-12 col-md-3">
-                <label className="form-label fw-semibold">Highest Education</label>
-                <input
-                  className="form-control"
-                  value={details.highestEducation}
-                  onChange={(e) => updateDetail("highestEducation", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
-
-              <div className="col-12 col-md-3">
-                <label className="form-label fw-semibold">Field of Study</label>
-                <input
-                  className="form-control"
-                  value={details.fieldOfStudy}
-                  onChange={(e) => updateDetail("fieldOfStudy", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
-
-              <div className="col-12 col-md-3">
-                <label className="form-label fw-semibold">Institution Name</label>
-                <input
-                  className="form-control"
-                  value={details.institutionName}
-                  onChange={(e) => updateDetail("institutionName", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
-
-              <div className="col-12 col-md-3">
-                <label className="form-label fw-semibold">Graduation Year</label>
-                <input
-                  className="form-control"
-                  value={details.graduationYear}
-                  onChange={(e) => updateDetail("graduationYear", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
+              {renderStaticField("Highest Education", details.highestEducation)}
+              {renderStaticField("Field of Study", details.fieldOfStudy)}
+              {renderStaticField("Institution Name", details.institutionName)}
+              {renderStaticField("Graduation Year", details.graduationYear)}
             </div>
           )}
 
           {renderSectionShell(
             accordionSections[3],
             <div className="row g-3">
-              <div className="col-12 col-md-4">
-                <label className="form-label fw-semibold">Employment Status</label>
-                <input
-                  className="form-control"
-                  value={details.employmentStatus}
-                  onChange={(e) => updateDetail("employmentStatus", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
-
-              <div className="col-12 col-md-4">
-                <label className="form-label fw-semibold">Employer Name</label>
-                <input
-                  className="form-control"
-                  value={details.employerName}
-                  onChange={(e) => updateDetail("employerName", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
-
-              <div className="col-12 col-md-4">
-                <label className="form-label fw-semibold">Job Title</label>
-                <input
-                  className="form-control"
-                  value={details.jobTitle}
-                  onChange={(e) => updateDetail("jobTitle", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
-
-              <div className="col-12 col-md-3">
-                <label className="form-label fw-semibold">Work Experience</label>
-                <input
-                  className="form-control"
-                  value={details.workExperience}
-                  onChange={(e) => updateDetail("workExperience", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
-
-              <div className="col-12 col-md-3">
-                <label className="form-label fw-semibold">Monthly Income</label>
-                <input
-                  className="form-control"
-                  value={details.monthlyIncome}
-                  onChange={(e) => updateDetail("monthlyIncome", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
-
-              <div className="col-12 col-md-3">
-                <label className="form-label fw-semibold">Other Income Sources</label>
-                <input
-                  className="form-control"
-                  value={details.otherIncomeSources}
-                  onChange={(e) => updateDetail("otherIncomeSources", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
-
-              <div className="col-12 col-md-3">
-                <label className="form-label fw-semibold">Existing Loans</label>
-                <input
-                  className="form-control"
-                  value={details.existingLoans}
-                  onChange={(e) => updateDetail("existingLoans", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
-
-              <div className="col-12 col-md-6">
-                <label className="form-label fw-semibold">Total Monthly Loan Payments</label>
-                <input
-                  className="form-control"
-                  value={details.totalMonthlyLoanPayments}
-                  onChange={(e) =>
-                    updateDetail("totalMonthlyLoanPayments", e.target.value)
-                  }
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
-
-              <div className="col-12 col-md-6">
-                <label className="form-label fw-semibold">Tenure (Months)</label>
-                <input
-                  className="form-control"
-                  value={details.tenureMonths}
-                  onChange={(e) => updateDetail("tenureMonths", e.target.value)}
-                  disabled={!isMainFieldsEditable}
-                />
-              </div>
+              {renderStaticField("Employment Status", details.employmentStatus)}
+              {renderStaticField("Employer Name", details.employerName)}
+              {renderStaticField("Job Title", details.jobTitle)}
+              {renderStaticField("Work Experience", details.workExperience)}
+              {renderStaticField("Monthly Income", details.monthlyIncome)}
+              {renderStaticField("Other Income Sources", details.otherIncomeSources)}
+              {renderStaticField("Existing Loans", details.existingLoans)}
+              {renderStaticField(
+                "Total Monthly Loan Payments",
+                details.totalMonthlyLoanPayments
+              )}
+              {renderStaticField("Tenure (Months)", details.tenureMonths)}
             </div>
           )}
-                    {renderSectionShell(
+
+          {renderSectionShell(
             accordionSections[4],
             <div className="row g-3">
               {details.bankAccounts.length === 0 ? (
@@ -2977,43 +3071,207 @@ export default function ApplicationDetailsPage() {
               )}
             </div>
           )}
-
-          {renderSectionShell(
+                    {renderSectionShell(
             accordionSections[6],
-            <div className="row g-3">
-              {renderStaticField("CIBIL Score", details.cibilScore)}
-              {renderStaticField("CIBIL Status", details.cibilStatus)}
-              {renderStaticField("Last Updated", details.cibilLastUpdated)}
-              <div className="col-12">
-                <label className="form-label fw-semibold">Remarks</label>
-                <textarea
-                  className="form-control"
-                  rows={4}
-                  value={details.cibilRemarks}
-                  readOnly
-                />
+            !details.cibilScore && !details.cibilReferenceId ? (
+              <div className="alert alert-warning mb-0">
+                Credit check record not found for this application.
               </div>
-            </div>
+            ) : (
+              <div className="row g-3">
+                {renderStaticField("Score", details.cibilScore, "col-12 col-md-6")}
+                {renderStaticField("Risk Level", details.cibilRiskLevel, "col-12 col-md-6")}
+
+                {renderStaticField(
+                  "Debt To Income Estimate",
+                  details.cibilDebtToIncomeEstimate,
+                  "col-12 col-md-6"
+                )}
+                {renderStaticField(
+                  "Credit Utilization Ratio",
+                  details.cibilCreditUtilizationRatio,
+                  "col-12 col-md-6"
+                )}
+
+                {renderStaticField(
+                  "Average Account Age (Years)",
+                  details.cibilAverageAccountAgeYears,
+                  "col-12 col-md-6"
+                )}
+                {renderStaticField(
+                  "Total Outstanding Balance",
+                  details.cibilTotalOutstandingBalance,
+                  "col-12 col-md-6"
+                )}
+
+                {renderStaticField(
+                  "Total Accounts",
+                  details.cibilTotalAccounts,
+                  "col-12 col-md-4"
+                )}
+                {renderStaticField(
+                  "Active Accounts",
+                  details.cibilActiveAccounts,
+                  "col-12 col-md-4"
+                )}
+                {renderStaticField(
+                  "Closed Accounts",
+                  details.cibilClosedAccounts,
+                  "col-12 col-md-4"
+                )}
+
+                {renderStaticField(
+                  "Report Date",
+                  formatDate(details.cibilReportDate),
+                  "col-12 col-md-4"
+                )}
+                {renderStaticField(
+                  "Report Time",
+                  details.cibilReportTime
+                    ? formatDateTime(details.cibilReportTime)
+                    : "",
+                  "col-12 col-md-4"
+                )}
+                {renderStaticField(
+                  "Reference ID",
+                  details.cibilReferenceId,
+                  "col-12 col-md-4"
+                )}
+              </div>
+            )
           )}
 
           {renderSectionShell(
             accordionSections[7],
-            <div className="row g-3">
-              {renderStaticField("EMI Amount", details.emiAmount)}
-              {renderStaticField("Total Repayment", details.totalRepayment)}
-              {renderStaticField("Interest Amount", details.interestAmount)}
-              {renderStaticField("Schedule Start Date", details.scheduleStartDate)}
-              {renderStaticField("Schedule End Date", details.scheduleEndDate)}
+            <div className="d-flex flex-column gap-4">
+              <div className="row g-3">
+                {renderStaticField("EMI Amount", details.emiAmount)}
+                {renderStaticField("Total Repayment", details.totalRepayment)}
+                {renderStaticField("Interest Amount", details.interestAmount)}
+                {renderStaticField(
+                  "Schedule Start Date",
+                  formatDate(details.scheduleStartDate)
+                )}
+                {renderStaticField(
+                  "Schedule End Date",
+                  formatDate(details.scheduleEndDate)
+                )}
+              </div>
+
+              <div className="d-flex justify-content-end">
+                <button
+                  type="button"
+                  className="btn btn-outline-primary cp-loan-btn-next"
+                  onClick={() =>
+                    downloadRepaymentScheduleCsv(
+                      details.applicationNumber,
+                      repaymentSchedule
+                    )
+                  }
+                  disabled={repaymentSchedule.length === 0}
+                >
+                  <Download size={16} className="me-2" />
+                  Export Repayment Schedule
+                </button>
+              </div>
+
+              <div className="table-responsive">
+                <table className="table cp-loan-history-table align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th>Installment #</th>
+                      <th>Due Date</th>
+                      <th>Opening Balance</th>
+                      <th>Principal</th>
+                      <th>Interest</th>
+                      <th>Installment Amount</th>
+                      <th>Closing Balance</th>
+                      <th>Paid Amount</th>
+                      <th>Status</th>
+                      <th>Paid Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {repaymentSchedule.length === 0 ? (
+                      <tr>
+                        <td colSpan={10} className="cp-loan-table-empty">
+                          No repayment schedule available.
+                        </td>
+                      </tr>
+                    ) : (
+                      repaymentSchedule.map((installment, index) => (
+                        <tr
+                          key={`${installment.scheduleId || installment.installmentNumber || "installment"}-${index}`}
+                        >
+                          <td>{installment.installmentNumber ?? "-"}</td>
+                          <td>{installment.dueDate ? formatDate(installment.dueDate) : "-"}</td>
+                          <td>{formatMoney(installment.openingBalance)}</td>
+                          <td>{formatMoney(installment.principalComponent)}</td>
+                          <td>{formatMoney(installment.interestComponent)}</td>
+                          <td>{formatMoney(installment.installmentAmount)}</td>
+                          <td>{formatMoney(installment.closingBalance)}</td>
+                          <td>{formatMoney(installment.paidAmount)}</td>
+                          <td>{installment.paymentStatus || "-"}</td>
+                          <td>{installment.paidDate ? formatDate(installment.paidDate) : "-"}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
 
           {renderSectionShell(
             accordionSections[8],
             <div className="row g-3">
-              {renderStaticField("FOIR Ratio", details.foirRatio)}
-              {renderStaticField("DTI Ratio", details.dtiRatio)}
-              {renderStaticField("LTV Ratio", details.ltvRatio)}
-              {renderStaticField("DSCR Ratio", details.dscrRatio)}
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Approved Loan Amount</label>
+                <input
+                  className="form-control"
+                  value={details.approvedLoanAmount}
+                  onChange={(e) => updateDetail("approvedLoanAmount", e.target.value)}
+                  disabled={!isMainFieldsEditable}
+                />
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Approved Interest Rate</label>
+                <input
+                  className="form-control"
+                  value={details.approvedInterestRate}
+                  onChange={(e) => updateDetail("approvedInterestRate", e.target.value)}
+                  disabled={!isMainFieldsEditable}
+                />
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Approved Tenure Months</label>
+                <input
+                  className="form-control"
+                  value={details.approvedTenureMonths}
+                  onChange={(e) => updateDetail("approvedTenureMonths", e.target.value)}
+                  disabled={!isMainFieldsEditable}
+                />
+              </div>
+
+              {renderStaticField(
+                "Loan Amount (Request Sent)",
+                resolvedLoanRequest?.loanAmount ?? ""
+              )}
+              {renderStaticField(
+                "Interest Rate (Request Sent)",
+                resolvedLoanRequest?.interestRate ?? ""
+              )}
+              {renderStaticField(
+                "Tenure Months (Request Sent)",
+                resolvedLoanRequest?.tenureMonths ?? ""
+              )}
+              {renderStaticField("EMI", details.emiAmount)}
+              {renderStaticField("DBR", details.foirRatio)}
+              {renderStaticField("EMI To Income", details.dtiRatio)}
+              {renderStaticField("Credit Utilization", details.ltvRatio)}
+              {renderStaticField("Loan To Income", details.dscrRatio)}
             </div>
           )}
 
@@ -3025,7 +3283,7 @@ export default function ApplicationDetailsPage() {
                 <label className="form-label fw-semibold">Eligibility Message</label>
                 <textarea
                   className="form-control"
-                  rows={4}
+                  rows={6}
                   value={details.eligibilityMessage}
                   readOnly
                 />
@@ -3119,6 +3377,10 @@ export default function ApplicationDetailsPage() {
                           ...prev,
                           disbursalDecisionStatus:
                             e.target.value as DisbursalDecisionOption,
+                          disbursedAmount:
+                            e.target.value === "DISBURSED"
+                              ? prev.disbursedAmount
+                              : "",
                         }))
                       }
                       disabled={!canEditDisbursalDecisionSection || decisionLoading}
@@ -3128,6 +3390,27 @@ export default function ApplicationDetailsPage() {
                       <option value="REJECTED">Rejected</option>
                     </select>
                   </div>
+
+                  {decisionForm.disbursalDecisionStatus === "DISBURSED" ? (
+                    <div className="col-12 col-md-6">
+                      <label className="form-label fw-semibold">Disbursed Amount</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className="form-control"
+                        value={decisionForm.disbursedAmount}
+                        onChange={(e) =>
+                          setDecisionForm((prev) => ({
+                            ...prev,
+                            disbursedAmount: e.target.value,
+                          }))
+                        }
+                        placeholder="Enter disbursed amount"
+                        disabled={!canEditDisbursalDecisionSection || decisionLoading}
+                      />
+                    </div>
+                  ) : null}
 
                   <div className="col-12">
                     <label className="form-label fw-semibold">Comment Box</label>
@@ -3287,7 +3570,8 @@ export default function ApplicationDetailsPage() {
                   </div>
                 </form>
               </div>
-                            <div className="cp-loan-bank-card cp-loan-communication-history-card mb-0">
+
+              <div className="cp-loan-bank-card cp-loan-communication-history-card mb-0">
                 <div className="cp-loan-bank-card-header cp-loan-history-header">
                   <h6 className="cp-loan-bank-card-title mb-0">
                     Communication History
@@ -3310,7 +3594,6 @@ export default function ApplicationDetailsPage() {
                       <thead>
                         <tr>
                           <th>Date</th>
-                          <th>Time</th>
                           <th>Sender</th>
                           <th>Recipient</th>
                           <th>Message Category</th>
@@ -3321,7 +3604,7 @@ export default function ApplicationDetailsPage() {
                       <tbody>
                         {communicationHistory.length === 0 ? (
                           <tr>
-                            <td colSpan={7} className="cp-loan-table-empty">
+                            <td colSpan={6} className="cp-loan-table-empty">
                               No communication history loaded.
                             </td>
                           </tr>
@@ -3329,17 +3612,16 @@ export default function ApplicationDetailsPage() {
                           communicationHistory.map((item) => (
                             <tr key={item.messageId}>
                               <td>{formatDate(item.createdAt)}</td>
-                              <td>{formatTime(item.createdAt)}</td>
                               <td>{item.senderType || "-"}</td>
                               <td>{item.recipientType || "-"}</td>
                               <td>{item.messageCategory || "-"}</td>
                               <td>{item.messageText || "-"}</td>
                               <td>
-                                {item.attachments.length === 0 ? (
+                                {(item.attachments ?? []).length === 0 ? (
                                   <span className="cp-loan-note">No attachment</span>
                                 ) : (
                                   <div className="d-flex flex-column gap-2">
-                                    {item.attachments.map((attachment) => {
+                                    {(item.attachments ?? []).map((attachment) => {
                                       const downloadInfo = getAttachmentDownloadInfo(attachment);
 
                                       if (downloadInfo.downloadable) {
