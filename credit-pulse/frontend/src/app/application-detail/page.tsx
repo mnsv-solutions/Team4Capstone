@@ -21,7 +21,6 @@ import {
   CheckCircle2,
   XCircle,
   Circle,
-  Sheet,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { COMMUNICATION_PROPERTIES } from "./communication-properties";
@@ -635,7 +634,7 @@ const initialDetails: ApplicationDetailsState = {
 
   email: "",
   mobile: "",
-  alternatePhone: "",
+ alternatePhone: "",
   residentialLine1: "",
   residentialLine2: "",
   residentialCity: "",
@@ -749,10 +748,6 @@ function formatDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
-}
-
-function sanitizeDigits(value: string) {
-  return value.replace(/\D/g, "");
 }
 
 function parseNumberValue(value: string | number | null | undefined) {
@@ -1531,8 +1526,8 @@ export default function ApplicationDetailsPage() {
           (doc.isVerified === true
             ? "VERIFIED"
             : doc.isVerified === false
-            ? "NOT_VERIFIED"
-            : ""),
+              ? "NOT_VERIFIED"
+              : ""),
       }));
 
       setDetails((prev) => ({
@@ -1621,7 +1616,7 @@ export default function ApplicationDetailsPage() {
       const loanData = response.data;
       const schedule = loanData?.repaymentSchedule;
       const installments = Array.isArray(schedule?.installments)
-        ? schedule?.installments
+        ? schedule.installments
         : [];
 
       setRepaymentSchedule(installments);
@@ -1644,7 +1639,6 @@ export default function ApplicationDetailsPage() {
         interestAmount: interestAmount ? interestAmount.toFixed(2) : "",
         scheduleStartDate: firstInstallment?.dueDate || "",
         scheduleEndDate: lastInstallment?.dueDate || "",
-
         foirRatio:
           loanData?.ratios?.dbr !== undefined ? String(loanData.ratios.dbr) : "",
         dtiRatio:
@@ -1659,7 +1653,6 @@ export default function ApplicationDetailsPage() {
           loanData?.ratios?.loanToIncome !== undefined
             ? String(loanData.ratios.loanToIncome)
             : "",
-
         eligibilityStatus: loanData?.eligibility?.eligibilityStatus || "",
         eligibilityMessage: Array.isArray(loanData?.eligibility?.reasons)
           ? loanData.eligibility.reasons.join("\n")
@@ -1860,7 +1853,8 @@ export default function ApplicationDetailsPage() {
         existingLoans: financialData.existingLoans || "",
         totalMonthlyLoanPayments: financialData.totalMonthlyLoanPayments || "",
         tenureMonths: financialData.tenureMonths || "",
-        requestedLoanAmount: prev.requestedLoanAmount || financialData.requestedLoanAmount || "",
+        requestedLoanAmount:
+          prev.requestedLoanAmount || financialData.requestedLoanAmount || "",
         requestedInterestRate:
           prev.requestedInterestRate || financialData.requestedInterestRate || "",
         requestedTenureMonths:
@@ -2124,8 +2118,7 @@ export default function ApplicationDetailsPage() {
       setCommunicationLoading(false);
     }
   }
-
-  useEffect(() => {
+    useEffect(() => {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
@@ -2185,15 +2178,15 @@ export default function ApplicationDetailsPage() {
         latestUnderwriter?.actionType === "UNDERWRITER_APPROVED"
           ? "APPROVED"
           : latestUnderwriter?.actionType === "UNDERWRITER_REJECTED"
-          ? "REJECTED"
-          : prev.underwriterDecisionStatus,
+            ? "REJECTED"
+            : prev.underwriterDecisionStatus,
       underwriterComments: latestUnderwriter?.remarks || prev.underwriterComments,
       disbursalDecisionStatus:
         latestDisbursal?.actionType === "DISBURSAL_COMPLETED"
           ? "DISBURSED"
           : latestDisbursal?.actionType === "DISBURSAL_REJECTED"
-          ? "REJECTED"
-          : prev.disbursalDecisionStatus,
+            ? "REJECTED"
+            : prev.disbursalDecisionStatus,
       disbursalComments: latestDisbursal?.remarks || prev.disbursalComments,
       disbursedAmount:
         latestDisbursal?.metadataJson &&
@@ -2272,17 +2265,37 @@ export default function ApplicationDetailsPage() {
       return;
     }
 
+    const approvedTenureMonths = getApprovedTenureMonthsForStage();
+    const approvedEmi = Math.max(1, parseNumberValue(details.emiAmount));
+    const approvedLoanAmount = getApprovedLoanAmountForStage();
+    const approvedInterestRate = getApprovedInterestRateForStage();
+
+    if (approvedLoanAmount <= 0) {
+      setDecisionError("Approved loan amount must be greater than 0.");
+      return;
+    }
+
+    if (approvedInterestRate <= 0) {
+      setDecisionError("Approved interest rate must be greater than 0.");
+      return;
+    }
+
+    if (approvedTenureMonths <= 0) {
+      setDecisionError("Approved tenure months must be greater than 0.");
+      return;
+    }
+
+    if (approvedEmi <= 0) {
+      setDecisionError("Approved EMI must be greater than 0.");
+      return;
+    }
+
     try {
       setDecisionLoading(true);
       setDecisionError("");
       setDecisionSuccess("");
       setUnderwriterSavedMessage("");
       setDisbursalSavedMessage("");
-
-      const approvedTenureMonths = getApprovedTenureMonthsForStage();
-      const approvedEmi = Math.max(1, parseNumberValue(details.emiAmount));
-      const approvedLoanAmount = getApprovedLoanAmountForStage();
-      const approvedInterestRate = getApprovedInterestRateForStage();
 
       await pushApplicationStage({
         applicationNumber: details.applicationNumber.trim(),
@@ -2303,8 +2316,8 @@ export default function ApplicationDetailsPage() {
         },
       });
 
-      const message = `${COMMUNICATION_PROPERTIES.CONSTANT1 || ""}${
-        COMMUNICATION_PROPERTIES.CONSTANT1 ? " " : ""
+      const message = `${COMMUNICATION_PROPERTIES.UNDERWRITER_COMMENTS || ""}${
+        COMMUNICATION_PROPERTIES.UNDERWRITER_COMMENTS ? " " : ""
       }${decisionForm.underwriterComments.trim()}`;
 
       await pushDecisionMessage(message);
@@ -2350,6 +2363,26 @@ export default function ApplicationDetailsPage() {
     const approvedInterestRate = getApprovedInterestRateForStage();
     const disbursedAmount = parseNumberValue(decisionForm.disbursedAmount);
 
+    if (approvedLoanAmount <= 0) {
+      setDecisionError("Approved loan amount must be greater than 0.");
+      return;
+    }
+
+    if (approvedInterestRate <= 0) {
+      setDecisionError("Approved interest rate must be greater than 0.");
+      return;
+    }
+
+    if (approvedTenureMonths <= 0) {
+      setDecisionError("Approved tenure months must be greater than 0.");
+      return;
+    }
+
+    if (approvedEmi <= 0) {
+      setDecisionError("Approved EMI must be greater than 0.");
+      return;
+    }
+
     if (
       decisionForm.disbursalDecisionStatus === "DISBURSED" &&
       disbursedAmount <= 0
@@ -2390,8 +2423,8 @@ export default function ApplicationDetailsPage() {
         },
       });
 
-      const message = `${COMMUNICATION_PROPERTIES.CONSTANT2 || ""}${
-        COMMUNICATION_PROPERTIES.CONSTANT2 ? " " : ""
+      const message = `${COMMUNICATION_PROPERTIES.DISBURSAL_COMMENTS || ""}${
+        COMMUNICATION_PROPERTIES.DISBURSAL_COMMENTS ? " " : ""
       }${decisionForm.disbursalComments.trim()}`;
 
       await pushDecisionMessage(message);
@@ -2678,10 +2711,10 @@ export default function ApplicationDetailsPage() {
                       isCompleted
                         ? "completed"
                         : isRejectedStep && isCurrent
-                        ? "rejected"
-                        : isCurrent
-                        ? "active"
-                        : "pending"
+                          ? "rejected"
+                          : isCurrent
+                            ? "active"
+                            : "pending"
                     }`}
                   >
                     {isCompleted ? (
@@ -2719,26 +2752,17 @@ export default function ApplicationDetailsPage() {
         </div>
 
         <div className="cp-loan-form">
-          {decisionError ? (
-            <div className="alert alert-danger mb-3">{decisionError}</div>
-          ) : null}
-
+          {decisionError ? <div className="alert alert-danger mb-3">{decisionError}</div> : null}
           {decisionSuccess ? (
             <div className="alert alert-success mb-3">{decisionSuccess}</div>
           ) : null}
-
-          {documentError ? (
-            <div className="alert alert-danger mb-3">{documentError}</div>
-          ) : null}
-
+          {documentError ? <div className="alert alert-danger mb-3">{documentError}</div> : null}
           {documentSuccess ? (
             <div className="alert alert-success mb-3">{documentSuccess}</div>
           ) : null}
-
           {communicationError ? (
             <div className="alert alert-danger mb-3">{communicationError}</div>
           ) : null}
-
           {communicationSuccess ? (
             <div className="alert alert-success mb-3">{communicationSuccess}</div>
           ) : null}
@@ -2758,12 +2782,7 @@ export default function ApplicationDetailsPage() {
 
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">Date of Birth</label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={details.dob}
-                  readOnly
-                />
+                <input type="date" className="form-control" value={details.dob} readOnly />
               </div>
 
               <div className="col-12 col-md-4">
@@ -2783,20 +2802,12 @@ export default function ApplicationDetailsPage() {
 
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">Government ID Type</label>
-                <input
-                  className="form-control"
-                  value={details.governmentIdType}
-                  readOnly
-                />
+                <input className="form-control" value={details.governmentIdType} readOnly />
               </div>
 
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">Government ID Number</label>
-                <input
-                  className="form-control"
-                  value={details.governmentIdNumber}
-                  readOnly
-                />
+                <input className="form-control" value={details.governmentIdNumber} readOnly />
               </div>
 
               <div className="col-12 col-md-4">
@@ -2846,11 +2857,7 @@ export default function ApplicationDetailsPage() {
 
               <div className="col-12 col-md-3">
                 <label className="form-label fw-semibold">Residential Postal Code</label>
-                <input
-                  className="form-control"
-                  value={details.residentialPostalCode}
-                  readOnly
-                />
+                <input className="form-control" value={details.residentialPostalCode} readOnly />
               </div>
 
               <div className="col-12 col-md-3">
@@ -3071,7 +3078,8 @@ export default function ApplicationDetailsPage() {
               )}
             </div>
           )}
-                    {renderSectionShell(
+
+          {renderSectionShell(
             accordionSections[6],
             !details.cibilScore && !details.cibilReferenceId ? (
               <div className="alert alert-warning mb-0">
@@ -3081,7 +3089,6 @@ export default function ApplicationDetailsPage() {
               <div className="row g-3">
                 {renderStaticField("Score", details.cibilScore, "col-12 col-md-6")}
                 {renderStaticField("Risk Level", details.cibilRiskLevel, "col-12 col-md-6")}
-
                 {renderStaticField(
                   "Debt To Income Estimate",
                   details.cibilDebtToIncomeEstimate,
@@ -3092,7 +3099,6 @@ export default function ApplicationDetailsPage() {
                   details.cibilCreditUtilizationRatio,
                   "col-12 col-md-6"
                 )}
-
                 {renderStaticField(
                   "Average Account Age (Years)",
                   details.cibilAverageAccountAgeYears,
@@ -3103,7 +3109,6 @@ export default function ApplicationDetailsPage() {
                   details.cibilTotalOutstandingBalance,
                   "col-12 col-md-6"
                 )}
-
                 {renderStaticField(
                   "Total Accounts",
                   details.cibilTotalAccounts,
@@ -3119,7 +3124,6 @@ export default function ApplicationDetailsPage() {
                   details.cibilClosedAccounts,
                   "col-12 col-md-4"
                 )}
-
                 {renderStaticField(
                   "Report Date",
                   formatDate(details.cibilReportDate),
@@ -3127,9 +3131,7 @@ export default function ApplicationDetailsPage() {
                 )}
                 {renderStaticField(
                   "Report Time",
-                  details.cibilReportTime
-                    ? formatDateTime(details.cibilReportTime)
-                    : "",
+                  details.cibilReportTime ? formatDateTime(details.cibilReportTime) : "",
                   "col-12 col-md-4"
                 )}
                 {renderStaticField(
@@ -3148,14 +3150,8 @@ export default function ApplicationDetailsPage() {
                 {renderStaticField("EMI Amount", details.emiAmount)}
                 {renderStaticField("Total Repayment", details.totalRepayment)}
                 {renderStaticField("Interest Amount", details.interestAmount)}
-                {renderStaticField(
-                  "Schedule Start Date",
-                  formatDate(details.scheduleStartDate)
-                )}
-                {renderStaticField(
-                  "Schedule End Date",
-                  formatDate(details.scheduleEndDate)
-                )}
+                {renderStaticField("Schedule Start Date", formatDate(details.scheduleStartDate))}
+                {renderStaticField("Schedule End Date", formatDate(details.scheduleEndDate))}
               </div>
 
               <div className="d-flex justify-content-end">
@@ -3201,7 +3197,11 @@ export default function ApplicationDetailsPage() {
                     ) : (
                       repaymentSchedule.map((installment, index) => (
                         <tr
-                          key={`${installment.scheduleId || installment.installmentNumber || "installment"}-${index}`}
+                          key={`${
+                            installment.scheduleId ||
+                            installment.installmentNumber ||
+                            "installment"
+                          }-${index}`}
                         >
                           <td>{installment.installmentNumber ?? "-"}</td>
                           <td>{installment.dueDate ? formatDate(installment.dueDate) : "-"}</td>
@@ -3294,9 +3294,7 @@ export default function ApplicationDetailsPage() {
           {showUnderwriterDecisionSection ? (
             <>
               {underwriterSavedMessage ? (
-                <div className="alert alert-success mb-3">
-                  {underwriterSavedMessage}
-                </div>
+                <div className="alert alert-success mb-3">{underwriterSavedMessage}</div>
               ) : null}
 
               {renderSectionShell(
@@ -3359,9 +3357,7 @@ export default function ApplicationDetailsPage() {
           {showDisbursalDecisionSection ? (
             <>
               {disbursalSavedMessage ? (
-                <div className="alert alert-success mb-3">
-                  {disbursalSavedMessage}
-                </div>
+                <div className="alert alert-success mb-3">{disbursalSavedMessage}</div>
               ) : null}
 
               {renderSectionShell(
@@ -3435,7 +3431,11 @@ export default function ApplicationDetailsPage() {
                         type="button"
                         className="btn btn-primary cp-loan-btn-next"
                         onClick={handleSaveDisbursalDecision}
-                        disabled={decisionLoading}
+                        disabled={
+                          decisionLoading ||
+                          normalizedApplicationStatus === "DISBURSAL_COMPLETED" ||
+                          normalizedApplicationStatus === "DISBURSAL_REJECTED"
+                        }
                       >
                         {decisionLoading ? "Saving..." : "Save"}
                       </button>
