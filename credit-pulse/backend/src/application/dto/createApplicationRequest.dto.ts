@@ -99,9 +99,9 @@ export class CreateApplicationRequestDto {
   @IsNotEmpty({ message: 'Government ID Number is required.' })
   governmentIdNumber: string;
 
-  @IsOptional()
   @IsString({ message: 'SIN/Tax ID must be a string.' })
-  sinTaxId?: string;
+  @IsNotEmpty({ message: 'SIN/Tax ID is required.' })
+  sinTaxId: string;
 
   @IsEmail({}, { message: 'Email must be a valid email address.' })
   @IsNotEmpty({ message: 'Email is required.' })

@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 
@@ -13,6 +14,8 @@ import { SendApplicationCommunicationDto } from './dto/send-application-communic
 export class ApplicationCommunicationService {
   // Gives this service access to database operations
   constructor(private readonly prisma: PrismaService) {}
+
+  private readonly logger = new Logger(ApplicationCommunicationService.name);
 
   /**
    * Creates a new communication record in the database along with any attachments.
@@ -78,10 +81,14 @@ export class ApplicationCommunicationService {
     }
 
     // Internal recipients must always have a user id
-    if (dto.recipientType !== 'CUSTOMER' && !dto.recipientUserId) {
+    /*     if (
+      dto.recipientType !== 'CUSTOMER' &&
+      // dto.recipientType !== 'SOURCING_OFFICER' &&
+      !dto.recipientUserId
+    ) {
       throw new BadRequestException('recipientUserId is required for internal recipient types.');
     }
-
+    */
     // Starts with the passed recipient id if one was provided
     let resolvedRecipientUserId = dto.recipientUserId ?? null;
 
@@ -189,6 +196,10 @@ export class ApplicationCommunicationService {
 
     // Triggers notification handling after data is saved
     this.queueNotifications(dto.applicationNumber, dto);
+
+    this.logger.log(
+      `Communication of type ${dto.messageCategory} sent successfully for application with ID: ${application.application_id}`,
+    );
 
     return {
       success: true,

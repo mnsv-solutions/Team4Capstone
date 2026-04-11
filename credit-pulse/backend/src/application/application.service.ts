@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   InternalServerErrorException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -11,7 +12,10 @@ import * as bcrypt from 'bcrypt';
 import { Prisma } from '../../generated/prisma/client.js';
 import { AwsService } from '../aws/aws.service.js';
 import { JwtPayload } from '../common/types/jwtpayload.js';
+import { CreditScoreCheckService } from '../credit-score-check/credit-score-check.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { AssignApplicationService } from './assignment/application-assignment.service.js';
+import { ApplicationCommunicationService } from './communication/application-communication.service.js';
 import { CreateApplicationRequestDto } from './dto/createApplicationRequest.dto.js';
 import { CreateApplicationResponseDto } from './dto/createApplicationResponse.dto.js';
 import { GetContactDetailsRequestDto } from './dto/getContactDetailsRequest.dto.js';
@@ -26,6 +30,7 @@ import { GetPersonalInformationRequestDto } from './dto/getPersonalInformationRe
 import { GetPersonalInformationResponseDto } from './dto/getPersonalInformationResponse.dto.js';
 import { VerifyDocumentRequestDto } from './dto/verifyDocumentRequest.dto.js';
 import { VerifyDocumentResponseDto } from './dto/verifyDocumentResponse.dto.js';
+import { ApplicationStageService } from './stage/application-stage.service.js';
 
 type PrismaTransaction = Parameters<Parameters<PrismaService['$transaction']>[0]>[0];
 
@@ -35,7 +40,13 @@ export class ApplicationService {
     private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
     private readonly awsService: AwsService,
+    private readonly applicationStageService: ApplicationStageService,
+    private readonly applicationCommunicationService: ApplicationCommunicationService,
+    private readonly creditScoreCheckService: CreditScoreCheckService,
+    private readonly applicationAssignmentService: AssignApplicationService,
   ) {}
+
+  private readonly logger = new Logger(ApplicationService.name);
 
   async uploadFiles(
     applicationId: string,
@@ -87,6 +98,8 @@ export class ApplicationService {
       } as any);
     });
 
+    this.logger.log(`Files uploaded successfully for application with ID: ${applicationId}`);
+
     return uploadedPaths;
   }
 
@@ -106,15 +119,18 @@ export class ApplicationService {
         }
 
         const userId = currentUser.sub;
+        const userRoleId = currentUser.role_id;
 
         const references = await this.resolveReferenceData(tx, createApplicationDto);
 
-        const customerId = await this.createCustomerRecord(
+        const customer = await this.createCustomerRecord(
           tx,
           createApplicationDto,
           userId,
           references,
         );
+
+        const customerId = customer.customer_id;
 
         await Promise.all([
           this.createAddressDetails(tx, customerId, createApplicationDto, references),
@@ -128,10 +144,13 @@ export class ApplicationService {
 
         const application = await this.createLoanApplication(
           tx,
-          customerId,
+          customer,
           userId,
           references.statusId,
+          userRoleId,
         );
+
+        this.logger.log(`Application created successfully with ID: ${application.application_id}`);
 
         return {
           application_id: application.application_id,
@@ -161,12 +180,12 @@ export class ApplicationService {
   private async resolveReferenceData(tx: PrismaTransaction, dto: CreateApplicationRequestDto) {
     const status =
       (await tx.application_status.findFirst({
-        where: { is_active: true, status_code: { in: ['SUBMITTED', 'PENDING', 'NEW'] } },
+        where: { is_active: true, status_code: { in: ['CREATED', 'SUBMITTED', 'PENDING', 'NEW'] } },
         select: { status_id: true },
         orderBy: { created_at: 'asc' },
       })) ??
       (await tx.application_status.create({
-        data: { status_code: 'SUBMITTED', status_name: 'Submitted' },
+        data: { status_code: 'CREATED', status_name: 'Created' },
         select: { status_id: true },
       }));
 
@@ -333,7 +352,13 @@ export class ApplicationService {
       select: { customer_id: true },
     });
 
-    return customer.customer_id;
+    return {
+      customer_id: customer.customer_id,
+      dob: dto.dob,
+      first_name: dto.firstName,
+      last_name: dto.lastName,
+      sin: dto.sinTaxId,
+    };
   }
 
   private async createAddressDetails(
@@ -655,9 +680,16 @@ export class ApplicationService {
 
   private async createLoanApplication(
     tx: PrismaTransaction,
-    customerId: string,
+    customer: {
+      customer_id: string;
+      dob: string;
+      first_name: string;
+      last_name: string;
+      sin: string;
+    },
     userId: string,
     statusId: string,
+    userRoleId: string,
   ) {
     const applicationNumber = await this.generateUniqueApplicationNumber(tx);
 
@@ -673,16 +705,165 @@ export class ApplicationService {
     await tx.sub_loan.create({
       data: {
         application_id: loanApplication.application_id,
-        customer_id: customerId,
+        customer_id: customer.customer_id,
         applicant_type: 0,
         created_by: userId,
       },
     });
 
+    // This function represents the asynchronous operations to be executed post-creation of the loan application
+    void this.processPostLoanApplicationTasks(applicationNumber, customer, userId, userRoleId);
+
     return {
       application_id: loanApplication.application_id,
       application_number: applicationNumber,
     };
+  }
+
+  private async processPostLoanApplicationTasks(
+    applicationNumber: string,
+    customer: { first_name: string; last_name: string; dob: string; sin: string },
+    userId: string,
+    userRoleId: string,
+  ) {
+    try {
+      // Fetching the user's role name
+      const roleName = await this.prisma.roles.findFirst({
+        where: {
+          role_id: userRoleId,
+        },
+        select: {
+          role_name: true,
+        },
+      });
+
+      let isInternal = true;
+      if (roleName?.role_name === 'CUSTOMER') {
+        isInternal = false;
+      }
+
+      // Build the message
+      const now = new Date();
+      const timeStamp = `${now.toLocaleDateString('en-US', { weekday: 'short' })} ${now.toLocaleDateString('en-US', { month: 'long' })}, ${now.getDate()} ${now.getFullYear()} at ${now.getHours() % 12 || 12}:${now.getMinutes().toString().padStart(2, '0')}${now.getHours() >= 12 ? 'PM' : 'AM'}`;
+      const submissionMessage = `${applicationNumber} submitted on ${timeStamp} by ${roleName?.role_name || 'Unknown'}`;
+
+      // Pushing stage history and communication for the submission
+      await this.pushStageAndCommunication(
+        userId,
+        applicationNumber,
+        'SUBMITTED',
+        submissionMessage,
+        roleName?.role_name || 'Unknown',
+        isInternal,
+        { recipientUserId: userId },
+      );
+
+      // Checking Credit Score
+      await this.creditScoreCheckService.checkCreditScore(
+        {
+          applicationNumber: applicationNumber,
+          firstName: customer.first_name,
+          lastName: customer.last_name,
+          dateOfBirth: customer.dob,
+          sin: customer.sin,
+          consent: true,
+        },
+        userId,
+      );
+
+      const creditCheckMessage = `CREDIT SCORE CHECKED for application: ${applicationNumber} on ${timeStamp}`;
+
+      // Pushing stage history and communication for credit score checking
+      await this.pushStageAndCommunication(
+        userId,
+        applicationNumber,
+        'CREDIT_CHECK_COMPLETED',
+        creditCheckMessage,
+        roleName?.role_name || 'Unknown',
+        isInternal,
+        { recipientType: 'UNDERWRITER' },
+      );
+
+      // Assigning to the Underwriter Team
+      const underwriterTeamId = await this.prisma.teams.findFirst({
+        where: {
+          team_code: 'UNDERWRITER_TEAM',
+          is_active: true,
+        },
+        select: {
+          team_id: true,
+        },
+      });
+
+      if (!underwriterTeamId?.team_id) {
+        throw new InternalServerErrorException('Underwriter team not found.');
+      }
+
+      await this.applicationAssignmentService.assign(
+        {
+          applicationNumber: applicationNumber,
+          assignedTeamId: underwriterTeamId.team_id,
+          remarks: 'Application assigned to underwriter team',
+        },
+        userId,
+      );
+
+      const underwriterTeamMessage = `${applicationNumber} assigned to UNDERWRITER TEAM on ${timeStamp}. Stage is now "UNDER REVIEW"`;
+
+      // Pushing stage history and communication for underwriter team assignment
+      await this.pushStageAndCommunication(
+        userId,
+        applicationNumber,
+        'UNDER_REVIEW',
+        underwriterTeamMessage,
+        roleName?.role_name || 'Unknown',
+        isInternal,
+        { recipientType: 'UNDERWRITER' },
+      );
+    } catch (error) {
+      this.logger.error('Failed to proceed with application flow:', error);
+    }
+  }
+
+  private async pushStageAndCommunication(
+    userId: string,
+    applicationNumber: string,
+    actionType:
+      | 'CREATED'
+      | 'CREDIT_CHECK_COMPLETED'
+      | 'SUBMITTED'
+      | 'UNDER_REVIEW'
+      | 'UNDERWRITER_APPROVED'
+      | 'UNDERWRITER_REJECTED'
+      | 'UNDERWRITER_REFERRED'
+      | 'DISBURSAL_COMPLETED'
+      | 'DISBURSAL_REJECTED',
+    message: string,
+    senderType: string,
+    isInternal: boolean,
+    recipientInfo: { recipientUserId?: string; recipientType?: string },
+  ) {
+    // Pushing stage history
+    await this.applicationStageService.pushStage(userId, {
+      actionType: actionType,
+      applicationNumber: applicationNumber,
+      remarks: message,
+    });
+
+    // Pushing communication
+    await this.applicationCommunicationService.createCommunication(
+      {
+        applicationNumber: applicationNumber,
+        senderType: senderType,
+        messageText: message,
+        messageCategory: 'STATUS_UPDATE',
+        isInternal: isInternal,
+        sendEmail: true,
+        sendSms: true,
+        ...recipientInfo,
+      },
+      userId,
+    );
   }
 
   private generateReferenceCode(prefix: string, source: string): string {
