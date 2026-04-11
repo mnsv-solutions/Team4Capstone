@@ -691,6 +691,7 @@ model roles {
   users_roles_created_byTousers users?   @relation("roles_created_byTousers", fields: [created_by], references: [user_id], onUpdate: NoAction, map: "fk_roles_created_by")
   users_roles_updated_byTousers users?   @relation("roles_updated_byTousers", fields: [updated_by], references: [user_id], onUpdate: NoAction, map: "fk_roles_updated_by")
 
+  @@unique([role_code], map: "uq_roles_role_code")
   @@index([is_active], map: "idx_roles_is_active")
 }
 
@@ -880,6 +881,7 @@ model users {
   application_assignment_application_assignment_unassigned_byTousers application_assignment[]     @relation("application_assignment_unassigned_byTousers")
   application_assignment_application_assignment_created_byTousers    application_assignment[]     @relation("application_assignment_created_byTousers")
   application_assignment_application_assignment_updated_byTousers    application_assignment[]     @relation("application_assignment_updated_byTousers")
+  user_auth_audit_log                                                user_auth_audit_log[]
 
   @@index([role_id, is_active], map: "idx_users_role_active")
 }
@@ -1211,4 +1213,22 @@ model application_assignment {
   @@index([application_id, is_current], map: "idx_application_assignment_application_current")
   @@index([assigned_team_id, is_current], map: "idx_application_assignment_team_current")
   @@index([assigned_user_id, is_current], map: "idx_application_assignment_user_current")
+}
+
+model user_auth_audit_log {
+  auth_audit_id    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id          String?  @db.Uuid
+  login_identifier String?  @db.VarChar(255)
+  event_type       String   @db.VarChar(40)
+  success          Boolean  @default(false)
+  failure_reason   String?  @db.VarChar(255)
+  ip_address       String?  @db.VarChar(80)
+  user_agent       String?  @db.VarChar(255)
+  created_at       DateTime @default(now()) @db.Timestamptz(6)
+
+  user users? @relation(fields: [user_id], references: [user_id], onDelete: SetNull, onUpdate: NoAction)
+
+  @@index([user_id], map: "idx_user_auth_audit_user_id")
+  @@index([event_type], map: "idx_user_auth_audit_event_type")
+  @@index([created_at(sort: Desc)], map: "idx_user_auth_audit_created_at")
 }

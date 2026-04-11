@@ -1,17 +1,55 @@
 "use client";
 
+import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const router = useRouter();
-  const { isAuthenticated, isLoading, logout } = useAuth();
+  const { token, isAuthenticated, isLoading, logout } = useAuth();
+  const [isSigningOut, setIsSigningOut] = useState(false);
 
-  const handleSignOut = () => {
-    logout();
-    router.push("/signin");
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
+
+    try {
+      if (!token) {
+        console.error("Sign out skipped because no access token was found.");
+        logout();
+        router.push("/signin");
+        return;
+      }
+
+      await axios.post(
+        "/api/auth/signout",
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      logout();
+      router.push("/signin");
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        console.error(
+          "Sign out API failed:",
+          error.response?.status,
+          error.response?.data,
+        );
+      } else {
+        console.error("Sign out API failed:", error);
+      }
+    } finally {
+      setIsSigningOut(false);
+    }
   };
 
   return (
@@ -59,8 +97,9 @@ export default function Navbar() {
               type="button"
               className="btn btn-primary cp-navbtn"
               onClick={handleSignOut}
+              disabled={isSigningOut}
             >
-              Sign Out
+              {isSigningOut ? "Signing Out..." : "Sign Out"}
             </button>
           )}
 
