@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ForbiddenException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -29,6 +30,11 @@ type StageConfig = {
 
 // This object defines the rules for each stage action in the application flow.
 const STAGE_CONFIG: Record<StageActionType, StageConfig> = {
+  CREATED: {
+    allowedRoles: ['SOURCING_OFFICER'],
+    fromStatuses: ['CREATED'],
+    toStatus: 'SUBMITTED',
+  },
   SUBMITTED: {
     allowedRoles: ['SOURCING_OFFICER'],
     fromStatuses: ['CREATED'],
@@ -77,6 +83,8 @@ const STAGE_CONFIG: Record<StageActionType, StageConfig> = {
 @Injectable()
 export class ApplicationStageService {
   constructor(private readonly prisma: PrismaService) {}
+
+  private readonly logger = new Logger(ApplicationStageService.name);
 
   // This method validates the request, updates the application stage, and saves the action history.
   async pushStage(
@@ -258,6 +266,10 @@ export class ApplicationStageService {
           is_active: true,
         },
       });
+
+      this.logger.log(
+        `Application of type ${pushStageRequestDto.actionType} pushed successfully for application with ID: ${application.application_id}`,
+      );
 
       // This returns the saved stage details in the response.
       return {

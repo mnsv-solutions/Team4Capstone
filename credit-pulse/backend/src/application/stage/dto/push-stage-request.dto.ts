@@ -12,6 +12,7 @@ import {
 
 // These are the allowed stage action values for the request.
 export const stageActionTypes = [
+  'CREATED',
   'CREDIT_CHECK_COMPLETED',
   'SUBMITTED',
   'UNDER_REVIEW',
