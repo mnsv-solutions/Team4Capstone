@@ -11,7 +11,7 @@ on:
       - "package-lock.json"
   push:
     branches:
-      - victor/ci-cd-pipelines # testing purpose - remove me before merging
+      - victor/ci-cd-pipelines # testing purpose
 
 permissions:
   id-token: write
