@@ -92,10 +92,10 @@ export default function DashboardPage() {
         };
 
         const [applicationsResponse, roleResponse] = await Promise.all([
-          axios.get("/api/dashboard/applications", {
+          axios.get(process.env.NEXT_PUBLIC_API_URL + "/dashboard/applications", {
             headers: authHeaders,
           }),
-          axios.get<UserRoleResponse>("/api/auth/fetch-user-role", {
+          axios.get<UserRoleResponse>(process.env.NEXT_PUBLIC_API_URL + "/auth/fetch-user-role", {
             headers: authHeaders,
           }),
         ]);

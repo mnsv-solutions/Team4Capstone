@@ -60,7 +60,7 @@ export default function Navbar() {
       }
 
       await axios.post(
-        "/api/auth/signout",
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/signout`,
         {},
         {
           headers: {

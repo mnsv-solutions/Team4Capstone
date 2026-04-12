@@ -522,7 +522,7 @@ export default function LoanApplicationPage() {
 
       const payload = buildLoanApplicationPayload(form);
 
-      const createResponse = await axios.post("/api/application/create", payload, {
+      const createResponse = await axios.post(process.env.NEXT_PUBLIC_API_URL + "/application/create", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -544,7 +544,7 @@ export default function LoanApplicationPage() {
         multipartData.append("bankStatement", form.bankStatement);
       }
 
-      await axios.post("/api/application/files", multipartData, {
+      await axios.post(process.env.NEXT_PUBLIC_API_URL + "/application/files", multipartData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,

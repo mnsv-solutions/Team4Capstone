@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -1663,7 +1663,7 @@ export default function ApplicationDetailsPage() {
       setDocumentSuccess("");
 
       const response = await axios.get<DocumentDetailsApiResponse>(
-        "/api/application/document-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/document-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -1716,7 +1716,7 @@ export default function ApplicationDetailsPage() {
       }));
 
       const response = await axios.post<FetchCreditDetailsApiResponse>(
-        "/api/application/fetch-credit-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/fetch-credit-details",
         {
           applicationNumber: details.applicationNumber.trim(),
         },
@@ -1923,7 +1923,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.get<PersonalDetailsApiResponse>(
-        "/api/application/personal-information",
+        process.env.NEXT_PUBLIC_API_URL + "/application/personal-information",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -1961,7 +1961,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.get<ContactDetailsApiResponse>(
-        "/api/application/contact-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/contact-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -2009,7 +2009,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.get<EducationDetailsApiResponse>(
-        "/api/application/education-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/education-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -2042,7 +2042,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.get<FinancialDetailsApiResponse>(
-        "/api/application/financial-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/financial-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -2319,7 +2319,7 @@ export default function ApplicationDetailsPage() {
 
   async function fetchSingleCommunicationHistory(isInternal: boolean) {
     const response = await axios.post<CommunicationFetchResponse>(
-      "/api/fetch-communication-history",
+      process.env.NEXT_PUBLIC_API_URL + "/fetch-communication-history",
       {
         applicationNumber: details.applicationNumber.trim(),
         isInternal,
@@ -2831,7 +2831,7 @@ export default function ApplicationDetailsPage() {
         payload.recipientUserId = communicationForm.recipientUserId.trim();
       }
 
-      await axios.post("/api/push-communication", payload, {
+      await axios.post(process.env.NEXT_PUBLIC_API_URL + "/push-communication", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -4039,5 +4039,13 @@ export default function ApplicationDetailsPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function ApplicationDetailsPage() {
+  return (
+    <Suspense fallback={<div>Loading app details...</div>}>
+      <ApplicationDetailsContent />
+    </Suspense>
   );
 }
