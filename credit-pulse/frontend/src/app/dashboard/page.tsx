@@ -3,6 +3,9 @@
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+
+import styles from "./dashboard-tabs.module.css";
+
 import { useAuth } from "../../context/AuthContext";
 
 type DashboardApplication = {
@@ -21,16 +24,46 @@ type DashboardApplication = {
   applicationCreationDate: string;
 };
 
+type PullApplication = DashboardApplication & {
+  assignedTo: string | null;
+};
+
+type UserRoleResponse = {
+  data?: {
+    userId?: string;
+    firstName?: string;
+    lastName?: string;
+    teamId?: string | null;
+    roleCode?: string;
+  };
+};
+
+type DashboardTab = "applications" | "pull";
+
 export default function DashboardPage() {
   const router = useRouter();
   const { token, isAdmin, isLoading: authLoading, logout } = useAuth();
 
+  const [activeTab, setActiveTab] = useState<DashboardTab>("applications");
   const [applications, setApplications] = useState<DashboardApplication[]>([]);
+  const [pullApplications, setPullApplications] = useState<PullApplication[]>(
+    [],
+  );
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [isLoading, setIsLoading] = useState(true);
+  const [isPullLoading, setIsPullLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [pullErrorMsg, setPullErrorMsg] = useState("");
+  const [applicationPage, setApplicationPage] = useState(1);
+  const [pullPage, setPullPage] = useState(1);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentTeamId, setCurrentTeamId] = useState<string | null>(null);
+  const [currentRoleCode, setCurrentRoleCode] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState("");
+  const [assigningApplicationNumber, setAssigningApplicationNumber] = useState<
+    string | null
+  >(null);
 
   const itemsPerPage = 3;
 
@@ -47,18 +80,62 @@ export default function DashboardPage() {
       return;
     }
 
-    async function loadApplications() {
+    async function loadDashboardData() {
       try {
         setIsLoading(true);
+        setIsPullLoading(true);
         setErrorMsg("");
+        setPullErrorMsg("");
 
-        const response = await axios.get("/api/dashboard/applications", {
-          headers: {
-            Authorization: `Bearer ${token}`,
+        const authHeaders = {
+          Authorization: `Bearer ${token}`,
+        };
+
+        const [applicationsResponse, roleResponse] = await Promise.all([
+          axios.get("/api/dashboard/applications", {
+            headers: authHeaders,
+          }),
+          axios.get<UserRoleResponse>("/api/auth/fetch-user-role", {
+            headers: authHeaders,
+          }),
+        ]);
+
+        setApplications(
+          Array.isArray(applicationsResponse.data)
+            ? applicationsResponse.data
+            : [],
+        );
+
+        const userData = roleResponse.data?.data;
+
+        setCurrentUserId(userData?.userId ?? null);
+        setCurrentRoleCode(userData?.roleCode ?? null);
+        setCurrentUserName(
+          `${userData?.firstName ?? ""} ${userData?.lastName ?? ""}`.trim(),
+        );
+
+        const teamId = userData?.teamId;
+        setCurrentTeamId(teamId ?? null);
+
+        if (!teamId) {
+          setPullApplications([]);
+          setPullErrorMsg(
+            "No active team assignment found for pool applications.",
+          );
+          return;
+        }
+
+        const pullResponse = await axios.post(
+          "/api/applications/fetch-by-team",
+          { teamId },
+          {
+            headers: authHeaders,
           },
-        });
+        );
 
-        setApplications(Array.isArray(response.data) ? response.data : []);
+        setPullApplications(
+          Array.isArray(pullResponse.data) ? pullResponse.data : [],
+        );
       } catch (error) {
         if (axios.isAxiosError(error)) {
           const backendMessage = error.response?.data?.message;
@@ -75,20 +152,24 @@ export default function DashboardPage() {
             return;
           }
 
-          setErrorMsg(
+          const message =
             typeof backendMessage === "string"
               ? backendMessage
-              : "Unable to load dashboard applications."
-          );
+              : "Unable to load dashboard applications.";
+
+          setErrorMsg(message);
+          setPullErrorMsg(message);
         } else {
           setErrorMsg("Unable to load dashboard applications.");
+          setPullErrorMsg("Unable to load pool applications.");
         }
       } finally {
         setIsLoading(false);
+        setIsPullLoading(false);
       }
     }
 
-    loadApplications();
+    loadDashboardData();
   }, [token, isAdmin, authLoading, logout, router]);
 
   const filteredApplications = useMemo(() => {
@@ -115,30 +196,70 @@ export default function DashboardPage() {
     });
   }, [applications, searchTerm, statusFilter]);
 
-  const totalPages = Math.max(
+  const filteredPullApplications = useMemo(() => {
+    const normalizedSearch = searchTerm.trim().toLowerCase();
+    const normalizedStatus = statusFilter.trim().toLowerCase();
+
+    return pullApplications.filter((item) => {
+      const applicationNumber = (item.applicationNumber || "").toLowerCase();
+      const customerName = (item.customerName || "").toLowerCase();
+      const type = (item.type || "").toLowerCase();
+      const status = (item.status || "").toLowerCase();
+      const assignedTo = (item.assignedTo || "").toLowerCase();
+
+      const matchesSearch =
+        normalizedSearch === "" ||
+        applicationNumber.includes(normalizedSearch) ||
+        customerName.includes(normalizedSearch) ||
+        type.includes(normalizedSearch) ||
+        status.includes(normalizedSearch) ||
+        assignedTo.includes(normalizedSearch);
+
+      const matchesStatus =
+        normalizedStatus === "all" || status === normalizedStatus;
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [pullApplications, searchTerm, statusFilter]);
+
+  const applicationTotalPages = Math.max(
     1,
-    Math.ceil(filteredApplications.length / itemsPerPage)
+    Math.ceil(filteredApplications.length / itemsPerPage),
+  );
+
+  const pullTotalPages = Math.max(
+    1,
+    Math.ceil(filteredPullApplications.length / itemsPerPage),
   );
 
   const paginatedApplications = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
+    const startIndex = (applicationPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
     return filteredApplications.slice(startIndex, endIndex);
-  }, [filteredApplications, currentPage]);
+  }, [filteredApplications, applicationPage]);
+
+  const paginatedPullApplications = useMemo(() => {
+    const startIndex = (pullPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredPullApplications.slice(startIndex, endIndex);
+  }, [filteredPullApplications, pullPage]);
+
+  const activeRecords =
+    activeTab === "applications"
+      ? filteredApplications
+      : filteredPullApplications;
+  const currentPage = activeTab === "applications" ? applicationPage : pullPage;
+  const totalPages =
+    activeTab === "applications" ? applicationTotalPages : pullTotalPages;
 
   const startItem =
-    filteredApplications.length === 0
-      ? 0
-      : (currentPage - 1) * itemsPerPage + 1;
-
-  const endItem = Math.min(
-    currentPage * itemsPerPage,
-    filteredApplications.length
-  );
+    activeRecords.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
+  const endItem = Math.min(currentPage * itemsPerPage, activeRecords.length);
 
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, statusFilter, applications]);
+    setApplicationPage(1);
+    setPullPage(1);
+  }, [searchTerm, statusFilter, applications, pullApplications]);
 
   const summary = useMemo(() => {
     const normalizeStatus = (value: string | null) =>
@@ -147,16 +268,16 @@ export default function DashboardPage() {
     return {
       all: applications.length,
       underReview: applications.filter(
-        (item) => normalizeStatus(item.status) === "under review"
+        (item) => normalizeStatus(item.status) === "under review",
       ).length,
       approved: applications.filter(
-        (item) => normalizeStatus(item.status) === "approved"
+        (item) => normalizeStatus(item.status) === "approved",
       ).length,
       disbursed: applications.filter(
-        (item) => normalizeStatus(item.status) === "disbursed"
+        (item) => normalizeStatus(item.status) === "disbursed",
       ).length,
       closed: applications.filter(
-        (item) => normalizeStatus(item.status) === "closed"
+        (item) => normalizeStatus(item.status) === "closed",
       ).length,
     };
   }, [applications]);
@@ -207,11 +328,149 @@ export default function DashboardPage() {
         ? `${item.tenure}mo`
         : "N/A";
 
-    return `${rate} • ${tenure}`;
+    return `${rate} | ${tenure}`;
   }
 
   function handleViewApplication(item: DashboardApplication) {
-    router.push(`/application-detail?applicationNumber=${item.applicationNumber}`);
+    router.push(
+      `/application-detail?applicationNumber=${item.applicationNumber}`,
+    );
+  }
+
+  async function reloadApplications(authToken: string) {
+    const response = await axios.get("/api/dashboard/applications", {
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+      },
+    });
+
+    setApplications(Array.isArray(response.data) ? response.data : []);
+  }
+
+  async function reloadPullApplications(teamId: string, authToken: string) {
+    const pullResponse = await axios.post(
+      "/api/applications/fetch-by-team",
+      { teamId },
+      {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      },
+    );
+
+    setPullApplications(
+      Array.isArray(pullResponse.data) ? pullResponse.data : [],
+    );
+  }
+
+  function formatRoleLabel(roleCode: string | null) {
+    if (!roleCode) return "Team Member";
+
+    return roleCode
+      .toLowerCase()
+      .split("_")
+      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+      .join(" ");
+  }
+
+  function canCreateApplication(roleCode: string | null) {
+    return roleCode === "CUSTOMER" || roleCode === "SOURCING_OFFICER";
+  }
+
+  function isAssignedToCurrentUser(item: PullApplication) {
+    if (!currentUserName) {
+      return false;
+    }
+
+    return (
+      (item.assignedTo || "").trim().toLowerCase() ===
+      currentUserName.trim().toLowerCase()
+    );
+  }
+
+  async function handleAssignToMe(item: PullApplication) {
+    if (!token || !currentUserId) {
+      setPullErrorMsg("Unable to assign the application to you right now.");
+      return;
+    }
+
+    try {
+      setAssigningApplicationNumber(item.applicationNumber);
+      setPullErrorMsg("");
+
+      await axios.post(
+        "/api/application/assign",
+        {
+          applicationNumber: item.applicationNumber,
+          assignedUserId: currentUserId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      await reloadApplications(token);
+
+      if (currentTeamId) {
+        await reloadPullApplications(currentTeamId, token);
+      }
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const backendMessage = error.response?.data?.message;
+        setPullErrorMsg(
+          typeof backendMessage === "string"
+            ? backendMessage
+            : "Unable to assign the application to you.",
+        );
+      } else {
+        setPullErrorMsg("Unable to assign the application to you.");
+      }
+    } finally {
+      setAssigningApplicationNumber(null);
+    }
+  }
+
+  async function handleUnassignMe(item: PullApplication) {
+    if (!token || !currentTeamId) {
+      setPullErrorMsg("Unable to unassign the application right now.");
+      return;
+    }
+
+    try {
+      setAssigningApplicationNumber(item.applicationNumber);
+      setPullErrorMsg("");
+
+      await axios.post(
+        "/api/application/assign",
+        {
+          applicationNumber: item.applicationNumber,
+          assignedTeamId: currentTeamId,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      await reloadApplications(token);
+      await reloadPullApplications(currentTeamId, token);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const backendMessage = error.response?.data?.message;
+        setPullErrorMsg(
+          typeof backendMessage === "string"
+            ? backendMessage
+            : "Unable to unassign the application from you.",
+        );
+      } else {
+        setPullErrorMsg("Unable to unassign the application from you.");
+      }
+    } finally {
+      setAssigningApplicationNumber(null);
+    }
   }
 
   if (authLoading) {
@@ -233,21 +492,33 @@ export default function DashboardPage() {
             <p className="cp-dashboard-subtitle">
               Manage and track loan applications
             </p>
+            <p className={styles.welcomeText}>
+              Welcome {currentUserName || "there"} (
+              {formatRoleLabel(currentRoleCode)})
+            </p>
           </div>
 
-          <button
-            type="button"
-            className="cp-dashboard-primary-button"
-            onClick={() => router.push("/loan-application")}
-            disabled={authLoading}
-          >
-            New Application
-          </button>
+          {canCreateApplication(currentRoleCode) && (
+            <button
+              type="button"
+              className="cp-dashboard-primary-button"
+              onClick={() => router.push("/loan-application")}
+              disabled={authLoading}
+            >
+              New Application
+            </button>
+          )}
         </div>
 
-        {errorMsg && (
+        {errorMsg && activeTab === "applications" && (
           <div className="cp-dashboard-alert" role="alert">
             {errorMsg}
+          </div>
+        )}
+
+        {pullErrorMsg && activeTab === "pull" && (
+          <div className="cp-dashboard-alert" role="alert">
+            {pullErrorMsg}
           </div>
         )}
 
@@ -259,7 +530,9 @@ export default function DashboardPage() {
 
           <article className="cp-dashboard-summary-card cp-dashboard-summary-card--info">
             <p className="cp-dashboard-summary-label">Under Review</p>
-            <h2 className="cp-dashboard-summary-value">{summary.underReview}</h2>
+            <h2 className="cp-dashboard-summary-value">
+              {summary.underReview}
+            </h2>
           </article>
 
           <article className="cp-dashboard-summary-card cp-dashboard-summary-card--success">
@@ -301,156 +574,345 @@ export default function DashboardPage() {
         </div>
 
         <section className="cp-dashboard-table-card">
-          <h2 className="cp-dashboard-section-title">Application List</h2>
+          <div className={styles.tabHeader}>
+            <div>
+              <h2 className="cp-dashboard-section-title">
+                {activeTab === "applications"
+                  ? "Assigned Applications"
+                  : "Applications in Team Pool"}
+              </h2>
+              <p className={styles.tabSubtitle}>
+                {activeTab === "applications"
+                  ? "Review the applications directly assigned to your dashboard."
+                  : "View team pool records fetched from the team applications API."}
+              </p>
+            </div>
 
-          <div className="cp-dashboard-table-wrap">
-            <table className="cp-dashboard-table">
-              <thead>
-                <tr>
-                  <th>Application No</th>
-                  <th>Customer</th>
-                  <th>Type</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Balance</th>
-                  <th>Next Payment</th>
-                  <th>Created</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={9}>
-                      <div className="cp-dashboard-empty-state">
-                        Loading applications...
-                      </div>
-                    </td>
-                  </tr>
-                ) : filteredApplications.length === 0 ? (
-                  <tr>
-                    <td colSpan={9}>
-                      <div className="cp-dashboard-empty-state">
-                        No applications found for the current search or filter.
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  paginatedApplications.map((item) => (
-                    <tr key={item.applicationId}>
-                      <td>
-                        <div className="cp-dashboard-primary-text">
-                          {item.applicationNumber || "N/A"}
-                        </div>
-                      </td>
-
-                      <td>
-                        <div className="cp-dashboard-primary-text">
-                          {item.customerName || "N/A"}
-                        </div>
-                      </td>
-
-                      <td>
-                        <span className="cp-dashboard-type-pill">
-                          {item.type || "N/A"}
-                        </span>
-                      </td>
-
-                      <td>
-                        <div className="cp-dashboard-primary-text">
-                          {formatCurrency(item.principalAmount)}
-                        </div>
-                        <div className="cp-dashboard-secondary-text">
-                          {getAmountMeta(item)}
-                        </div>
-                      </td>
-
-                      <td>
-                        <span
-                          className={`cp-dashboard-status-pill cp-dashboard-status-pill--${getStatusClass(
-                            item.status
-                          )}`}
-                        >
-                          {item.status || "N/A"}
-                        </span>
-                      </td>
-
-                      <td>
-                        <div className="cp-dashboard-primary-text">
-                          {formatCurrency(item.balance)}
-                        </div>
-                      </td>
-
-                      <td>
-                        <div className="cp-dashboard-primary-text">
-                          {formatCurrency(item.nextPayment)}
-                        </div>
-                        <div className="cp-dashboard-secondary-text">
-                          {formatDate(item.nextPaymentDate)}
-                        </div>
-                      </td>
-
-                      <td>
-                        <div className="cp-dashboard-secondary-text">
-                          {formatDate(item.applicationCreationDate)}
-                        </div>
-                      </td>
-
-                      <td>
-                        <button
-                          type="button"
-                          className="cp-dashboard-view-btn"
-                          onClick={() => handleViewApplication(item)}
-                        >
-                          View
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+            <div
+              className={styles.tabSwitch}
+              role="tablist"
+              aria-label="Dashboard sections"
+            >
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "applications"}
+                className={`${styles.tabButton} ${
+                  activeTab === "applications" ? styles.tabButtonActive : ""
+                }`}
+                onClick={() => setActiveTab("applications")}
+              >
+                Assigned
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeTab === "pull"}
+                className={`${styles.tabButton} ${
+                  activeTab === "pull" ? styles.tabButtonActive : ""
+                }`}
+                onClick={() => setActiveTab("pull")}
+              >
+                Pool
+              </button>
+            </div>
           </div>
 
-          {!isLoading && filteredApplications.length > 0 && (
+          {activeTab === "applications" ? (
+            <>
+              <div className="cp-dashboard-table-wrap">
+                <table className="cp-dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Application No</th>
+                      <th>Customer</th>
+                      <th>Type</th>
+                      <th>Amount</th>
+                      <th>Status</th>
+                      <th>Balance</th>
+                      <th>Next Payment</th>
+                      <th>Created</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {isLoading ? (
+                      <tr>
+                        <td colSpan={9}>
+                          <div className="cp-dashboard-empty-state">
+                            Loading applications...
+                          </div>
+                        </td>
+                      </tr>
+                    ) : filteredApplications.length === 0 ? (
+                      <tr>
+                        <td colSpan={9}>
+                          <div className="cp-dashboard-empty-state">
+                            No applications found for the current search or
+                            filter.
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedApplications.map((item) => (
+                        <tr key={item.applicationId}>
+                          <td>
+                            <div className="cp-dashboard-primary-text">
+                              {item.applicationNumber || "N/A"}
+                            </div>
+                          </td>
+
+                          <td>
+                            <div className="cp-dashboard-primary-text">
+                              {item.customerName || "N/A"}
+                            </div>
+                          </td>
+
+                          <td>
+                            <span className="cp-dashboard-type-pill">
+                              {item.type || "N/A"}
+                            </span>
+                          </td>
+
+                          <td>
+                            <div className="cp-dashboard-primary-text">
+                              {formatCurrency(item.principalAmount)}
+                            </div>
+                            <div className="cp-dashboard-secondary-text">
+                              {getAmountMeta(item)}
+                            </div>
+                          </td>
+
+                          <td>
+                            <span
+                              className={`cp-dashboard-status-pill cp-dashboard-status-pill--${getStatusClass(
+                                item.status,
+                              )}`}
+                            >
+                              {item.status || "N/A"}
+                            </span>
+                          </td>
+
+                          <td>
+                            <div className="cp-dashboard-primary-text">
+                              {formatCurrency(item.balance)}
+                            </div>
+                          </td>
+
+                          <td>
+                            <div className="cp-dashboard-primary-text">
+                              {formatCurrency(item.nextPayment)}
+                            </div>
+                            <div className="cp-dashboard-secondary-text">
+                              {formatDate(item.nextPaymentDate)}
+                            </div>
+                          </td>
+
+                          <td>
+                            <div className="cp-dashboard-secondary-text">
+                              {formatDate(item.applicationCreationDate)}
+                            </div>
+                          </td>
+
+                          <td>
+                            <button
+                              type="button"
+                              className="cp-dashboard-view-btn"
+                              onClick={() => handleViewApplication(item)}
+                            >
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          ) : (
+            <div className={styles.pullPanel}>
+              <div
+                className={`${styles.pullTableWrap} cp-dashboard-table-wrap`}
+              >
+                <table className="cp-dashboard-table">
+                  <thead>
+                    <tr>
+                      <th>Application No</th>
+                      <th>Customer</th>
+                      <th>Type</th>
+                      <th>Assigned To</th>
+                      <th>Status</th>
+                      <th>Amount</th>
+                      <th>Created</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {isPullLoading ? (
+                      <tr>
+                        <td colSpan={8}>
+                          <div className="cp-dashboard-empty-state">
+                            Loading pool applications...
+                          </div>
+                        </td>
+                      </tr>
+                    ) : filteredPullApplications.length === 0 ? (
+                      <tr>
+                        <td colSpan={8}>
+                          <div className="cp-dashboard-empty-state">
+                            No pool applications found for the current search or
+                            filter.
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      paginatedPullApplications.map((item) => (
+                        <tr key={item.applicationId}>
+                          <td>
+                            <div className="cp-dashboard-primary-text">
+                              {item.applicationNumber || "N/A"}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="cp-dashboard-primary-text">
+                              {item.customerName || "N/A"}
+                            </div>
+                          </td>
+                          <td>
+                            <span className="cp-dashboard-type-pill">
+                              {item.type || "N/A"}
+                            </span>
+                          </td>
+                          <td>
+                            <div className={styles.assignedToValue}>
+                              {item.assignedTo || "Unassigned"}
+                            </div>
+                          </td>
+                          <td>
+                            <span
+                              className={`cp-dashboard-status-pill cp-dashboard-status-pill--${getStatusClass(
+                                item.status,
+                              )}`}
+                            >
+                              {item.status || "N/A"}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="cp-dashboard-primary-text">
+                              {formatCurrency(item.principalAmount)}
+                            </div>
+                            <div className="cp-dashboard-secondary-text">
+                              {getAmountMeta(item)}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="cp-dashboard-secondary-text">
+                              {formatDate(item.applicationCreationDate)}
+                            </div>
+                          </td>
+                          <td>
+                            {isAssignedToCurrentUser(item) ? (
+                              <button
+                                type="button"
+                                className={`cp-dashboard-view-btn ${styles.unassignButton}`}
+                                onClick={() => handleUnassignMe(item)}
+                                disabled={
+                                  assigningApplicationNumber ===
+                                  item.applicationNumber
+                                }
+                              >
+                                {assigningApplicationNumber ===
+                                item.applicationNumber
+                                  ? "Deallocating..."
+                                  : "De-Allocate"}
+                              </button>
+                            ) : (
+                              <button
+                                type="button"
+                                className="cp-dashboard-view-btn"
+                                onClick={() => handleAssignToMe(item)}
+                                disabled={
+                                  assigningApplicationNumber ===
+                                  item.applicationNumber
+                                }
+                              >
+                                {assigningApplicationNumber ===
+                                item.applicationNumber
+                                  ? "Allocating..."
+                                  : "Allocate"}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {((activeTab === "applications" &&
+            !isLoading &&
+            filteredApplications.length > 0) ||
+            (activeTab === "pull" &&
+              !isPullLoading &&
+              filteredPullApplications.length > 0)) && (
             <div className="cp-dashboard-pagination">
               <div className="cp-dashboard-pagination-info">
-                Showing {startItem} to {endItem} of {filteredApplications.length} records
+                Showing {startItem} to {endItem} of {activeRecords.length}{" "}
+                records
               </div>
 
               <div className="cp-dashboard-pagination-actions">
                 <button
                   type="button"
                   className="cp-dashboard-page-btn"
-                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  onClick={() =>
+                    activeTab === "applications"
+                      ? setApplicationPage((prev) => Math.max(prev - 1, 1))
+                      : setPullPage((prev) => Math.max(prev - 1, 1))
+                  }
                   disabled={currentPage === 1}
                 >
                   Previous
                 </button>
 
-                {Array.from({ length: totalPages }, (_, index) => index + 1).map(
-                  (page) => (
-                    <button
-                      key={page}
-                      type="button"
-                      className={`cp-dashboard-page-btn ${
-                        currentPage === page
-                          ? "cp-dashboard-page-btn--active"
-                          : ""
-                      }`}
-                      onClick={() => setCurrentPage(page)}
-                    >
-                      {page}
-                    </button>
-                  )
-                )}
+                {Array.from(
+                  { length: totalPages },
+                  (_, index) => index + 1,
+                ).map((page) => (
+                  <button
+                    key={page}
+                    type="button"
+                    className={`cp-dashboard-page-btn ${
+                      currentPage === page
+                        ? "cp-dashboard-page-btn--active"
+                        : ""
+                    }`}
+                    onClick={() =>
+                      activeTab === "applications"
+                        ? setApplicationPage(page)
+                        : setPullPage(page)
+                    }
+                  >
+                    {page}
+                  </button>
+                ))}
 
                 <button
                   type="button"
                   className="cp-dashboard-page-btn"
                   onClick={() =>
-                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                    activeTab === "applications"
+                      ? setApplicationPage((prev) =>
+                          Math.min(prev + 1, applicationTotalPages),
+                        )
+                      : setPullPage((prev) =>
+                          Math.min(prev + 1, pullTotalPages),
+                        )
                   }
                   disabled={currentPage === totalPages}
                 >

@@ -1,0 +1,161 @@
+.tabHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.tabSubtitle {
+  margin: 0.75rem 0 0;
+  color: rgba(228, 232, 255, 0.72);
+  font-size: 0.98rem;
+  line-height: 1.5;
+  margin-left: 20px;
+}
+
+.welcomeText {
+  margin: 0.5rem 0 0;
+  color: rgba(180, 205, 255, 0.88);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.tabSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem;
+  border: 1px solid rgba(112, 126, 255, 0.2);
+  border-radius: 999px;
+  background:
+    linear-gradient(180deg, rgba(17, 24, 39, 0.88), rgba(11, 17, 30, 0.92)),
+    radial-gradient(circle at top, rgba(115, 129, 255, 0.2), transparent 55%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.tabButton {
+  border: 0;
+  border-radius: 999px;
+  padding: 0.85rem 1.35rem;
+  background: transparent;
+  color: rgba(232, 236, 255, 0.82);
+  font-size: 0.96rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.tabButton:hover {
+  color: #ffffff;
+  background: rgba(114, 128, 255, 0.12);
+}
+
+.tabButtonActive {
+  color: #ffffff;
+  background: linear-gradient(135deg, rgba(104, 93, 255, 0.95), rgba(64, 151, 255, 0.78));
+  box-shadow:
+    0 14px 30px rgba(56, 79, 189, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.pullPanel {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.pullTableWrap {
+  border-radius: 1rem;
+  border: 1px solid rgba(109, 124, 255, 0.14);
+  background: linear-gradient(180deg, rgba(19, 28, 46, 0.6), rgba(19, 28, 46, 0.15));
+}
+
+.assignedToValue {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.6rem;
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(83, 212, 167, 0.08);
+  color: #b7f5db;
+  font-weight: 700;
+}
+
+.unassignButton {
+  background: linear-gradient(135deg, rgba(255, 168, 76, 0.18), rgba(255, 111, 97, 0.16));
+  border-color: rgba(255, 170, 92, 0.34);
+  color: #ffe3bf;
+}
+
+:global(html[data-theme="light"]) .tabSubtitle {
+  color: rgba(54, 63, 87, 0.74);
+}
+
+:global(html[data-theme="light"]) .welcomeText {
+  color: rgba(52, 92, 168, 0.86);
+}
+
+:global(html[data-theme="light"]) .tabSwitch {
+  border-color: rgba(94, 106, 201, 0.18);
+  background: linear-gradient(180deg, rgba(244, 247, 255, 0.98), rgba(231, 237, 255, 0.92));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+}
+
+:global(html[data-theme="light"]) .tabButton {
+  color: #56607b;
+}
+
+:global(html[data-theme="light"]) .tabButton:hover {
+  color: #24314f;
+  background: rgba(108, 121, 237, 0.08);
+}
+
+:global(html[data-theme="light"]) .pullTableWrap {
+  border-color: rgba(92, 105, 200, 0.12);
+  background: linear-gradient(180deg, rgba(247, 249, 255, 0.86), rgba(239, 243, 255, 0.6));
+}
+
+:global(html[data-theme="light"]) .assignedToValue {
+  background: rgba(48, 185, 126, 0.12);
+  color: #1b7b54;
+}
+
+:global(html[data-theme="light"]) .unassignButton {
+  background: linear-gradient(135deg, rgba(255, 168, 76, 0.12), rgba(255, 111, 97, 0.1));
+  border-color: rgba(209, 123, 43, 0.24);
+  color: #9f4f11;
+}
+
+@media (max-width: 900px) {
+  .tabHeader {
+    flex-direction: column;
+  }
+
+  .tabSwitch {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .tabButton {
+    flex: 1;
+    text-align: center;
+  }
+
+}
+
+@media (max-width: 640px) {
+  .tabSwitch {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .assignedToValue {
+    min-height: auto;
+    padding: 0.35rem 0.7rem;
+  }
+}
