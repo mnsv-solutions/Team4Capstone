@@ -1215,6 +1215,12 @@ export class ApplicationService {
       }));
 
     return {
+      requestedAmount: loanApp.requested_amount?.toString() ?? undefined,
+      tenureMonths: loanApp.tenure_months ?? undefined,
+      interestRate: loanApp.interest_rate?.toString() ?? undefined,
+      approvedLoanAmount: loanApp.approved_loan_amount?.toString() ?? undefined,
+      approvedInterestRate: loanApp.approved_interest_rate?.toString() ?? undefined,
+      approvedTenureMonths: loanApp.approved_tenure_months ?? undefined,
       employmentStatus: employmentDetail?.employment_type?.employment_type_name || '',
       employerName: employmentDetail?.employer_name || '',
       jobTitle: employmentDetail?.job_title || '',

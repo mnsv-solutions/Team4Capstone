@@ -9,6 +9,13 @@ export class BankAccountResponseDto {
 }
 
 export class GetFinancialDetailsResponseDto {
+  requestedAmount?: string;
+  tenureMonths?: number;
+  interestRate?: string;
+  approvedLoanAmount?: string;
+  approvedInterestRate?: string;
+  approvedTenureMonths?: number;
+
   employmentStatus: string;
   employerName: string;
   jobTitle: string;
