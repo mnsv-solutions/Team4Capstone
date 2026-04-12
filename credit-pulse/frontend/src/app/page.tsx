@@ -86,7 +86,9 @@ export default function Home() {
           setErrors({ applicationNo: "No application found with that number. Please check and try again." });
         } else if (reasonCode === "DOB_MISMATCH") {
           setErrors({ dob: "The date of birth does not match our records." });
-        } else if (reasonCode === "PRIMARY_NOT_FOUND" || reasonCode === "INACTIVE_STATUS") {
+        } else if (reasonCode === "PRIMARY_NOT_FOUND") {
+          setErrors({ applicationNo: "No primary applicant found for this application. Please contact support." });
+        } else if (reasonCode === "INACTIVE_STATUS") {
           setErrors({ applicationNo: "This application is no longer active. Please contact support." });
         } else {
           setErrors({ applicationNo: "Unable to retrieve your application status. Please try again later." });

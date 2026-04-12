@@ -28,6 +28,8 @@ export class ApplicationStatusController {
    */
   @Post()
   async getStatus(@Body() dto: ApplicationStatusDto, @Req() req: Request) {
+    // Note: x-forwarded-for is used for audit logging only, not for security decisions.
+    // Trust level depends on the deployment proxy configuration.
     const ipAddress =
       (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ??
       req.socket.remoteAddress;
