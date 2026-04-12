@@ -302,6 +302,25 @@ export class AuthService {
       throw new UnauthorizedException('Invalid token. User id or role id is missing.');
     }
 
+    // This finds the active user details needed for the response.
+    const user = await this.prisma.users.findFirst({
+      where: {
+        user_id: userId,
+        role_id: roleId,
+        is_active: true,
+      },
+      select: {
+        user_id: true,
+        first_name: true,
+        last_name: true,
+      },
+    });
+
+    // This throws an error if the user is not found.
+    if (!user) {
+      throw new NotFoundException('Authenticated user not found.');
+    }
+
     // This finds the active role using the role ID.
     const role = await this.prisma.roles.findFirst({
       where: {
@@ -319,13 +338,30 @@ export class AuthService {
       throw new NotFoundException('Role not found.');
     }
 
+    // This finds the user's active team membership, if available.
+    const teamMember = await this.prisma.team_members.findFirst({
+      where: {
+        user_id: userId,
+        is_active: true,
+      },
+      select: {
+        team_id: true,
+      },
+      orderBy: {
+        created_at: 'asc',
+      },
+    });
+
     // This returns the user role details.
     return {
       message: 'User role fetched successfully.',
       data: {
-        userId,
+        userId: user.user_id,
+        firstName: user.first_name,
+        lastName: user.last_name,
         roleId: role.role_id,
         roleCode: role.role_code,
+        teamId: teamMember?.team_id ?? null,
       },
     };
   }
