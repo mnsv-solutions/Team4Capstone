@@ -1,0 +1,58 @@
+.cp-admin-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1100;
+  padding: 24px;
+}
+
+.cp-admin-confirm-dialog {
+  width: 100%;
+  max-width: 520px;
+  padding: 28px;
+  border-radius: 18px;
+  background-color: #111827;
+  border: 1px solid rgba(204, 204, 204, 0.18);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+}
+
+.cp-admin-confirm-dialog h3 {
+  margin: 0 0 14px 0;
+  font-size: 22px;
+  color: white;
+}
+
+.cp-admin-confirm-dialog p {
+  margin: 0 0 24px 0;
+  line-height: 1.7;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.cp-admin-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.cp-admin-confirm-dialog .btn-secondary {
+  background-color: #1e293b;
+  border-color: rgba(204, 204, 204, 0.18);
+  color: white;
+}
+
+html[data-theme="light"] .cp-admin-confirm-dialog {
+  background-color: #ffffff;
+}
+
+html[data-theme="light"] .cp-admin-confirm-dialog p {
+  color: #334155;
+}
+
+html[data-theme="light"] .cp-admin-confirm-dialog .btn-secondary {
+  background-color: #f3f4f6;
+  color: #111827;
+}

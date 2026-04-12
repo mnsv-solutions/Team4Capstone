@@ -464,16 +464,18 @@ export default function AdminPage() {
     const errors: Record<string, string> = {};
     const trimmedCode = productFormData.productCode.trim();
     const trimmedName = productFormData.productName.trim();
-    const minAmount = parseFloat(productFormData.minAmount);
-    const maxAmount = parseFloat(productFormData.maxAmount);
-    const minTenure = parseInt(productFormData.minTenureMonths, 10);
-    const maxTenure = parseInt(productFormData.maxTenureMonths, 10);
-    const minRate = parseFloat(productFormData.minInterestRate);
-    const maxRate = parseFloat(productFormData.maxInterestRate);
-    const feePercent = parseFloat(productFormData.processingFeePercent);
+    const minAmount = Number(productFormData.minAmount);
+    const maxAmount = Number(productFormData.maxAmount);
+    const minTenure = Number(productFormData.minTenureMonths);
+    const maxTenure = Number(productFormData.maxTenureMonths);
+    const minRate = Number(productFormData.minInterestRate);
+    const maxRate = Number(productFormData.maxInterestRate);
+    const feePercent = Number(productFormData.processingFeePercent);
 
     if (!trimmedCode) {
       errors.productCode = "Product code is required.";
+    } else if (!/^[A-Z0-9_]+$/.test(trimmedCode)) {
+      errors.productCode = "Product code should use uppercase letters, numbers, and underscores only.";
     }
     if (!trimmedName) {
       errors.productName = "Product name is required.";
@@ -487,11 +489,11 @@ export default function AdminPage() {
     if (!errors.minAmount && !errors.maxAmount && minAmount > maxAmount) {
       errors.maxAmount = "Max amount must be greater than or equal to min amount.";
     }
-    if (Number.isNaN(minTenure) || minTenure <= 0) {
-      errors.minTenureMonths = "Min tenure must be a positive integer.";
+    if (Number.isNaN(minTenure) || minTenure <= 0 || !Number.isInteger(minTenure)) {
+      errors.minTenureMonths = "Min tenure must be a whole number of months.";
     }
-    if (Number.isNaN(maxTenure) || maxTenure <= 0) {
-      errors.maxTenureMonths = "Max tenure must be a positive integer.";
+    if (Number.isNaN(maxTenure) || maxTenure <= 0 || !Number.isInteger(maxTenure)) {
+      errors.maxTenureMonths = "Max tenure must be a whole number of months.";
     }
     if (!errors.minTenureMonths && !errors.maxTenureMonths && minTenure > maxTenure) {
       errors.maxTenureMonths = "Max tenure must be greater than or equal to min tenure.";
@@ -505,8 +507,8 @@ export default function AdminPage() {
     if (!errors.minInterestRate && !errors.maxInterestRate && minRate > maxRate) {
       errors.maxInterestRate = "Max rate must be greater than or equal to min rate.";
     }
-    if (Number.isNaN(feePercent) || feePercent < 0) {
-      errors.processingFeePercent = "Processing fee must be a non-negative number.";
+    if (Number.isNaN(feePercent) || feePercent < 0 || feePercent > 100) {
+      errors.processingFeePercent = "Processing fee must be between 0 and 100.";
     }
 
     if (Object.keys(errors).length > 0) {
@@ -904,44 +906,19 @@ export default function AdminPage() {
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
     return (
-      <div style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        marginTop: "20px",
-        paddingTop: "16px",
-        borderTop: "1px solid rgba(204, 204, 204, 0.1)",
-        gap: "16px",
-        flexWrap: "wrap",
-      }}>
-        <div style={{
-          fontSize: "14px",
-          color: "rgba(255, 255, 255, 0.7)",
-        }}>
+      <div className="d-flex justify-content-between align-items-center flex-wrap gap-3 mt-4 pt-3 border-top border-secondary">
+        <div className="small text-muted">
           Showing <strong>{startItem}</strong> to <strong>{endItem}</strong> of <strong>{totalItems}</strong> items
         </div>
 
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          gap: "12px",
-        }}>
+        <div className="d-flex align-items-center gap-2 flex-wrap">
           <select
             value={itemsPerPage}
             onChange={(e) => {
               onItemsPerPageChange(parseInt(e.target.value));
               onPageChange(1);
             }}
-            style={{
-              padding: "8px 12px",
-              borderRadius: "8px",
-              border: "1px solid rgba(204, 204, 204, 0.2)",
-              backgroundColor: "#0f172a",
-              color: "white",
-              fontSize: "14px",
-              cursor: "pointer",
-              outline: "none",
-            }}
+            className="form-select form-select-sm cp-admin-pagination-select"
           >
             <option value="5">5 per page</option>
             <option value="10">10 per page</option>
@@ -949,57 +926,23 @@ export default function AdminPage() {
             <option value="50">50 per page</option>
           </select>
 
-          <div style={{
-            display: "flex",
-            gap: "8px",
-            alignItems: "center",
-          }}>
+          <div className="d-flex align-items-center gap-2 flex-wrap">
             <button
               onClick={() => onPageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              style={{
-                padding: "8px 12px",
-                borderRadius: "8px",
-                border: "1px solid rgba(204, 204, 204, 0.2)",
-                backgroundColor: currentPage === 1 ? "#0a0f1a" : "#172033",
-                color: currentPage === 1 ? "rgba(255, 255, 255, 0.4)" : "white",
-                cursor: currentPage === 1 ? "not-allowed" : "pointer",
-                fontSize: "14px",
-                fontWeight: "600",
-                transition: "0.2s",
-              }}
+              className="btn btn-outline-secondary btn-sm"
             >
               Previous
             </button>
 
-            <div style={{
-              padding: "8px 12px",
-              borderRadius: "8px",
-              border: "1px solid rgba(99, 102, 241, 0.3)",
-              backgroundColor: "rgba(99, 102, 241, 0.1)",
-              color: "#a5b4fc",
-              fontSize: "14px",
-              fontWeight: "600",
-              minWidth: "60px",
-              textAlign: "center",
-            }}>
+            <div className="px-3 py-2 rounded border border-primary text-primary small text-center">
               Page {currentPage} of {totalPages}
             </div>
 
             <button
               onClick={() => onPageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              style={{
-                padding: "8px 12px",
-                borderRadius: "8px",
-                border: "1px solid rgba(204, 204, 204, 0.2)",
-                backgroundColor: currentPage === totalPages ? "#0a0f1a" : "#172033",
-                color: currentPage === totalPages ? "rgba(255, 255, 255, 0.4)" : "white",
-                cursor: currentPage === totalPages ? "not-allowed" : "pointer",
-                fontSize: "14px",
-                fontWeight: "600",
-                transition: "0.2s",
-              }}
+              className="btn btn-outline-secondary btn-sm"
             >
               Next
             </button>
@@ -1338,7 +1281,7 @@ export default function AdminPage() {
 
         {isShowingTeamUsers ? (
           <div className="cp-admin-upload-result">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+            <div className="d-flex justify-content-between align-items-center gap-3 mb-3">
               <h3 className="cp-admin-section-subtitle">Team Members</h3>
               <button
                 type="button"
@@ -1397,7 +1340,7 @@ export default function AdminPage() {
           </div>
         ) : (
           <>
-            <div className="cp-admin-upload-row" style={{ marginBottom: "22px" }}>
+            <div className="cp-admin-upload-row">
               <input
                 type="text"
                 className="cp-admin-field"
@@ -1422,9 +1365,9 @@ export default function AdminPage() {
               <div className="cp-admin-upload-result">
                 <h3 className="cp-admin-section-subtitle">Add User to Team</h3>
 
-                <div style={{ marginBottom: "16px" }}>
+                <div className="mb-3">
                   <label className="cp-admin-upload-label">Select Team</label>
-                  <div style={{ display: "grid", gap: "8px" }}>
+                  <div className="d-grid gap-2">
                     <select
                       className={`cp-admin-field ${teamUserFormErrors.team ? "cp-admin-field-invalid" : ""}`}
                       value={selectedTeamForAddUser}
@@ -1447,9 +1390,9 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div style={{ marginBottom: "16px" }}>
+                <div className="mb-3">
                   <label className="cp-admin-upload-label">Select User</label>
-                  <div style={{ display: "grid", gap: "8px" }}>
+                  <div className="d-grid gap-2">
                     <select
                       className={`cp-admin-field ${teamUserFormErrors.user ? "cp-admin-field-invalid" : ""}`}
                       value={selectedUserForTeam}
@@ -1472,7 +1415,7 @@ export default function AdminPage() {
                   </div>
                 </div>
 
-                <div style={{ display: "flex", gap: "12px" }}>
+                <div className="d-flex flex-wrap gap-3">
                   <button
                     type="button"
                     className="btn btn-primary"
@@ -1646,7 +1589,7 @@ export default function AdminPage() {
           </div>
         </div>
 
-        <div className="cp-admin-upload-row" style={{ marginBottom: "22px" }}>
+        <div className="cp-admin-upload-row">
           <input
             type="text"
             className="cp-admin-field"
@@ -1655,19 +1598,11 @@ export default function AdminPage() {
             onChange={(event) => setProductSearchText(event.target.value)}
           />
 
-          <div
-            style={{
-              display: "flex",
-              gap: "8px",
-              flexWrap: "wrap",
-              alignItems: "flex-end",
-            }}
-          >
+          <div className="d-flex flex-wrap gap-2 align-items-end">
             <select
-              className="cp-admin-field cp-admin-select"
+              className="form-select form-select-sm cp-admin-pagination-select cp-admin-fixed-width"
               value={productStatusFilter}
               onChange={(event) => setProductStatusFilter(event.target.value)}
-              style={{ minWidth: "140px" }}
             >
               <option value="All">All Products</option>
               <option value="Active">Active</option>
@@ -1676,7 +1611,7 @@ export default function AdminPage() {
 
             <button
               type="button"
-              className="btn btn-primary cp-loan-btn-next"
+              className="btn btn-primary cp-loan-btn-next cp-admin-fixed-width"
               onClick={() => {
                 setShowProductForm(true);
                 setEditingProductId(null);
@@ -1692,7 +1627,6 @@ export default function AdminPage() {
                   processingFeePercent: "",
                 });
               }}
-              style={{ minWidth: "140px" }}
             >
               New Product
             </button>
@@ -1705,8 +1639,8 @@ export default function AdminPage() {
               {editingProductId ? "Edit Product" : "Create New Product"}
             </h3>
 
-            <div className="cp-admin-toolbar" style={{ marginBottom: "16px" }}>
-                <div style={{ display: "grid", gap: "8px" }}>
+            <div className="cp-admin-toolbar mb-3">
+                <div className="d-grid gap-2">
                 <input
                   type="text"
                   className={`cp-admin-field ${productFormErrors.productCode ? "cp-admin-field-invalid" : ""}`}
@@ -1726,7 +1660,7 @@ export default function AdminPage() {
                   </p>
                 )}
               </div>
-              <div style={{ display: "grid", gap: "8px" }}>
+              <div className="d-grid gap-2">
                 <input
                   type="text"
                   className={`cp-admin-field ${productFormErrors.productName ? "cp-admin-field-invalid" : ""}`}
@@ -1747,8 +1681,8 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="cp-admin-toolbar" style={{ marginBottom: "16px" }}>
-              <div style={{ display: "grid", gap: "8px" }}>
+<div className="cp-admin-toolbar mb-3">
+              <div className="d-grid gap-2">
                 <input
                   type="number"
                   className={`cp-admin-field ${productFormErrors.minAmount ? "cp-admin-field-invalid" : ""}`}
@@ -1768,7 +1702,7 @@ export default function AdminPage() {
                   </p>
                 )}
               </div>
-              <div style={{ display: "grid", gap: "8px" }}>
+              <div className="d-grid gap-2">
                 <input
                   type="number"
                   className={`cp-admin-field ${productFormErrors.maxAmount ? "cp-admin-field-invalid" : ""}`}
@@ -1790,8 +1724,8 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="cp-admin-toolbar" style={{ marginBottom: "16px" }}>
-              <div style={{ display: "grid", gap: "8px" }}>
+            <div className="cp-admin-toolbar mb-3">
+              <div className="d-grid gap-2">
                 <input
                   type="number"
                   className={`cp-admin-field ${productFormErrors.minTenureMonths ? "cp-admin-field-invalid" : ""}`}
@@ -1810,7 +1744,7 @@ export default function AdminPage() {
                   </p>
                 )}
               </div>
-              <div style={{ display: "grid", gap: "8px" }}>
+              <div className="d-grid gap-2">
                 <input
                   type="number"
                   className={`cp-admin-field ${productFormErrors.maxTenureMonths ? "cp-admin-field-invalid" : ""}`}
@@ -1831,8 +1765,8 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="cp-admin-toolbar" style={{ marginBottom: "16px" }}>
-              <div style={{ display: "grid", gap: "8px" }}>
+            <div className="cp-admin-toolbar mb-3">
+              <div className="d-grid gap-2">
                 <input
                   type="number"
                   className={`cp-admin-field ${productFormErrors.minInterestRate ? "cp-admin-field-invalid" : ""}`}
@@ -1852,7 +1786,7 @@ export default function AdminPage() {
                   </p>
                 )}
               </div>
-              <div style={{ display: "grid", gap: "8px" }}>
+              <div className="d-grid gap-2">
                 <input
                   type="number"
                   className={`cp-admin-field ${productFormErrors.maxInterestRate ? "cp-admin-field-invalid" : ""}`}
@@ -1874,8 +1808,8 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div className="cp-admin-toolbar" style={{ marginBottom: "16px" }}>
-              <div style={{ display: "grid", gap: "8px" }}>
+            <div className="cp-admin-toolbar mb-3">
+              <div className="d-grid gap-2">
                 <input
                   type="number"
                   className={`cp-admin-field ${productFormErrors.processingFeePercent ? "cp-admin-field-invalid" : ""}`}
@@ -1897,7 +1831,7 @@ export default function AdminPage() {
               </div>
             </div>
 
-            <div style={{ display: "flex", gap: "12px" }}>
+            <div className="d-flex flex-wrap gap-3">
               <button
                 type="button"
                 className="btn btn-primary"
