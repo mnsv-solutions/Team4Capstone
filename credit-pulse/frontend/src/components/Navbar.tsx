@@ -9,7 +9,7 @@ import { useAuth } from "../context/AuthContext";
 
 export default function Navbar() {
   const router = useRouter();
-  const { token, isAuthenticated, isLoading, logout } = useAuth();
+  const { token, isAuthenticated, isAdmin, isLoading, logout } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const handleSignOut = async () => {
@@ -66,9 +66,15 @@ export default function Navbar() {
 
           {!isLoading && isAuthenticated && (
             <>
-              <Link className="nav-link cp-navlink" href="/dashboard">
-                Dashboard
-              </Link>
+              {isAdmin ? (
+                <Link className="nav-link cp-navlink" href="/admin">
+                  Admin
+                </Link>
+              ) : (
+                <Link className="nav-link cp-navlink" href="/dashboard">
+                  Dashboard
+                </Link>
+              )}
 
               <Link className="nav-link cp-navlink" href="/about">
                 About Us

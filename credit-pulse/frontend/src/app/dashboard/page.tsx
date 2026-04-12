@@ -23,7 +23,7 @@ type DashboardApplication = {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { token, isLoading: authLoading, logout } = useAuth();
+  const { token, isAdmin, isLoading: authLoading, logout } = useAuth();
 
   const [applications, setApplications] = useState<DashboardApplication[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -39,6 +39,11 @@ export default function DashboardPage() {
 
     if (!token) {
       router.push("/signin");
+      return;
+    }
+
+    if (isAdmin) {
+      router.replace("/admin");
       return;
     }
 
@@ -84,7 +89,7 @@ export default function DashboardPage() {
     }
 
     loadApplications();
-  }, [token, authLoading, logout, router]);
+  }, [token, isAdmin, authLoading, logout, router]);
 
   const filteredApplications = useMemo(() => {
     const normalizedSearch = searchTerm.trim().toLowerCase();
