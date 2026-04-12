@@ -66,10 +66,9 @@ export default function SignUpPage() {
     setIsSubmitting(true);
 
     try {
-      await axios.post("http://localhost:3001/auth/signup", form, {
+      await axios.post("/api/auth/signup", form, {
         headers: {
           "Content-Type": "application/json",
-          "Allow-Control-Allow-Origin": "*",
         },
       });
     } catch (error) {
@@ -89,7 +88,7 @@ export default function SignUpPage() {
       return;
     }
 
-    setSuccessMsg("Account created (dummy). Redirecting to Sign In...");
+    setSuccessMsg("Account created successfully. Redirecting to Sign In...");
 
     setTimeout(() => router.push("/signin"), 900);
   }

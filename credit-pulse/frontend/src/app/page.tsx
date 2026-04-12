@@ -1,5 +1,6 @@
 "use client";
 
+import axios from "axios";
 import { useState } from "react";
 
 export default function Home() {
@@ -7,10 +8,8 @@ export default function Home() {
   const [dob, setDob] = useState("");
   const [errors, setErrors] = useState<{ applicationNo?: string; dob?: string }>({});
   const [successMsg, setSuccessMsg] = useState("");
-
-  function isAlphaNumeric(value: string) {
-    return /^[A-Za-z0-9]+$/.test(value);
-  }
+  const [statusResult, setStatusResult] = useState<{ statusCode: string; statusName: string } | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   function isAdult(dateString: string) {
     const today = new Date();
@@ -33,14 +32,8 @@ export default function Home() {
 
     if (!value) {
       nextErrors.applicationNo = "Please enter your application number.";
-    } else if (value.includes(" ")) {
-      nextErrors.applicationNo = "No spaces are allowed in the application number.";
-    } else if (value.length !== 16) {
-      nextErrors.applicationNo = "Application number must be exactly 16 characters.";
-    } else if (!value.startsWith("APPL")) {
-      nextErrors.applicationNo = "Application number must start with APPL.";
-    } else if (!isAlphaNumeric(value)) {
-      nextErrors.applicationNo = "Only letters and numbers are allowed (no special characters).";
+    } else if (!/^APPL\d{10}$/.test(value)) {
+      nextErrors.applicationNo = "Application number must start with APPL followed by exactly 10 digits (e.g., APPL1234567890).";
     }
 
     if (!dob) {
@@ -61,16 +54,49 @@ export default function Home() {
     return nextErrors;
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (isSubmitting) return;
+
     setSuccessMsg("");
+    setStatusResult(null);
 
     const nextErrors = validate();
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) return;
 
-    setSuccessMsg("Status check submitted (dummy). Backend will be connected in later sprint.");
+    setIsSubmitting(true);
+
+    try {
+      const response = await axios.post("/api/application-status", {
+        applicationNumber: applicationNo.trim(),
+        dob,
+      });
+
+      setStatusResult({
+        statusCode: response.data.statusCode,
+        statusName: response.data.statusName,
+      });
+      setSuccessMsg(`Application found. Current status: ${response.data.statusName}`);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        const reasonCode = error.response?.data?.reasonCode as string | undefined;
+        if (reasonCode === "NOT_FOUND") {
+          setErrors({ applicationNo: "No application found with that number. Please check and try again." });
+        } else if (reasonCode === "DOB_MISMATCH") {
+          setErrors({ dob: "The date of birth does not match our records." });
+        } else if (reasonCode === "PRIMARY_NOT_FOUND" || reasonCode === "INACTIVE_STATUS") {
+          setErrors({ applicationNo: "This application is no longer active. Please contact support." });
+        } else {
+          setErrors({ applicationNo: "Unable to retrieve your application status. Please try again later." });
+        }
+      } else {
+        setErrors({ applicationNo: "Unable to reach the server. Please make sure the backend is running." });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   function handleAppNoChange(value: string) {
@@ -104,6 +130,9 @@ export default function Home() {
             {successMsg && (
               <div className="alert alert-success" role="status" aria-live="polite">
                 {successMsg}
+                {statusResult && (
+                  <span className="ms-2 fw-semibold">({statusResult.statusCode})</span>
+                )}
               </div>
             )}
 
@@ -113,7 +142,7 @@ export default function Home() {
                   className={`form-control ${errors.applicationNo ? "is-invalid" : ""}`}
                   type="text"
                   name="applicationNo"
-                  placeholder="Application Number (e.g., APPL123456789012)"
+                  placeholder="Application Number (e.g., APPL1234567890)"
                   aria-label="Application Number"
                   value={applicationNo}
                   onChange={(e) => handleAppNoChange(e.target.value)}
@@ -136,8 +165,8 @@ export default function Home() {
               </div>
 
               <div className="col-12 col-md-3">
-                <button className="btn btn-primary w-100" type="submit">
-                  Check Status
+                <button className="btn btn-primary w-100" type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Checking..." : "Check Status"}
                 </button>
               </div>
             </form>
