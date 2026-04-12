@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
   pull_request:
     branches: 
-    - "prod"
+    - prod
     paths:
-      - "credit-pulse/backend/**"
+      - credit-pulse/backend/**
 
 permissions:
   id-token: write
@@ -16,7 +16,7 @@ env:
   TASK_DEFINITION_JSON: "task-definition.json"
 
 concurrency:
-  group: "credit-pulse-backend"
+  group: credit-pulse-backend
   cancel-in-progress: true
 
 jobs:
