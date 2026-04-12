@@ -59,12 +59,16 @@ export default function SignInPage() {
         return;
       }
 
-      login(accessToken, userData);
+      const isAdminUser = await login(accessToken, userData);
 
-      setSuccessMsg("Signed in successfully. Redirecting to dashboard...");
+      setSuccessMsg(
+        isAdminUser
+          ? "Signed in successfully. Redirecting to admin page..."
+          : "Signed in successfully. Redirecting to dashboard...",
+      );
 
       setTimeout(() => {
-        router.push("/dashboard");
+        router.push(isAdminUser ? "/admin" : "/dashboard");
       }, 900);
     } catch (error) {
       if (axios.isAxiosError(error)) {
