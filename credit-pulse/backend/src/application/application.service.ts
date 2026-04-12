@@ -148,6 +148,7 @@ export class ApplicationService {
           userId,
           references.statusId,
           userRoleId,
+          createApplicationDto,
         );
 
         this.logger.log(`Application created successfully with ID: ${application.application_id}`);
@@ -690,6 +691,7 @@ export class ApplicationService {
     userId: string,
     statusId: string,
     userRoleId: string,
+    createApplicationDto?: CreateApplicationRequestDto,
   ) {
     const applicationNumber = await this.generateUniqueApplicationNumber(tx);
 
@@ -698,6 +700,12 @@ export class ApplicationService {
         application_number: applicationNumber,
         status_id: statusId,
         created_by: userId,
+        tenure_months: createApplicationDto?.tenureMonths
+          ? Number(createApplicationDto.tenureMonths)
+          : null,
+        requested_amount: createApplicationDto?.loanAmount
+          ? Number(createApplicationDto.loanAmount)
+          : null,
       },
       select: { application_id: true },
     });

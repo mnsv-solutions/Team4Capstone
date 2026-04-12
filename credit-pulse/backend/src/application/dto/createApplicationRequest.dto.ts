@@ -162,6 +162,8 @@ export class CreateApplicationRequestDto {
   @IsOptional() otherIncomeSources: string | number;
   @IsOptional() existingLoans: string | number;
   @IsOptional() totalMonthlyLoanPayments: string | number;
+  @IsOptional() tenureMonths?: string | number;
+  @IsOptional() loanAmount?: string | number;
 
   @IsArray()
   @ValidateNested({ each: true })
