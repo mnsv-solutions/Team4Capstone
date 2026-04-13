@@ -1,36 +1,48 @@
 export type SignInErrors = {
-    loginId?: string;
-    password?: string;
+  loginId?: string;
+  password?: string;
 };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^\d{10}$/;
 
-export function validateSignIn(
-    loginId: string,
-    password: string
-): SignInErrors {
-    const errors: SignInErrors = {};
+export function sanitizeMobile(value: string): string {
+  return value.replace(/\D/g, "").slice(0, 10);
+}
 
-    const value = loginId.trim();
-    const numericPhone = value.replace(/\D/g, "");
+export function normalizeLoginId(value: string): string {
+  const trimmedValue = value.trim();
 
-    if (!value) {
-        errors.loginId = "Email or mobile number is required.";
-    } else {
-        const isEmail = EMAIL_REGEX.test(value);
-        const isPhone = PHONE_REGEX.test(numericPhone);
+  if (trimmedValue.includes("@")) {
+    return trimmedValue.toLowerCase();
+  }
 
-        if (!isEmail && !isPhone) {
-            errors.loginId = "Enter a valid email or a 10-digit mobile number.";
-        }
+  return sanitizeMobile(trimmedValue);
+}
+
+export function validateSignIn(loginId: string, password: string): SignInErrors {
+  const errors: SignInErrors = {};
+
+  const rawValue = loginId.trim();
+  const normalizedLoginId = normalizeLoginId(loginId);
+
+  if (!rawValue) {
+    errors.loginId = "Email or mobile number is required.";
+  } else if (rawValue.includes("@")) {
+    if (rawValue.includes(" ")) {
+      errors.loginId = "Email address cannot contain spaces.";
+    } else if (!EMAIL_REGEX.test(normalizedLoginId)) {
+      errors.loginId = "Enter a valid email address.";
     }
-
-    if (!password) {
-        errors.password = "Password is required.";
-    } else if (password.length < 6) {
-        errors.password = "Password must be at least 6 characters.";
+  } else {
+    if (!PHONE_REGEX.test(normalizedLoginId)) {
+      errors.loginId = "Enter a valid 10-digit mobile number.";
     }
+  }
 
-    return errors;
+  if (!password || password.trim().length === 0) {
+    errors.password = "Password is required.";
+  }
+
+  return errors;
 }

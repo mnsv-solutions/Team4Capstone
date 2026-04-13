@@ -148,6 +148,7 @@ export class ApplicationService {
           userId,
           references.statusId,
           userRoleId,
+          createApplicationDto,
         );
 
         this.logger.log(`Application created successfully with ID: ${application.application_id}`);
@@ -690,6 +691,7 @@ export class ApplicationService {
     userId: string,
     statusId: string,
     userRoleId: string,
+    createApplicationDto?: CreateApplicationRequestDto,
   ) {
     const applicationNumber = await this.generateUniqueApplicationNumber(tx);
 
@@ -698,6 +700,13 @@ export class ApplicationService {
         application_number: applicationNumber,
         status_id: statusId,
         created_by: userId,
+        loan_type_id: createApplicationDto?.loanTypeId || null,
+        tenure_months: createApplicationDto?.tenureMonths
+          ? Number(createApplicationDto.tenureMonths)
+          : null,
+        requested_amount: createApplicationDto?.loanAmount
+          ? Number(createApplicationDto.loanAmount)
+          : null,
       },
       select: { application_id: true },
     });
@@ -765,7 +774,7 @@ export class ApplicationService {
           firstName: customer.first_name,
           lastName: customer.last_name,
           dateOfBirth: customer.dob,
-          sin: customer.sin,
+          sin: customer.sin.replace(/\D/g, '').slice(-4),
           consent: true,
         },
         userId,
@@ -1150,6 +1159,7 @@ export class ApplicationService {
     const loanApp = await this.prisma.loan_application.findUnique({
       where: { application_number: dto.applicationNumber },
       include: {
+        loan_types: true,
         sub_loan: {
           include: {
             customer: {
@@ -1207,6 +1217,17 @@ export class ApplicationService {
       }));
 
     return {
+      requestedAmount: loanApp.requested_amount?.toString() ?? undefined,
+      tenureMonths: loanApp.tenure_months ?? undefined,
+      interestRate: loanApp.interest_rate?.toString() ?? undefined,
+      approvedLoanAmount: loanApp.approved_loan_amount?.toString() ?? undefined,
+      approvedInterestRate: loanApp.approved_interest_rate?.toString() ?? undefined,
+      approvedTenureMonths: loanApp.approved_tenure_months ?? undefined,
+
+      productId: loanApp.loan_types?.loan_type_id ?? undefined,
+      productCode: loanApp.loan_types?.loan_type_code ?? undefined,
+      productName: loanApp.loan_types?.loan_type_name ?? undefined,
+
       employmentStatus: employmentDetail?.employment_type?.employment_type_name || '',
       employerName: employmentDetail?.employer_name || '',
       jobTitle: employmentDetail?.job_title || '',

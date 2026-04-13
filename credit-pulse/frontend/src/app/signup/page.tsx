@@ -5,12 +5,21 @@ import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  sanitizeMobile,
+  sanitizePhone,
   validateSignUp,
+  normalizeSignUpValues,
   SignUpFormErrors,
   SignUpFormState,
 } from "../utils/signupValidation";
 import styles from "./page.module.css";
+
+type SignUpApiPayload = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  password: string;
+};
 
 export default function SignUpPage() {
   const router = useRouter();
@@ -19,7 +28,7 @@ export default function SignUpPage() {
     firstName: "",
     lastName: "",
     email: "",
-    mobile: "",
+    phone: "",
     password: "",
   });
 
@@ -28,6 +37,7 @@ export default function SignUpPage() {
   const [submitted, setSubmitted] = useState(false);
 
   const [successMsg, setSuccessMsg] = useState("");
+  const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isValid = useMemo(
@@ -48,22 +58,72 @@ export default function SignUpPage() {
     setErrors(validateSignUp(form));
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
     if (isSubmitting) return;
 
     setSubmitted(true);
     setSuccessMsg("");
+    setSubmitError("");
 
-    const validationErrors = validateSignUp(form);
+    const normalizedForm = normalizeSignUpValues(form);
+    setForm(normalizedForm);
+
+    const validationErrors = validateSignUp(normalizedForm);
     setErrors(validationErrors);
 
-    if (Object.keys(validationErrors).length > 0) return;
+    if (Object.keys(validationErrors).length > 0) {
+      return;
+    }
 
     setIsSubmitting(true);
-    setSuccessMsg("Account created (dummy). Redirecting to Sign In...");
 
-    setTimeout(() => router.push("/signin"), 900);
+    try {
+      const payload: SignUpApiPayload = {
+        firstName: normalizedForm.firstName,
+        lastName: normalizedForm.lastName,
+        email: normalizedForm.email,
+        phone: normalizedForm.phone,
+        password: normalizedForm.password,
+      };
+
+      const response = await fetch("http://localhost:3001/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        const backendMessage =
+          data?.message ||
+          data?.error ||
+          "Sign up failed. Please check your details and try again.";
+
+        setSubmitError(
+          Array.isArray(backendMessage)
+            ? backendMessage.join(" ")
+            : String(backendMessage)
+        );
+        return;
+      }
+
+      setSuccessMsg("Account created successfully. Redirecting to Sign In...");
+
+      setTimeout(() => {
+        router.push("/signin");
+      }, 1200);
+    } catch {
+      setSubmitError(
+        "Unable to connect to the server. Please try again later."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
@@ -109,6 +169,12 @@ export default function SignUpPage() {
             </div>
           )}
 
+          {submitError && (
+            <div className="alert alert-danger" role="alert" aria-live="assertive">
+              {submitError}
+            </div>
+          )}
+
           <form onSubmit={handleSubmit} noValidate className={styles.form}>
             <div className={styles.formGrid}>
               <div>
@@ -118,6 +184,7 @@ export default function SignUpPage() {
                 <input
                   id="firstName"
                   className={`form-control ${errors.firstName ? "is-invalid" : ""}`}
+                  name="firstName"
                   type="text"
                   value={form.firstName}
                   onChange={(e) => setField("firstName", e.target.value)}
@@ -126,6 +193,7 @@ export default function SignUpPage() {
                   aria-describedby={errors.firstName ? "firstName-error" : undefined}
                   placeholder="Enter your first name"
                   disabled={isSubmitting}
+                  autoComplete="given-name"
                   required
                 />
                 {errors.firstName && (
@@ -142,6 +210,7 @@ export default function SignUpPage() {
                 <input
                   id="lastName"
                   className={`form-control ${errors.lastName ? "is-invalid" : ""}`}
+                  name="lastName"
                   type="text"
                   value={form.lastName}
                   onChange={(e) => setField("lastName", e.target.value)}
@@ -150,6 +219,7 @@ export default function SignUpPage() {
                   aria-describedby={errors.lastName ? "lastName-error" : undefined}
                   placeholder="Enter your last name"
                   disabled={isSubmitting}
+                  autoComplete="family-name"
                   required
                 />
                 {errors.lastName && (
@@ -167,6 +237,7 @@ export default function SignUpPage() {
               <input
                 id="email"
                 className={`form-control ${errors.email ? "is-invalid" : ""}`}
+                name="email"
                 type="email"
                 value={form.email}
                 onChange={(e) => setField("email", e.target.value)}
@@ -175,6 +246,7 @@ export default function SignUpPage() {
                 aria-describedby={errors.email ? "email-error" : undefined}
                 placeholder="example@domain.com"
                 disabled={isSubmitting}
+                autoComplete="email"
                 required
               />
               {errors.email && (
@@ -190,23 +262,25 @@ export default function SignUpPage() {
               </label>
               <input
                 id="mobile"
-                className={`form-control ${errors.mobile ? "is-invalid" : ""}`}
+                className={`form-control ${errors.phone ? "is-invalid" : ""}`}
+                name="phone"
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={10}
-                value={form.mobile}
-                onChange={(e) => setField("mobile", sanitizeMobile(e.target.value))}
-                onBlur={() => onBlurField("mobile")}
-                aria-invalid={!!errors.mobile}
-                aria-describedby={errors.mobile ? "mobile-error" : undefined}
+                value={form.phone}
+                onChange={(e) => setField("phone", sanitizePhone(e.target.value))}
+                onBlur={() => onBlurField("phone")}
+                aria-invalid={!!errors.phone}
+                aria-describedby={errors.phone ? "phone-error" : undefined}
                 placeholder="1234567890"
                 disabled={isSubmitting}
+                autoComplete="tel"
                 required
               />
-              {errors.mobile && (
-                <div id="mobile-error" className="invalid-feedback">
-                  {errors.mobile}
+              {errors.phone && (
+                <div id="phone-error" className="invalid-feedback">
+                  {errors.phone}
                 </div>
               )}
             </div>
@@ -218,6 +292,7 @@ export default function SignUpPage() {
               <input
                 id="password"
                 className={`form-control ${errors.password ? "is-invalid" : ""}`}
+                name="password"
                 type="password"
                 value={form.password}
                 onChange={(e) => setField("password", e.target.value)}
@@ -226,6 +301,7 @@ export default function SignUpPage() {
                 aria-describedby={errors.password ? "password-error" : undefined}
                 placeholder="Min 8 chars, Upper, Lower, Number, Symbol"
                 disabled={isSubmitting}
+                autoComplete="new-password"
                 required
               />
               {errors.password && (

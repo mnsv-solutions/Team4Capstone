@@ -18,6 +18,10 @@ import { useAuth } from "../../context/AuthContext";
 import {
   sanitizeDigits,
   sanitizeAlphaNumericUpper,
+  sanitizeName,
+  sanitizeAddressText,
+  sanitizeLettersSpaces,
+  sanitizeAlphaNumericBasic,
   validateLoanStep,
   createEmptyBankAccount,
   type Address,
@@ -31,6 +35,26 @@ type StepKey =
   | "education"
   | "financial"
   | "documents";
+
+type LoanProduct = {
+  productId: string;
+  productCode: string;
+  productName: string;
+  minAmount: string;
+  maxAmount: string;
+  minTenureMonths: number;
+  maxTenureMonths: number;
+  minInterestRate: string;
+  maxInterestRate: string;
+  processingFeePercent: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ExtendedLoanApplicationForm = LoanApplicationForm & {
+  loanTypeId: string;
+};
 
 const steps: { key: StepKey; label: string }[] = [
   { key: "personal", label: "Personal Details" },
@@ -49,7 +73,7 @@ const initialAddress: Address = {
   country: "",
 };
 
-const initialForm: LoanApplicationForm = {
+const initialForm: ExtendedLoanApplicationForm = {
   firstName: "",
   lastName: "",
   dob: "",
@@ -81,6 +105,8 @@ const initialForm: LoanApplicationForm = {
   existingLoans: "",
   totalMonthlyLoanPayments: "",
   tenureMonths: "",
+  loanAmount: "",
+  loanTypeId: "",
 
   bankAccounts: [{ ...createEmptyBankAccount(), isRepaymentAccount: true }],
 
@@ -97,12 +123,28 @@ export default function LoanApplicationPage() {
   const { token, isAuthenticated, isLoading: authLoading, logout } = useAuth();
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [form, setForm] = useState<LoanApplicationForm>(initialForm);
+  const [form, setForm] = useState<ExtendedLoanApplicationForm>(initialForm);
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitted, setSubmitted] = useState(false);
   const [successMsg, setSuccessMsg] = useState("");
   const [apiError, setApiError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [products, setProducts] = useState<LoanProduct[]>([]);
+  const [productsLoading, setProductsLoading] = useState(false);
+  const [productsError, setProductsError] = useState("");
+
+  const activeProducts = useMemo(() => {
+    return products.filter(
+      (product) => String(product.status).toLowerCase() === "active"
+    );
+  }, [products]);
+
+  const selectedLoanProduct = useMemo(() => {
+    return activeProducts.find(
+      (product) => product.productId === form.loanTypeId
+    );
+  }, [activeProducts, form.loanTypeId]);
 
   const progressPercent = useMemo(() => {
     return ((currentStep + 1) / steps.length) * 100;
@@ -125,9 +167,68 @@ export default function LoanApplicationPage() {
     }
   }, [form.mailingSameAsResidential, form.residentialAddress]);
 
-  function setField<K extends keyof LoanApplicationForm>(
+  useEffect(() => {
+    async function fetchProducts() {
+      if (!token) return;
+
+      try {
+        setProductsLoading(true);
+        setProductsError("");
+
+        const response = await axios.get("/api/products/all", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const fetchedProducts = Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
+
+        setProducts(fetchedProducts);
+      } catch (error) {
+        console.error("Failed to fetch products:", error);
+        setProducts([]);
+        setProductsError("Unable to load loan products.");
+      } finally {
+        setProductsLoading(false);
+      }
+    }
+
+    fetchProducts();
+  }, [token]);
+
+  useEffect(() => {
+    if (!selectedLoanProduct) return;
+
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.loanAmount;
+      delete next.tenureMonths;
+      delete next.loanTypeId;
+      return next;
+    });
+
+    setForm((prev) => ({
+      ...prev,
+      loanAmount:
+        prev.loanAmount &&
+        Number(prev.loanAmount) >= Number(selectedLoanProduct.minAmount) &&
+        Number(prev.loanAmount) <= Number(selectedLoanProduct.maxAmount)
+          ? prev.loanAmount
+          : "",
+      tenureMonths:
+        prev.tenureMonths &&
+        Number(prev.tenureMonths) >= selectedLoanProduct.minTenureMonths &&
+        Number(prev.tenureMonths) <= selectedLoanProduct.maxTenureMonths
+          ? prev.tenureMonths
+          : "",
+    }));
+  }, [selectedLoanProduct]);
+
+  function setField<K extends keyof ExtendedLoanApplicationForm>(
     key: K,
-    value: LoanApplicationForm[K]
+    value: ExtendedLoanApplicationForm[K]
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
 
@@ -156,7 +257,7 @@ export default function LoanApplicationPage() {
 
   function setBankField(
     index: number,
-    key: keyof LoanApplicationForm["bankAccounts"][number],
+    key: keyof ExtendedLoanApplicationForm["bankAccounts"][number],
     value: string | boolean
   ) {
     setForm((prev) => ({
@@ -238,12 +339,44 @@ export default function LoanApplicationPage() {
       return next;
     });
   }
-
-  function handleNext() {
+    function handleNext() {
     setSuccessMsg("");
     setApiError("");
 
-    const stepErrors = validateLoanStep(form, currentStep);
+    const stepErrors = validateLoanStep(form as LoanApplicationForm, currentStep);
+
+    if (currentStep === 3) {
+      if (!form.loanTypeId) {
+        stepErrors.loanTypeId = "Loan type is required.";
+      }
+
+      if (selectedLoanProduct) {
+        const loanAmountNumber = Number(form.loanAmount);
+        const minAmount = Number(selectedLoanProduct.minAmount);
+        const maxAmount = Number(selectedLoanProduct.maxAmount);
+
+        if (!form.loanAmount.trim()) {
+          stepErrors.loanAmount = "Requested loan amount is required.";
+        } else if (Number.isNaN(loanAmountNumber)) {
+          stepErrors.loanAmount = "Requested loan amount must be a valid number.";
+        } else if (loanAmountNumber < minAmount || loanAmountNumber > maxAmount) {
+          stepErrors.loanAmount = `Requested loan amount must be between ${selectedLoanProduct.minAmount} and ${selectedLoanProduct.maxAmount}.`;
+        }
+
+        const tenureNumber = Number(form.tenureMonths);
+        const minTenure = selectedLoanProduct.minTenureMonths;
+        const maxTenure = selectedLoanProduct.maxTenureMonths;
+
+        if (!form.tenureMonths.trim()) {
+          stepErrors.tenureMonths = "Requested loan tenure is required.";
+        } else if (Number.isNaN(tenureNumber)) {
+          stepErrors.tenureMonths = "Requested loan tenure must be a valid number.";
+        } else if (tenureNumber < minTenure || tenureNumber > maxTenure) {
+          stepErrors.tenureMonths = `Requested loan tenure must be between ${minTenure} and ${maxTenure} months.`;
+        }
+      }
+    }
+
     setErrors(stepErrors);
 
     if (Object.keys(stepErrors).length > 0) return;
@@ -265,7 +398,7 @@ export default function LoanApplicationPage() {
     }
   }
 
-  function buildLoanApplicationPayload(formDataInput: LoanApplicationForm) {
+  function buildLoanApplicationPayload(formDataInput: ExtendedLoanApplicationForm) {
     return {
       firstName: formDataInput.firstName,
       lastName: formDataInput.lastName,
@@ -314,6 +447,9 @@ export default function LoanApplicationPage() {
       otherIncomeSources: formDataInput.otherIncomeSources || "",
       existingLoans: formDataInput.existingLoans || "",
       totalMonthlyLoanPayments: formDataInput.totalMonthlyLoanPayments || "",
+      tenureMonths: formDataInput.tenureMonths || "",
+      loanAmount: formDataInput.loanAmount || "",
+      loanTypeId: formDataInput.loanTypeId || "",
 
       bankAccounts: formDataInput.bankAccounts.map((account) => ({
         bankName: account.bankName,
@@ -336,7 +472,42 @@ export default function LoanApplicationPage() {
     setSuccessMsg("");
     setApiError("");
 
-    const finalErrors = validateLoanStep(form, currentStep);
+    const finalErrors = validateLoanStep(form as LoanApplicationForm, currentStep);
+
+    if (currentStep === 3) {
+      if (!form.loanTypeId) {
+        finalErrors.loanTypeId = "Loan type is required.";
+      }
+
+      if (selectedLoanProduct) {
+        const loanAmountNumber = Number(form.loanAmount);
+        const minAmount = Number(selectedLoanProduct.minAmount);
+        const maxAmount = Number(selectedLoanProduct.maxAmount);
+
+        if (!form.loanAmount.trim()) {
+          finalErrors.loanAmount = "Requested loan amount is required.";
+        } else if (Number.isNaN(loanAmountNumber)) {
+          finalErrors.loanAmount =
+            "Requested loan amount must be a valid number.";
+        } else if (loanAmountNumber < minAmount || loanAmountNumber > maxAmount) {
+          finalErrors.loanAmount = `Requested loan amount must be between ${selectedLoanProduct.minAmount} and ${selectedLoanProduct.maxAmount}.`;
+        }
+
+        const tenureNumber = Number(form.tenureMonths);
+        const minTenure = selectedLoanProduct.minTenureMonths;
+        const maxTenure = selectedLoanProduct.maxTenureMonths;
+
+        if (!form.tenureMonths.trim()) {
+          finalErrors.tenureMonths = "Requested loan tenure is required.";
+        } else if (Number.isNaN(tenureNumber)) {
+          finalErrors.tenureMonths =
+            "Requested loan tenure must be a valid number.";
+        } else if (tenureNumber < minTenure || tenureNumber > maxTenure) {
+          finalErrors.tenureMonths = `Requested loan tenure must be between ${minTenure} and ${maxTenure} months.`;
+        }
+      }
+    }
+
     setErrors(finalErrors);
 
     if (Object.keys(finalErrors).length > 0) return;
@@ -386,7 +557,11 @@ export default function LoanApplicationPage() {
       setSubmitted(false);
       setForm(initialForm);
       setCurrentStep(0);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 900);
+
     } catch (error) {
       let message = "Failed to submit loan application.";
 
@@ -522,8 +697,7 @@ export default function LoanApplicationPage() {
       </main>
     );
   }
-
-  return (
+    return (
     <main className="cp-loan-page">
       <section className="cp-loan-card">
         <div className="cp-loan-top">
@@ -600,8 +774,11 @@ export default function LoanApplicationPage() {
                     errors.firstName ? "is-invalid" : ""
                   }`}
                   value={form.firstName}
-                  onChange={(e) => setField("firstName", e.target.value)}
+                  onChange={(e) =>
+                    setField("firstName", sanitizeName(e.target.value).slice(0, 50))
+                  }
                   placeholder="Enter first name"
+                  maxLength={50}
                 />
                 {renderInputError("firstName")}
               </div>
@@ -614,8 +791,11 @@ export default function LoanApplicationPage() {
                     errors.lastName ? "is-invalid" : ""
                   }`}
                   value={form.lastName}
-                  onChange={(e) => setField("lastName", e.target.value)}
+                  onChange={(e) =>
+                    setField("lastName", sanitizeName(e.target.value).slice(0, 50))
+                  }
                   placeholder="Enter last name"
+                  maxLength={50}
                 />
                 {renderInputError("lastName")}
               </div>
@@ -675,8 +855,14 @@ export default function LoanApplicationPage() {
                     errors.nationality ? "is-invalid" : ""
                   }`}
                   value={form.nationality}
-                  onChange={(e) => setField("nationality", e.target.value)}
+                  onChange={(e) =>
+                    setField(
+                      "nationality",
+                      sanitizeLettersSpaces(e.target.value).slice(0, 40)
+                    )
+                  }
                   placeholder="Enter nationality"
+                  maxLength={40}
                 />
                 {renderInputError("nationality")}
               </div>
@@ -712,9 +898,13 @@ export default function LoanApplicationPage() {
                   }`}
                   value={form.governmentIdNumber}
                   onChange={(e) =>
-                    setField("governmentIdNumber", e.target.value)
+                    setField(
+                      "governmentIdNumber",
+                      e.target.value.replace(/[^a-zA-Z0-9-]/g, "").slice(0, 20)
+                    )
                   }
                   placeholder="Enter ID number"
+                  maxLength={20}
                 />
                 {renderInputError("governmentIdNumber")}
               </div>
@@ -767,9 +957,10 @@ export default function LoanApplicationPage() {
                   }`}
                   value={form.mobile}
                   onChange={(e) =>
-                    setField("mobile", sanitizeDigits(e.target.value))
+                    setField("mobile", sanitizeDigits(e.target.value).slice(0, 10))
                   }
                   placeholder="Enter mobile number"
+                  maxLength={10}
                 />
                 {renderInputError("mobile")}
               </div>
@@ -778,13 +969,20 @@ export default function LoanApplicationPage() {
                 <label className="form-label fw-semibold">Alternate Phone</label>
                 <input
                   type="text"
-                  className="form-control"
+                  className={`form-control ${
+                    errors.alternatePhone ? "is-invalid" : ""
+                  }`}
                   value={form.alternatePhone}
                   onChange={(e) =>
-                    setField("alternatePhone", sanitizeDigits(e.target.value))
+                    setField(
+                      "alternatePhone",
+                      sanitizeDigits(e.target.value).slice(0, 10)
+                    )
                   }
                   placeholder="Enter alternate phone"
+                  maxLength={10}
                 />
+                {renderInputError("alternatePhone")}
               </div>
 
               <div className="col-12">
@@ -800,9 +998,14 @@ export default function LoanApplicationPage() {
                   }`}
                   value={form.residentialAddress.line1}
                   onChange={(e) =>
-                    setAddressField("residentialAddress", "line1", e.target.value)
+                    setAddressField(
+                      "residentialAddress",
+                      "line1",
+                      sanitizeAddressText(e.target.value).slice(0, 100)
+                    )
                   }
                   placeholder="Enter address line 1"
+                  maxLength={100}
                 />
                 {renderInputError("residentialLine1")}
               </div>
@@ -814,13 +1017,17 @@ export default function LoanApplicationPage() {
                   className="form-control"
                   value={form.residentialAddress.line2}
                   onChange={(e) =>
-                    setAddressField("residentialAddress", "line2", e.target.value)
+                    setAddressField(
+                      "residentialAddress",
+                      "line2",
+                      sanitizeAddressText(e.target.value).slice(0, 100)
+                    )
                   }
                   placeholder="Enter address line 2"
+                  maxLength={100}
                 />
               </div>
-
-              <div className="col-12 col-md-3">
+                            <div className="col-12 col-md-3">
                 <label className="form-label fw-semibold">City *</label>
                 <input
                   type="text"
@@ -829,9 +1036,14 @@ export default function LoanApplicationPage() {
                   }`}
                   value={form.residentialAddress.city}
                   onChange={(e) =>
-                    setAddressField("residentialAddress", "city", e.target.value)
+                    setAddressField(
+                      "residentialAddress",
+                      "city",
+                      sanitizeLettersSpaces(e.target.value).slice(0, 50)
+                    )
                   }
                   placeholder="Enter city"
+                  maxLength={50}
                 />
                 {renderInputError("residentialCity")}
               </div>
@@ -845,9 +1057,14 @@ export default function LoanApplicationPage() {
                   }`}
                   value={form.residentialAddress.state}
                   onChange={(e) =>
-                    setAddressField("residentialAddress", "state", e.target.value)
+                    setAddressField(
+                      "residentialAddress",
+                      "state",
+                      sanitizeLettersSpaces(e.target.value).slice(0, 50)
+                    )
                   }
                   placeholder="Enter province / state"
+                  maxLength={50}
                 />
                 {renderInputError("residentialState")}
               </div>
@@ -864,10 +1081,14 @@ export default function LoanApplicationPage() {
                     setAddressField(
                       "residentialAddress",
                       "postalCode",
-                      e.target.value.toUpperCase()
+                      e.target.value
+                        .toUpperCase()
+                        .replace(/[^A-Z0-9\s-]/g, "")
+                        .slice(0, 10)
                     )
                   }
                   placeholder="Enter postal code"
+                  maxLength={10}
                 />
                 {renderInputError("residentialPostalCode")}
               </div>
@@ -881,9 +1102,14 @@ export default function LoanApplicationPage() {
                   }`}
                   value={form.residentialAddress.country}
                   onChange={(e) =>
-                    setAddressField("residentialAddress", "country", e.target.value)
+                    setAddressField(
+                      "residentialAddress",
+                      "country",
+                      sanitizeLettersSpaces(e.target.value).slice(0, 50)
+                    )
                   }
                   placeholder="Enter country"
+                  maxLength={50}
                 />
                 {renderInputError("residentialCountry")}
               </div>
@@ -925,9 +1151,14 @@ export default function LoanApplicationPage() {
                       }`}
                       value={form.mailingAddress.line1}
                       onChange={(e) =>
-                        setAddressField("mailingAddress", "line1", e.target.value)
+                        setAddressField(
+                          "mailingAddress",
+                          "line1",
+                          sanitizeAddressText(e.target.value).slice(0, 100)
+                        )
                       }
                       placeholder="Enter address line 1"
+                      maxLength={100}
                     />
                     {renderInputError("mailingLine1")}
                   </div>
@@ -941,9 +1172,14 @@ export default function LoanApplicationPage() {
                       className="form-control"
                       value={form.mailingAddress.line2}
                       onChange={(e) =>
-                        setAddressField("mailingAddress", "line2", e.target.value)
+                        setAddressField(
+                          "mailingAddress",
+                          "line2",
+                          sanitizeAddressText(e.target.value).slice(0, 100)
+                        )
                       }
                       placeholder="Enter address line 2"
+                      maxLength={100}
                     />
                   </div>
 
@@ -956,9 +1192,14 @@ export default function LoanApplicationPage() {
                       }`}
                       value={form.mailingAddress.city}
                       onChange={(e) =>
-                        setAddressField("mailingAddress", "city", e.target.value)
+                        setAddressField(
+                          "mailingAddress",
+                          "city",
+                          sanitizeLettersSpaces(e.target.value).slice(0, 50)
+                        )
                       }
                       placeholder="Enter city"
+                      maxLength={50}
                     />
                     {renderInputError("mailingCity")}
                   </div>
@@ -974,9 +1215,14 @@ export default function LoanApplicationPage() {
                       }`}
                       value={form.mailingAddress.state}
                       onChange={(e) =>
-                        setAddressField("mailingAddress", "state", e.target.value)
+                        setAddressField(
+                          "mailingAddress",
+                          "state",
+                          sanitizeLettersSpaces(e.target.value).slice(0, 50)
+                        )
                       }
                       placeholder="Enter province / state"
+                      maxLength={50}
                     />
                     {renderInputError("mailingState")}
                   </div>
@@ -993,10 +1239,14 @@ export default function LoanApplicationPage() {
                         setAddressField(
                           "mailingAddress",
                           "postalCode",
-                          e.target.value.toUpperCase()
+                          e.target.value
+                            .toUpperCase()
+                            .replace(/[^A-Z0-9\s-]/g, "")
+                            .slice(0, 10)
                         )
                       }
                       placeholder="Enter postal code"
+                      maxLength={10}
                     />
                     {renderInputError("mailingPostalCode")}
                   </div>
@@ -1010,9 +1260,14 @@ export default function LoanApplicationPage() {
                       }`}
                       value={form.mailingAddress.country}
                       onChange={(e) =>
-                        setAddressField("mailingAddress", "country", e.target.value)
+                        setAddressField(
+                          "mailingAddress",
+                          "country",
+                          sanitizeLettersSpaces(e.target.value).slice(0, 50)
+                        )
                       }
                       placeholder="Enter country"
+                      maxLength={50}
                     />
                     {renderInputError("mailingCountry")}
                   </div>
@@ -1057,8 +1312,14 @@ export default function LoanApplicationPage() {
                         errors.fieldOfStudy ? "is-invalid" : ""
                       }`}
                       value={form.fieldOfStudy}
-                      onChange={(e) => setField("fieldOfStudy", e.target.value)}
+                      onChange={(e) =>
+                        setField(
+                          "fieldOfStudy",
+                          sanitizeLettersSpaces(e.target.value).slice(0, 60)
+                        )
+                      }
                       placeholder="Enter field of study"
+                      maxLength={60}
                     />
                     {renderInputError("fieldOfStudy")}
                   </div>
@@ -1073,8 +1334,14 @@ export default function LoanApplicationPage() {
                         errors.institutionName ? "is-invalid" : ""
                       }`}
                       value={form.institutionName}
-                      onChange={(e) => setField("institutionName", e.target.value)}
+                      onChange={(e) =>
+                        setField(
+                          "institutionName",
+                          sanitizeAlphaNumericBasic(e.target.value).slice(0, 80)
+                        )
+                      }
                       placeholder="Enter institution name"
+                      maxLength={80}
                     />
                     {renderInputError("institutionName")}
                   </div>
@@ -1090,7 +1357,10 @@ export default function LoanApplicationPage() {
                       }`}
                       value={form.graduationYear}
                       onChange={(e) =>
-                        setField("graduationYear", sanitizeDigits(e.target.value))
+                        setField(
+                          "graduationYear",
+                          sanitizeDigits(e.target.value).slice(0, 4)
+                        )
                       }
                       placeholder="Enter graduation year"
                       maxLength={4}
@@ -1101,8 +1371,7 @@ export default function LoanApplicationPage() {
               )}
             </div>
           )}
-
-          {currentStep === 3 && (
+                    {currentStep === 3 && (
             <div className="row g-3">
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">Employment Status *</label>
@@ -1123,59 +1392,7 @@ export default function LoanApplicationPage() {
                 {renderInputError("employmentStatus")}
               </div>
 
-              <div className="col-12 col-md-4">
-                <label className="form-label fw-semibold">Monthly Income *</label>
-                <input
-                  type="text"
-                  className={`form-control ${
-                    errors.monthlyIncome ? "is-invalid" : ""
-                  }`}
-                  value={form.monthlyIncome}
-                  onChange={(e) =>
-                    setField("monthlyIncome", sanitizeDigits(e.target.value))
-                  }
-                  placeholder="Enter monthly income"
-                />
-                {renderInputError("monthlyIncome")}
-              </div>
-
-              <div className="col-12 col-md-4">
-                <label className="form-label fw-semibold">
-                  Loan Tenure (Months) *
-                </label>
-                <input
-                  type="text"
-                  className={`form-control ${
-                    errors.tenureMonths ? "is-invalid" : ""
-                  }`}
-                  value={form.tenureMonths}
-                  onChange={(e) =>
-                    setField(
-                      "tenureMonths",
-                      sanitizeDigits(e.target.value).slice(0, 3)
-                    )
-                  }
-                  placeholder="Enter tenure (e.g. 60)"
-                  maxLength={3}
-                />
-                {renderInputError("tenureMonths")}
-              </div>
-
-              <div className="col-12 col-md-4">
-                <label className="form-label fw-semibold">
-                  Other Income Sources
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  value={form.otherIncomeSources}
-                  onChange={(e) => setField("otherIncomeSources", e.target.value)}
-                  placeholder="Enter other income sources"
-                />
-              </div>
-
-              {(form.employmentStatus === "Employed" ||
-                form.employmentStatus === "Self-employed") && (
+              {form.employmentStatus === "Employed" && (
                 <>
                   <div className="col-12 col-md-4">
                     <label className="form-label fw-semibold">Employer Name *</label>
@@ -1185,8 +1402,14 @@ export default function LoanApplicationPage() {
                         errors.employerName ? "is-invalid" : ""
                       }`}
                       value={form.employerName}
-                      onChange={(e) => setField("employerName", e.target.value)}
+                      onChange={(e) =>
+                        setField(
+                          "employerName",
+                          sanitizeAlphaNumericBasic(e.target.value).slice(0, 80)
+                        )
+                      }
                       placeholder="Enter employer name"
+                      maxLength={80}
                     />
                     {renderInputError("employerName")}
                   </div>
@@ -1201,8 +1424,14 @@ export default function LoanApplicationPage() {
                         errors.jobTitle ? "is-invalid" : ""
                       }`}
                       value={form.jobTitle}
-                      onChange={(e) => setField("jobTitle", e.target.value)}
-                      placeholder="Enter job title"
+                      onChange={(e) =>
+                        setField(
+                          "jobTitle",
+                          sanitizeLettersSpaces(e.target.value).slice(0, 60)
+                        )
+                      }
+                      placeholder="Enter job title / occupation"
+                      maxLength={60}
                     />
                     {renderInputError("jobTitle")}
                   </div>
@@ -1215,13 +1444,52 @@ export default function LoanApplicationPage() {
                         errors.workExperience ? "is-invalid" : ""
                       }`}
                       value={form.workExperience}
-                      onChange={(e) => setField("workExperience", e.target.value)}
-                      placeholder="Enter work experience"
+                      onChange={(e) =>
+                        setField(
+                          "workExperience",
+                          sanitizeDigits(e.target.value).slice(0, 2)
+                        )
+                      }
+                      placeholder="Enter work experience in years"
+                      maxLength={2}
                     />
                     {renderInputError("workExperience")}
                   </div>
+
+                  <div className="col-12 col-md-4">
+                    <label className="form-label fw-semibold">Monthly Income *</label>
+                    <input
+                      type="text"
+                      className={`form-control ${
+                        errors.monthlyIncome ? "is-invalid" : ""
+                      }`}
+                      value={form.monthlyIncome}
+                      onChange={(e) =>
+                        setField("monthlyIncome", sanitizeDigits(e.target.value))
+                      }
+                      placeholder="Enter monthly income"
+                    />
+                    {renderInputError("monthlyIncome")}
+                  </div>
                 </>
               )}
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Other Income Sources</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  value={form.otherIncomeSources}
+                  onChange={(e) =>
+                    setField(
+                      "otherIncomeSources",
+                      sanitizeAlphaNumericBasic(e.target.value).slice(0, 100)
+                    )
+                  }
+                  placeholder="Enter other income sources"
+                  maxLength={100}
+                />
+              </div>
 
               <div className="col-12 col-md-4">
                 <label className="form-label fw-semibold">Existing Loans *</label>
@@ -1261,6 +1529,95 @@ export default function LoanApplicationPage() {
                   {renderInputError("totalMonthlyLoanPayments")}
                 </div>
               )}
+
+              <div className="col-12 mt-3">
+                <h5 className="cp-loan-subtitle">Loan Information</h5>
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">Loan Product *</label>
+                <select
+                  className={`form-select ${
+                    errors.loanTypeId ? "is-invalid" : ""
+                  }`}
+                  value={form.loanTypeId}
+                  onChange={(e) => setField("loanTypeId", e.target.value)}
+                  disabled={productsLoading}
+                >
+                  <option value="">
+                    {productsLoading ? "Loading products..." : "Select loan product"}
+                  </option>
+                  {activeProducts.map((product) => (
+                    <option key={product.productId} value={product.productId}>
+                      {product.productName}
+                    </option>
+                  ))}
+                </select>
+                {renderInputError("loanTypeId")}
+                {productsError && (
+                  <div className="invalid-feedback d-block">{productsError}</div>
+                )}
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">
+                  Requested Loan Amount *
+                </label>
+                <input
+                  type="text"
+                  className={`form-control ${
+                    errors.loanAmount ? "is-invalid" : ""
+                  }`}
+                  value={form.loanAmount}
+                  onChange={(e) =>
+                    setField("loanAmount", sanitizeDigits(e.target.value))
+                  }
+                  placeholder={
+                    selectedLoanProduct
+                      ? `Enter amount (${selectedLoanProduct.minAmount} - ${selectedLoanProduct.maxAmount})`
+                      : "Enter requested loan amount"
+                  }
+                />
+                {renderInputError("loanAmount")}
+                {selectedLoanProduct && (
+                  <div className="form-text">
+                    Allowed range: {selectedLoanProduct.minAmount} to{" "}
+                    {selectedLoanProduct.maxAmount}
+                  </div>
+                )}
+              </div>
+
+              <div className="col-12 col-md-4">
+                <label className="form-label fw-semibold">
+                  Requested Loan Tenure (Months) *
+                </label>
+                <input
+                  type="text"
+                  className={`form-control ${
+                    errors.tenureMonths ? "is-invalid" : ""
+                  }`}
+                  value={form.tenureMonths}
+                  onChange={(e) =>
+                    setField(
+                      "tenureMonths",
+                      sanitizeDigits(e.target.value).slice(0, 3)
+                    )
+                  }
+                  placeholder={
+                    selectedLoanProduct
+                      ? `Enter tenure (${selectedLoanProduct.minTenureMonths} - ${selectedLoanProduct.maxTenureMonths})`
+                      : "Enter requested loan tenure"
+                  }
+                  maxLength={3}
+                />
+                {renderInputError("tenureMonths")}
+                {selectedLoanProduct && (
+                  <div className="form-text">
+                    Allowed range: {selectedLoanProduct.minTenureMonths} to{" "}
+                    {selectedLoanProduct.maxTenureMonths} months
+                  </div>
+                )}
+              </div>
 
               <div className="col-12 mt-4">
                 <div className="cp-loan-bank-topbar">
@@ -1322,9 +1679,14 @@ export default function LoanApplicationPage() {
                           }`}
                           value={account.bankName}
                           onChange={(e) =>
-                            setBankField(index, "bankName", e.target.value)
+                            setBankField(
+                              index,
+                              "bankName",
+                              sanitizeAlphaNumericBasic(e.target.value).slice(0, 80)
+                            )
                           }
                           placeholder="Enter bank name"
+                          maxLength={80}
                         />
                         {renderInputError(`bankAccounts.${index}.bankName`)}
                       </div>
@@ -1353,8 +1715,7 @@ export default function LoanApplicationPage() {
                         />
                         {renderInputError(`bankAccounts.${index}.institutionNumber`)}
                       </div>
-
-                      <div className="col-12 col-md-4">
+                                            <div className="col-12 col-md-4">
                         <label className="form-label fw-semibold">
                           Transit / Branch Number *
                         </label>
@@ -1380,7 +1741,9 @@ export default function LoanApplicationPage() {
                       </div>
 
                       <div className="col-12 col-md-4">
-                        <label className="form-label fw-semibold">Account Number *</label>
+                        <label className="form-label fw-semibold">
+                          Account Number *
+                        </label>
                         <input
                           type="text"
                           className={`form-control ${
@@ -1397,12 +1760,15 @@ export default function LoanApplicationPage() {
                             )
                           }
                           placeholder="Enter full account number"
+                          maxLength={17}
                         />
                         {renderInputError(`bankAccounts.${index}.accountNumber`)}
                       </div>
 
                       <div className="col-12 col-md-4">
-                        <label className="form-label fw-semibold">Account Type *</label>
+                        <label className="form-label fw-semibold">
+                          Account Type *
+                        </label>
                         <select
                           className={`form-select ${
                             errors[`bankAccounts.${index}.accountType`]
@@ -1422,7 +1788,9 @@ export default function LoanApplicationPage() {
                       </div>
 
                       <div className="col-12 col-md-4">
-                        <label className="form-label fw-semibold">SWIFT / BIC Code</label>
+                        <label className="form-label fw-semibold">
+                          SWIFT / BIC Code
+                        </label>
                         <input
                           type="text"
                           className={`form-control ${
@@ -1439,6 +1807,7 @@ export default function LoanApplicationPage() {
                             )
                           }
                           placeholder="Optional"
+                          maxLength={11}
                         />
                         {renderInputError(`bankAccounts.${index}.swiftBic`)}
                       </div>
