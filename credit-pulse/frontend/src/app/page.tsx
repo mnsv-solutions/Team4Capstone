@@ -1,21 +1,16 @@
 "use client";
 
-// Axios handles the API request.
 import axios from "axios";
-
-// React state manages form values, errors, loading, and result data.
-import { useState, type FormEvent } from "react";
-
-// Link handles navigation buttons.
 import Link from "next/link";
+import { useState, type FormEvent } from "react";
+import { ArrowRight, BadgeCheck, BellRing, FileCheck2, ShieldCheck, Sparkles } from "lucide-react";
+import styles from "./page.module.css";
 
-// Stores validation messages for form fields.
 type FormErrors = {
   applicationNo?: string;
   dob?: string;
 };
 
-// Stores the backend response.
 type StatusResponse = {
   success: boolean;
   applicationNumber?: string;
@@ -24,41 +19,60 @@ type StatusResponse = {
   reasonCode?: string;
 };
 
-// Main Home page component.
+const experienceHighlights = [
+  {
+    icon: ShieldCheck,
+    title: "Clear application visibility",
+    description: "See your current stage, recent activity, and what the platform needs from you next.",
+  },
+  {
+    icon: FileCheck2,
+    title: "Smarter document readiness",
+    description: "Prepare required details early and reduce avoidable back-and-forth during review.",
+  },
+  {
+    icon: BellRing,
+    title: "Helpful next-step guidance",
+    description: "CreditPulse focuses on keeping applicants informed instead of leaving them guessing.",
+  },
+];
+
+const processSteps = [
+  "Create your account and start a secure application.",
+  "Submit key details and track status updates clearly.",
+  "Respond to document or verification requests faster.",
+  "Follow approval progress with more confidence.",
+];
+
+const testimonials = [
+  {
+    title: "Clear updates",
+    quote: "The stages were easy to understand, and the next step always felt obvious.",
+  },
+  {
+    title: "Less confusion",
+    quote: "Everything important was visible in one place instead of being spread across messages.",
+  },
+  {
+    title: "Faster follow-up",
+    quote: "Document requests and review progress felt much more organized than a typical loan flow.",
+  },
+];
+
 export default function HomePage() {
-  // Stores the application number input.
   const [applicationNo, setApplicationNo] = useState("");
-
-  // Stores the date of birth input.
   const [dob, setDob] = useState("");
-
-  // Stores validation errors.
   const [errors, setErrors] = useState<FormErrors>({});
-
-  // Stores API or backend error message.
   const [apiError, setApiError] = useState("");
-
-  // Stores successful application status data.
   const [statusData, setStatusData] = useState<StatusResponse | null>(null);
-
-  // Stores loading state during form submission.
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Checks whether the entered date belongs to an adult applicant.
   function isAdult(dateString: string) {
-    // Gets the current date.
     const today = new Date();
-
-    // Converts the input string to a date object.
     const birthDate = new Date(dateString);
-
-    // Starts with the year difference.
     let age = today.getFullYear() - birthDate.getFullYear();
-
-    // Compares the month difference.
     const monthDifference = today.getMonth() - birthDate.getMonth();
 
-    // Reduces age if the birthday has not occurred yet this year.
     if (
       monthDifference < 0 ||
       (monthDifference === 0 && today.getDate() < birthDate.getDate())
@@ -66,90 +80,57 @@ export default function HomePage() {
       age = age - 1;
     }
 
-    // Returns true only when age is 18 or more.
     return age >= 18;
   }
 
-  // Validates all form fields before API submission.
   function validateForm() {
-    // Starts with no errors.
     const newErrors: FormErrors = {};
-
-    // Removes extra spaces from the application number.
     const trimmedApplicationNo = applicationNo.trim();
 
-    // Checks whether the application number is missing.
     if (!trimmedApplicationNo) {
       newErrors.applicationNo = "Please enter your application number.";
-    }
-    // Checks whether the application number format is invalid.
-    else if (!/^APPL\d{10}$/.test(trimmedApplicationNo)) {
+    } else if (!/^APPL\d{10}$/.test(trimmedApplicationNo)) {
       newErrors.applicationNo =
         "Application number must start with APPL and contain exactly 10 digits after it.";
     }
 
-    // Checks whether date of birth is missing.
     if (!dob) {
       newErrors.dob = "Please select your date of birth.";
     } else {
-      // Converts the selected date to a date object.
       const birthDate = new Date(dob);
-
-      // Gets the current date.
       const today = new Date();
 
-      // Checks whether the date is invalid.
       if (Number.isNaN(birthDate.getTime())) {
         newErrors.dob = "Please enter a valid date of birth.";
-      }
-      // Checks whether the date is in the future.
-      else if (birthDate > today) {
+      } else if (birthDate > today) {
         newErrors.dob = "Date of birth cannot be in the future.";
-      }
-      // Checks whether the applicant is under 18.
-      else if (!isAdult(dob)) {
+      } else if (!isAdult(dob)) {
         newErrors.dob = "You must be at least 18 years old.";
       }
     }
 
-    // Returns all validation errors.
     return newErrors;
   }
 
-  // Cleans and updates the application number field.
   function handleApplicationNoChange(value: string) {
-    // Removes spaces and converts text to uppercase.
     const cleanValue = value.replace(/\s+/g, "").toUpperCase();
-
-    // Updates the application number state.
     setApplicationNo(cleanValue);
-
-    // Clears only the application number error while editing.
     setErrors((previousErrors) => ({
       ...previousErrors,
       applicationNo: undefined,
     }));
-
-    // Clears old API error while input is changing.
     setApiError("");
   }
 
-  // Updates the date of birth field.
   function handleDobChange(value: string) {
-    // Updates the date of birth state.
     setDob(value);
-
-    // Clears only the date of birth error while editing.
     setErrors((previousErrors) => ({
       ...previousErrors,
       dob: undefined,
     }));
-
-    // Clears old API error while input is changing.
     setApiError("");
   }
 
-  // Converts backend reason codes into readable messages.
   function getApiErrorMessage(reasonCode?: string) {
     switch (reasonCode) {
       case "NOT_FOUND":
@@ -165,419 +146,297 @@ export default function HomePage() {
     }
   }
 
-  // Runs when the form is submitted.
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    // Prevents the default page refresh.
     event.preventDefault();
-
-    // Stops repeated submission while a request is already in progress.
     if (isSubmitting) return;
 
-    // Clears old backend error before a new request.
     setApiError("");
-
-    // Clears old success result before a new request.
     setStatusData(null);
 
-    // Runs validation first.
     const validationErrors = validateForm();
-
-    // Saves validation errors.
     setErrors(validationErrors);
 
-    // Stops submission if validation errors exist.
     if (Object.keys(validationErrors).length > 0) return;
 
-    // Starts loading state.
     setIsSubmitting(true);
 
     try {
-      // Sends the request to the backend through the Next.js rewrite route.
-      const response = await axios.post<StatusResponse>(
-        "/api/application-status",
-        {
-          applicationNumber: applicationNo.trim(),
-          dob: dob,
-        },
-      );
+      const response = await axios.post<StatusResponse>("/api/application-status", {
+        applicationNumber: applicationNo.trim(),
+        dob,
+      });
 
-      // Saves successful backend response data.
       setStatusData(response.data);
     } catch (error) {
-      // Handles axios-specific errors.
       if (axios.isAxiosError(error)) {
-        // Reads reason code from backend response when available.
         const reasonCode = error.response?.data?.reasonCode;
-
-        // Converts reason code into readable text.
-        const errorMessage = getApiErrorMessage(reasonCode);
-
-        // Displays the message on screen.
-        setApiError(errorMessage);
-
-        // Stops loading state.
+        setApiError(getApiErrorMessage(reasonCode));
         setIsSubmitting(false);
         return;
       }
 
-      // Handles general connection or unexpected errors.
       setApiError(
         "Could not connect to the backend. Please make sure the backend server is running.",
       );
-
-      // Stops loading state.
       setIsSubmitting(false);
       return;
     }
 
-    // Stops loading state after successful request.
     setIsSubmitting(false);
   };
 
-  // Resets form fields and result data.
   function handleReset() {
-    // Clears application number.
     setApplicationNo("");
-
-    // Clears date of birth.
     setDob("");
-
-    // Clears validation errors.
     setErrors({});
-
-    // Clears backend error.
     setApiError("");
-
-    // Clears successful result data.
     setStatusData(null);
-
-    // Resets loading state.
     setIsSubmitting(false);
   }
 
-  // Renders the page UI.
   return (
-    <main className="d-flex flex-column gap-4">
-      {/* Top hero section */}
-      <section className="cp-hero-section p-4 p-md-5 rounded-4">
-        <div className="row align-items-center g-4">
-          {/* Left content area */}
-          <div className="col-12 col-lg-7">
-            <h1 className="fw-bold mb-3">
-              Track your loan application with clarity and confidence.
-            </h1>
+    <main className={styles.page}>
+      <section className={styles.hero}>
+        <div className={styles.heroContent}>
+          <span className={styles.eyebrow}>CreditPulse platform</span>
+          <h1 className={styles.heroTitle}>Track your loan application with clarity and confidence.</h1>
+          <p className={styles.heroText}>
+            CreditPulse brings together application tracking, document readiness, and next-step
+            guidance in one focused experience so applicants always know what is happening.
+          </p>
 
-            <p className="mb-4">
-              CreditPulse is a digital loan origination and credit assessment
-              platform that helps applicants understand progress, next steps,
-              and required actions in one place.
-            </p>
+          <div className={styles.heroActions}>
+            <Link className="btn btn-primary" href="/signup">
+              Get Started
+            </Link>
+            <Link className={styles.secondaryAction} href="/about">
+              Learn More
+              <ArrowRight size={16} />
+            </Link>
+            <Link className={styles.secondaryAction} href="/contact">
+              Contact Us
+            </Link>
+          </div>
 
-            {/* Navigation buttons */}
-            <div className="d-flex gap-2 flex-wrap mb-4">
-              <Link className="btn btn-primary" href="/signup">
-                Get Started
-              </Link>
+          <div className={styles.highlightGrid}>
+            {experienceHighlights.map((item) => {
+              const Icon = item.icon;
 
-              <Link className="btn btn-outline-light" href="/about">
-                Learn More
-              </Link>
+              return (
+                <article key={item.title} className={styles.highlightCard}>
+                  <span className={styles.highlightIcon}>
+                    <Icon size={18} />
+                  </span>
+                  <div>
+                    <h2>{item.title}</h2>
+                    <p>{item.description}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        </div>
 
-              <Link className="btn btn-outline-light" href="/contact">
-                Contact Us
-              </Link>
+      </section>
+
+      <section className={styles.statusSection}>
+        {!statusData ? (
+          <div className={styles.statusCard}>
+            <div className={styles.statusCardHeader}>
+              <div>
+                <span className={styles.cardEyebrow}>Application lookup</span>
+                <h2>Check your application status</h2>
+                <p className={styles.statusIntro}>
+                  Enter your application number and date of birth to view your latest progress.
+                </p>
+              </div>
+              <span className={styles.liveBadge}>
+                <Sparkles size={14} />
+                Live check
+              </span>
             </div>
 
-            {/* Form displays before successful status response */}
-            {!statusData && (
-              <form
-                className="row g-2"
-                onSubmit={handleSubmit}
-                aria-label="Check application status"
-                noValidate
-              >
-                {/* Application number field */}
-                <div className="col-12 col-md-5">
-                  <input
-                    type="text"
-                    name="applicationNo"
-                    className={`form-control ${
-                      errors.applicationNo ? "is-invalid" : ""
-                    }`}
-                    placeholder="Application Number (e.g. APPL1234567890)"
-                    aria-label="Application Number"
-                    value={applicationNo}
-                    onChange={(event) =>
-                      handleApplicationNoChange(event.target.value)
-                    }
-                    disabled={isSubmitting}
-                  />
+            <div className={styles.statusMeta}>
+              <span>Secure lookup</span>
+              <span>Fast status check</span>
+              <span>Clear next steps</span>
+            </div>
 
-                  {errors.applicationNo && (
-                    <div className="invalid-feedback">
-                      {errors.applicationNo}
-                    </div>
-                  )}
-                </div>
+            <form className={styles.statusForm} onSubmit={handleSubmit} noValidate>
+              <div>
+                <label className={styles.fieldLabel} htmlFor="applicationNo">
+                  Application Number
+                </label>
+                <input
+                  id="applicationNo"
+                  type="text"
+                  name="applicationNo"
+                  className={`form-control ${errors.applicationNo ? "is-invalid" : ""}`}
+                  placeholder="APPL1234567890"
+                  aria-label="Application Number"
+                  value={applicationNo}
+                  onChange={(event) => handleApplicationNoChange(event.target.value)}
+                  disabled={isSubmitting}
+                />
+                {errors.applicationNo && (
+                  <div className="invalid-feedback">{errors.applicationNo}</div>
+                )}
+              </div>
 
-                {/* Date of birth field */}
-                <div className="col-12 col-md-4">
-                  <input
-                    type="date"
-                    name="dob"
-                    className={`form-control ${errors.dob ? "is-invalid" : ""}`}
-                    aria-label="Date of birth"
-                    value={dob}
-                    onChange={(event) => handleDobChange(event.target.value)}
-                    disabled={isSubmitting}
-                  />
+              <div>
+                <label className={styles.fieldLabel} htmlFor="dob">
+                  Date of Birth
+                </label>
+                <input
+                  id="dob"
+                  type="date"
+                  name="dob"
+                  className={`form-control ${errors.dob ? "is-invalid" : ""}`}
+                  aria-label="Date of birth"
+                  value={dob}
+                  onChange={(event) => handleDobChange(event.target.value)}
+                  disabled={isSubmitting}
+                />
+                {errors.dob && <div className="invalid-feedback">{errors.dob}</div>}
+              </div>
 
-                  {errors.dob && (
-                    <div className="invalid-feedback">{errors.dob}</div>
-                  )}
-                </div>
+              <button type="submit" className="btn btn-primary w-100" disabled={isSubmitting}>
+                {isSubmitting ? "Checking..." : "Check Status"}
+              </button>
+            </form>
 
-                {/* Submit button */}
-                <div className="col-12 col-md-3">
-                  <button
-                    type="submit"
-                    className="btn btn-primary w-100"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Checking..." : "Check Status"}
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* API error message */}
             {apiError && (
-              <div className="alert alert-danger mt-3" role="alert">
+              <div className="alert alert-danger mt-3 mb-0" role="alert">
                 {apiError}
               </div>
             )}
 
-            {/* Helper note shown before success */}
-            {!statusData && (
-              <p className="mt-3 mb-0">
-                Tip: Enter the same application number and date of birth used
-                during submission.
-              </p>
-            )}
-          </div>
-
-          {/* Right content card */}
-          <div className="col-12 col-lg-5">
-            {/* Intro card before success */}
-            {!statusData ? (
-              <div className="cp-card p-4 rounded-4">
-                <h2 className="h4 fw-bold mb-3">Why CreditPulse?</h2>
-
-                <ul className="mb-0">
-                  <li className="mb-2">
-                    Clear application stages and progress tracking
-                  </li>
-                  <li className="mb-2">
-                    Fewer delays with timely document requests
-                  </li>
-                  <li className="mb-2">
-                    Centralized dashboard for updates and actions
-                  </li>
-                  <li className="mb-0">
-                    Designed for a smooth applicant experience
-                  </li>
-                </ul>
-              </div>
-            ) : (
-              /* Dashboard card after success */
-              <div className="cp-card p-4 rounded-4">
-                <div className="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
-                  <div>
-                    <h2 className="h4 fw-bold mb-1">Application Dashboard</h2>
-                    <p className="mb-0 text-muted">
-                      Latest application status details
-                    </p>
-                  </div>
-
-                  <span className="badge text-bg-success px-3 py-2">
-                    {statusData.statusName}
-                  </span>
-                </div>
-
-                <div className="mb-3">
-                  <p className="mb-2">
-                    <strong>Application Number:</strong>{" "}
-                    {statusData.applicationNumber}
-                  </p>
-
-                  <p className="mb-2">
-                    <strong>Status Code:</strong> {statusData.statusCode}
-                  </p>
-
-                  <p className="mb-0">
-                    <strong>Current Stage:</strong> {statusData.statusName}
-                  </p>
-                </div>
-
-                <div className="cp-card p-3 rounded-4 mb-3">
-                  <h3 className="h6 fw-bold mb-2">What this means</h3>
-                  <p className="mb-0">
-                    Application details were found successfully in the system.
-                    The current processing stage can now be reviewed.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  className="btn btn-outline-primary"
-                  onClick={handleReset}
-                >
-                  Check Another Application
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Progress section shown only after success */}
-      {statusData ? (
-        <section className="cp-hero-section p-4 p-md-5 rounded-4">
-          <div className="text-center mb-4">
-            <h2 className="fw-bold mb-2">Application Progress</h2>
-            <p className="mb-0">
-              Dashboard view based on the live API response.
+            <p className={styles.helperText}>
+              Tip: Use the same application number and date of birth submitted during your loan
+              application.
             </p>
           </div>
-
-          <div className="row g-3">
-            <div className="col-12 col-md-4">
-              <div className="cp-card p-4 rounded-4 h-100">
-                <h3 className="h5 fw-bold mb-2">Verification</h3>
-                <p className="mb-0">
-                  Applicant identity and profile checks are tracked here.
+        ) : (
+          <div className={styles.statusCard}>
+            <div className={styles.statusCardHeader}>
+              <div>
+                <span className={styles.cardEyebrow}>Application dashboard</span>
+                <h2>{statusData.statusName}</h2>
+                <p className={styles.statusIntro}>
+                  Your latest application details were found successfully.
                 </p>
+              </div>
+              <span className={styles.successBadge}>
+                <BadgeCheck size={14} />
+                Status found
+              </span>
+            </div>
+
+            <div className={styles.statusSummary}>
+              <div>
+                <span>Application Number</span>
+                <strong>{statusData.applicationNumber}</strong>
+              </div>
+              <div>
+                <span>Status Code</span>
+                <strong>{statusData.statusCode}</strong>
+              </div>
+              <div>
+                <span>Current Stage</span>
+                <strong>{statusData.statusName}</strong>
               </div>
             </div>
 
-            <div className="col-12 col-md-4">
-              <div className="cp-card p-4 rounded-4 h-100">
-                <h3 className="h5 fw-bold mb-2">Credit Review</h3>
-                <p className="mb-0">
-                  Credit and risk-related processing updates can be shown here.
-                </p>
-              </div>
+            <div className={styles.statusMessage}>
+              <h3>What this means</h3>
+              <p>
+                Application details were found successfully in the system. Review the current
+                stage and continue with any remaining steps if needed.
+              </p>
             </div>
 
-            <div className="col-12 col-md-4">
-              <div className="cp-card p-4 rounded-4 h-100">
-                <h3 className="h5 fw-bold mb-2">Final Decision</h3>
-                <p className="mb-0">
-                  Approval, rejection, or pending action status can be displayed
-                  here.
-                </p>
-              </div>
-            </div>
+            <button type="button" className="btn btn-outline-primary" onClick={handleReset}>
+              Check Another Application
+            </button>
+          </div>
+        )}
+      </section>
+
+      {statusData ? (
+        <section className={styles.section}>
+          <div className={styles.sectionHeaderCentered}>
+            <span className={styles.eyebrow}>Application overview</span>
+            <h2>Progress areas to review</h2>
+            <p>Dashboard blocks can present live updates as your application moves through review.</p>
+          </div>
+
+          <div className={styles.infoGrid}>
+            <article className={styles.infoCard}>
+              <h3>Verification</h3>
+              <p>Applicant identity and profile checks can be surfaced in one clear view.</p>
+            </article>
+            <article className={styles.infoCard}>
+              <h3>Credit Review</h3>
+              <p>Credit and risk-related assessments can be tracked with easier status visibility.</p>
+            </article>
+            <article className={styles.infoCard}>
+              <h3>Final Decision</h3>
+              <p>Approval, rejection, or pending-action updates can be shown with next-step guidance.</p>
+            </article>
           </div>
         </section>
       ) : (
         <>
-          {/* Process section shown before success */}
-          <section className="cp-hero-section p-4 p-md-5 rounded-4">
-            <div className="text-center mb-4">
-              <h2 className="fw-bold mb-2">Steps away from getting approved</h2>
-              <p className="mb-0">
-                A simple process that keeps applicants informed from start to
-                finish.
-              </p>
+          <section className={styles.section}>
+            <div className={styles.sectionHeader}>
+              <span className={styles.eyebrow}>How it works</span>
+              <h2>A simple process that keeps applicants informed.</h2>
             </div>
 
-            <div className="row g-3">
-              <div className="col-12 col-md-6 col-lg-3">
-                <div className="cp-card p-4 rounded-4 h-100">
-                  <h3 className="h5 fw-bold mb-2">Create an account</h3>
-                  <p className="mb-0">
-                    Register to access the application dashboard securely.
-                  </p>
-                </div>
-              </div>
-
-              <div className="col-12 col-md-6 col-lg-3">
-                <div className="cp-card p-4 rounded-4 h-100">
-                  <h3 className="h5 fw-bold mb-2">Apply for a loan</h3>
-                  <p className="mb-0">
-                    Submit key details and start the origination process.
-                  </p>
-                </div>
-              </div>
-
-              <div className="col-12 col-md-6 col-lg-3">
-                <div className="cp-card p-4 rounded-4 h-100">
-                  <h3 className="h5 fw-bold mb-2">Upload documents</h3>
-                  <p className="mb-0">
-                    Provide required proofs when requested to avoid delays.
-                  </p>
-                </div>
-              </div>
-
-              <div className="col-12 col-md-6 col-lg-3">
-                <div className="cp-card p-4 rounded-4 h-100">
-                  <h3 className="h5 fw-bold mb-2">Track decision</h3>
-                  <p className="mb-0">
-                    See review status, verification updates, and final decision.
-                  </p>
-                </div>
-              </div>
+            <div className={styles.processGrid}>
+              {processSteps.map((step, index) => (
+                <article key={step} className={styles.processCard}>
+                  <span className={styles.processNumber}>0{index + 1}</span>
+                  <p>{step}</p>
+                </article>
+              ))}
             </div>
           </section>
 
-          {/* Testimonial section shown before success */}
-          <section className="cp-hero-section p-4 p-md-5 rounded-4">
-            <div className="text-center mb-4">
-              <h2 className="fw-bold mb-2">What users say</h2>
-              <p className="mb-0">Built for transparency, speed, and trust.</p>
+          <section className={styles.section}>
+            <div className={styles.sectionHeaderCentered}>
+              <span className={styles.eyebrow}>What users value</span>
+              <h2>Built for transparency, speed, and trust.</h2>
             </div>
 
-            <div className="row g-3">
-              <div className="col-12 col-md-6 col-lg-3">
-                <div className="cp-card p-4 rounded-4 h-100">
-                  <h3 className="h5 fw-bold mb-2">Clear updates</h3>
-                  <p className="mb-0">
-                    “The stages were easy to understand. Every next step was
-                    clear.”
-                  </p>
-                </div>
-              </div>
+            <div className={styles.testimonialGrid}>
+              {testimonials.map((item) => (
+                <article key={item.title} className={styles.testimonialCard}>
+                  <span className={styles.quoteMark}>&ldquo;</span>
+                  <h3>{item.title}</h3>
+                  <p>{item.quote}</p>
+                </article>
+              ))}
+            </div>
+          </section>
 
-              <div className="col-12 col-md-6 col-lg-3">
-                <div className="cp-card p-4 rounded-4 h-100">
-                  <h3 className="h5 fw-bold mb-2">Saves time</h3>
-                  <p className="mb-0">
-                    “Everything could be tracked from one dashboard without
-                    calling support.”
-                  </p>
-                </div>
-              </div>
+          <section className={styles.ctaSection}>
+            <div>
+              <span className={styles.eyebrow}>Need help?</span>
+              <h2>Questions about your application journey?</h2>
+              <p>
+                Explore the platform, learn how the process works, or speak with the team for more
+                support.
+              </p>
+            </div>
 
-              <div className="col-12 col-md-6 col-lg-3">
-                <div className="cp-card p-4 rounded-4 h-100">
-                  <h3 className="h5 fw-bold mb-2">Professional feel</h3>
-                  <p className="mb-0">
-                    “The interface feels modern and trustworthy, and the process
-                    is easy to follow.”
-                  </p>
-                </div>
-              </div>
-
-              <div className="col-12 col-md-6 col-lg-3">
-                <div className="cp-card p-4 rounded-4 h-100">
-                  <h3 className="h5 fw-bold mb-2">Less confusion</h3>
-                  <p className="mb-0">
-                    “Application progress and document needs were much easier to
-                    understand.”
-                  </p>
-                </div>
-              </div>
+            <div className={styles.ctaActions}>
+              <Link className="btn btn-primary" href="/signup">
+                Create an Account
+              </Link>
+              <Link className={styles.secondaryAction} href="/contact">
+                Talk to Support
+              </Link>
             </div>
           </section>
         </>
@@ -585,3 +444,4 @@ export default function HomePage() {
     </main>
   );
 }
+
