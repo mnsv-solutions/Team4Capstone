@@ -53,7 +53,7 @@ type LoanProduct = {
 };
 
 type ExtendedLoanApplicationForm = LoanApplicationForm & {
-  loanTypeId: string;
+  loanProductId: string;
 };
 
 const steps: { key: StepKey; label: string }[] = [
@@ -106,7 +106,7 @@ const initialForm: ExtendedLoanApplicationForm = {
   totalMonthlyLoanPayments: "",
   tenureMonths: "",
   loanAmount: "",
-  loanTypeId: "",
+  loanProductId: "",
 
   bankAccounts: [{ ...createEmptyBankAccount(), isRepaymentAccount: true }],
 
@@ -142,9 +142,9 @@ export default function LoanApplicationPage() {
 
   const selectedLoanProduct = useMemo(() => {
     return activeProducts.find(
-      (product) => product.productId === form.loanTypeId
+      (product) => product.productId === form.loanProductId
     );
-  }, [activeProducts, form.loanTypeId]);
+  }, [activeProducts, form.loanProductId]);
 
   const progressPercent = useMemo(() => {
     return ((currentStep + 1) / steps.length) * 100;
@@ -205,7 +205,7 @@ export default function LoanApplicationPage() {
       const next = { ...prev };
       delete next.loanAmount;
       delete next.tenureMonths;
-      delete next.loanTypeId;
+      delete next.loanProductId;
       return next;
     });
 
@@ -346,8 +346,8 @@ export default function LoanApplicationPage() {
     const stepErrors = validateLoanStep(form as LoanApplicationForm, currentStep);
 
     if (currentStep === 3) {
-      if (!form.loanTypeId) {
-        stepErrors.loanTypeId = "Loan type is required.";
+      if (!form.loanProductId) {
+        stepErrors.loanProductId = "Loan product is required.";
       }
 
       if (selectedLoanProduct) {
@@ -449,7 +449,7 @@ export default function LoanApplicationPage() {
       totalMonthlyLoanPayments: formDataInput.totalMonthlyLoanPayments || "",
       tenureMonths: formDataInput.tenureMonths || "",
       loanAmount: formDataInput.loanAmount || "",
-      loanTypeId: formDataInput.loanTypeId || "",
+      loanProductId: formDataInput.loanProductId || "",
 
       bankAccounts: formDataInput.bankAccounts.map((account) => ({
         bankName: account.bankName,
@@ -475,8 +475,8 @@ export default function LoanApplicationPage() {
     const finalErrors = validateLoanStep(form as LoanApplicationForm, currentStep);
 
     if (currentStep === 3) {
-      if (!form.loanTypeId) {
-        finalErrors.loanTypeId = "Loan type is required.";
+      if (!form.loanProductId) {
+        finalErrors.loanProductId = "Loan product is required.";
       }
 
       if (selectedLoanProduct) {
@@ -1534,10 +1534,10 @@ export default function LoanApplicationPage() {
                 <label className="form-label fw-semibold">Loan Product *</label>
                 <select
                   className={`form-select ${
-                    errors.loanTypeId ? "is-invalid" : ""
+                    errors.loanProductId ? "is-invalid" : ""
                   }`}
-                  value={form.loanTypeId}
-                  onChange={(e) => setField("loanTypeId", e.target.value)}
+                  value={form.loanProductId}
+                  onChange={(e) => setField("loanProductId", e.target.value)}
                   disabled={productsLoading}
                 >
                   <option value="">
@@ -1549,7 +1549,7 @@ export default function LoanApplicationPage() {
                     </option>
                   ))}
                 </select>
-                {renderInputError("loanTypeId")}
+                {renderInputError("loanProductId")}
                 {productsError && (
                   <div className="invalid-feedback d-block">{productsError}</div>
                 )}

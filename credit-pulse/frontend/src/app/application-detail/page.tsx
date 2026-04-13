@@ -112,6 +112,7 @@ type FinancialDetailsResponseDto = {
   interestRate?: string | number;
   tenure?: string | number;
 };
+
 type FinancialDetailsApiResponse =
   | ApiEnvelope<FinancialDetailsResponseDto>
   | FinancialDetailsResponseDto
@@ -220,6 +221,107 @@ type BankAccount = {
   swiftBic: string;
   isRepaymentAccount: boolean;
 };
+
+type LoanInstallmentDto = {
+  scheduleId?: string;
+  installmentNumber?: number;
+  dueDate?: string;
+  openingBalance?: number;
+  principalComponent?: number;
+  interestComponent?: number;
+  installmentAmount?: number;
+  closingBalance?: number;
+  paidAmount?: number;
+  paymentStatus?: string;
+  paidDate?: string | null;
+};
+
+type LoanRepaymentScheduleDto = {
+  message?: string;
+  applicationNumber?: string;
+  applicationId?: string;
+  emi?: number;
+  totalInstallments?: number;
+  installments?: LoanInstallmentDto[];
+};
+
+type LoanRatiosDto = {
+  message?: string;
+  applicationNumber?: string;
+  customerId?: string;
+  monthlyIncome?: number;
+  annualIncome?: number;
+  totalMonthlyDebtPayments?: number;
+  proposedEmi?: number;
+  requestedLoanAmount?: number;
+  dbr?: number;
+  emiToIncome?: number;
+  creditUtilization?: number;
+  loanToIncome?: number;
+};
+
+type LoanEligibilityDto = {
+  applicationNumber?: string;
+  ruleSetCode?: string;
+  ruleSetVersion?: number;
+  eligibilityStatus?: string;
+  message?: string;
+  failedRuleCount?: number;
+  reasons?: string[];
+  failedRules?: Array<Record<string, unknown>>;
+  metrics?: Record<string, unknown>;
+  calculatedAt?: string;
+};
+
+type FetchLoanParametersRequestDto = {
+  applicationNumber: string;
+  loanAmount: number;
+  interestRate: number;
+  tenureMonths: number;
+};
+
+type FetchLoanParametersResponseDto = {
+  message?: string;
+  applicationNumber?: string;
+  repaymentSchedule?: LoanRepaymentScheduleDto;
+  ratios?: LoanRatiosDto;
+  eligibility?: LoanEligibilityDto;
+};
+
+type FetchCreditDetailsResponseDto = {
+  score?: number;
+  risk_level?: string;
+  report_date?: string;
+  report_time?: string;
+  reference_id?: string;
+  total_accounts?: number;
+  active_accounts?: number;
+  closed_accounts?: number;
+  debt_to_income_estimate?: string;
+  credit_utilization_ratio?: string;
+  average_account_age_years?: string;
+  total_outstanding_balance?: string | number;
+};
+
+type FetchCreditDetailsApiResponse =
+  | ApiEnvelope<FetchCreditDetailsResponseDto>
+  | FetchCreditDetailsResponseDto;
+
+type AccordionKey =
+  | "personal"
+  | "communication"
+  | "education"
+  | "financial"
+  | "bank"
+  | "documents"
+  | "cibil"
+  | "repayment"
+  | "ratios"
+  | "eligibility"
+  | "underwriterReview"
+  | "underwriterDecision"
+  | "communicationHistory";
+
 type ApplicationDetailsState = {
   applicationNumber: string;
   applicationStatus: string;
@@ -351,6 +453,7 @@ type AttachmentDownloadInfo = {
   isLocal: boolean;
   unavailableAfterRefresh: boolean;
 };
+
 type StatusStepKey =
   | "SUBMITTED"
   | "CREDIT_CHECK_COMPLETED"
@@ -485,6 +588,7 @@ const OFFICER_READONLY_VISIBLE_SECTIONS: AccordionKey[] = [
   "repayment",
   "communicationHistory",
 ];
+
 const initialDetails: ApplicationDetailsState = {
   applicationNumber: "",
   applicationStatus: "",
@@ -612,6 +716,7 @@ function createEmptyCibilFields(): Pick<
     cibilReferenceId: "",
   };
 }
+
 function createEmptyLoanParameterFields(): Pick<
   ApplicationDetailsState,
   | "emiAmount"
@@ -721,6 +826,7 @@ function normalizeBackendRole(roleCode: string | null | undefined): UserRole {
 
   return "UNKNOWN";
 }
+
 function getSenderTypeForRole(role: UserRole): string {
   if (role === "CUSTOMER") return "CUSTOMER";
   if (role === "SOURCING_OFFICER") return "SOURCING_OFFICER";
@@ -834,6 +940,7 @@ function extractEducationDetailsResponse(
   const data = extractApiData<EducationDetailsResponseDto>(response);
   return data && "highestEducation" in data ? data : null;
 }
+
 function extractFinancialDetailsResponse(
   response: FinancialDetailsApiResponse
 ): FinancialDetailsResponseDto | null {
@@ -989,6 +1096,7 @@ function normalizeApplicationStatus(
 
   return raw;
 }
+
 function getStatusStepIndex(normalizedStatus: string): number {
   switch (normalizedStatus) {
     case "SUBMITTED":
@@ -1184,6 +1292,7 @@ function downloadRepaymentScheduleCsv(
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
+
 export default function ApplicationDetailsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1922,7 +2031,8 @@ export default function ApplicationDetailsPage() {
       console.error("Failed to fetch financial details:", error);
     }
   }
-    useEffect(() => {
+
+  useEffect(() => {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 

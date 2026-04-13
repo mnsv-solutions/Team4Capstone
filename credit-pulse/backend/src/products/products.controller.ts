@@ -16,7 +16,7 @@ import { ProductsService } from './products.service.js';
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
-  @UseGuards(AuthGuard, CheckIsAdmin)
+  @UseGuards(AuthGuard)
   @Get('all')
   /**
    * Retrieves all product records from the database.
