@@ -6,7 +6,7 @@ import { IsAdult } from '../../common/validators/is-adult.validator.js';
  * DTO for Credit Score Check Request
  *
  * @property {string} applicationNumber - Unique application number sent from the loan application flow
- * @property {string} sin - Applicant SIN, stored as a 9 digit value
+ * @property {string} sin - Applicant SIN last 4 digits used for identity matching with the CIBIL master tables
  * @property {string} dateOfBirth - Date of birth used to confirm age eligibility
  * @property {string} firstName - Applicant first name for identity matching
  * @property {string} lastName - Applicant last name for identity matching
@@ -21,11 +21,11 @@ export class CreditScoreCheckRequestDto {
   })
   applicationNumber: string;
 
-  // Applicant SIN, stored as a 9 digit value, for identity matching
+  // Applicant SIN last 4 digits used for identity matching with the CIBIL master tables
   @IsString({ message: 'SIN must be a string.' })
   @IsNotEmpty({ message: 'SIN is required.' })
-  @Matches(/^\d{9}$/, {
-    message: 'SIN must be a valid 9 digit number.',
+  @Matches(/^\d{4}$/, {
+    message: 'SIN must contain the last 4 digits only.',
   })
   sin: string;
 

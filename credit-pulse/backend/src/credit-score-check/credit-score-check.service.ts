@@ -5,68 +5,20 @@ import { PrismaService } from '../prisma/prisma.service.js';
 import { CreditScoreCheckRequestDto } from './dto/credit-score-check-request.dto.js';
 import { CreditScoreCheckResponseDto } from './dto/credit-score-check-response.dto.js';
 
-// Describes the CIBIL report shape returned with all related data
-type CibilReportWithRelations = {
-  cibil_report_id: string;
-  application_id: string;
-  request_id: string;
-  reference_id: string;
-  bureau: string;
-  report_date: Date;
-  status: string;
-  cibil_score: number;
-  score_band: string;
-  risk_level: string;
-  score_version: string;
-  total_accounts: number;
-  active_accounts: number;
-  closed_accounts: number;
-  total_outstanding_balance: unknown;
-  secured_loan_accounts: number;
-  unsecured_loan_accounts: number;
-  total_missed_payments: number;
-  recent_delinquency: boolean;
-  credit_utilization_ratio: unknown;
-  average_account_age_years: unknown;
-  debt_to_income_estimate: unknown;
-  cibil_applicants: {
-    first_name: string;
-    last_name: string;
-    date_of_birth: Date;
-    sin_number: string;
-    mobile_number: string;
-  } | null;
-  cibil_accounts: Array<{
-    account_type: string;
-    lender_name: string;
-    account_number_masked: string;
-    ownership_type: string;
-    open_date: Date;
-    current_balance: unknown;
-    credit_limit: unknown | null;
-    payment_status: string;
-    days_past_due: number;
-  }>;
-  cibil_payment_history: Array<{
-    month_index: number;
-    status_code: string;
-  }>;
-  cibil_enquiries: Array<{
-    enquiry_date: Date;
-    institution: string;
-    enquiry_type: string;
-  }>;
-  cibil_risk_indicators: {
-    high_credit_utilization: boolean;
-    recent_hard_enquiries: boolean;
-    thin_file: boolean;
-    credit_mix_healthy: boolean;
-  } | null;
-};
+// This type represents a bureau report along with all related master data needed to build the stored snapshot.
+type CibilReportWithRelations = Prisma.cibil_reportsGetPayload<{
+  include: {
+    cibil_applicants: true;
+    cibil_accounts: true;
+    cibil_payment_history: true;
+    cibil_enquiries: true;
+    cibil_risk_indicators: true;
+  };
+}>;
 
 @Injectable()
 export class CreditScoreCheckService {
-  // Injects Prisma so database queries can be performed here
+  // Injects Prisma so database queries can be performed here.
   constructor(private readonly prisma: PrismaService) {}
 
   private readonly logger = new Logger(CreditScoreCheckService.name);
@@ -75,15 +27,12 @@ export class CreditScoreCheckService {
    * Performs a credit score check based on the provided request.
    *
    * The following steps are taken to perform the credit score check:
-   * 1. Checks if the applicant has given consent to perform the credit score check.
-   * 2. Finds the active loan application using the application number.
-   * 3. Cleans up name values before matching against bureau data.
-   * 4. Looks for a matching CIBIL report using application and applicant details.
-   * 5. Marks earlier latest credit checks as no longer latest.
-   * 6. Saves a not found result when no matching CIBIL report is available.
-   * 7. Builds the JSON payload that will be stored as raw bureau response.
-   * 8. Fetches the application status to apply after a successful credit check.
-   * 9. Creates the credit check record and updates the application in one transaction.
+   * 1. Validate that customer consent was provided.
+   * 2. Find the active application from the incoming application number.
+   * 3. Search the CIBIL master tables by customer identity.
+   * 4. If a previous credit check exists for the application, mark it as not latest.
+   * 5. Save the newly fetched report snapshot into application_credit_check.
+   * 6. Update the application status to CREDIT_CHECK_COMPLETED only when a master report is found.
    *
    * @param dto - The request body containing the credit score check request.
    * @param checkedBy - The user who initiated the credit score check.
@@ -95,8 +44,11 @@ export class CreditScoreCheckService {
   ): Promise<CreditScoreCheckResponseDto> {
     this.logger.log('The credit score check process has started.');
 
-    // Checks if the applicant has given consent to perform the credit score check
+    // Stop the flow immediately when customer consent is not present.
     if (!dto.consent) {
+      this.logger.warn(
+        'The credit score check could not continue because consent was not provided.',
+      );
       this.logger.warn(
         'The credit score check could not continue because consent was not provided.',
       );
@@ -105,7 +57,7 @@ export class CreditScoreCheckService {
 
     this.logger.log('Consent was received for the credit score check request.');
 
-    // Finds the active loan application using the application number
+    // Find the active loan application for the given application number.
     const application = await this.prisma.loan_application.findFirst({
       where: {
         application_number: dto.applicationNumber,
@@ -118,8 +70,11 @@ export class CreditScoreCheckService {
       },
     });
 
-    // Throws an error when no matching application exists
+    // Stop the request when no active application exists.
     if (!application) {
+      this.logger.warn(
+        `No active application was found for application number: ${dto.applicationNumber}`,
+      );
       this.logger.warn(
         `No active application was found for application number: ${dto.applicationNumber}`,
       );
@@ -128,24 +83,35 @@ export class CreditScoreCheckService {
 
     this.logger.log(`The application was found for application number: ${dto.applicationNumber}`);
 
-    // Cleans up name values before matching against bureau data
+    // Normalize identity values before matching with the bureau master data.
+    const normalizedSin = dto.sin.trim();
     const normalizedFirstName = dto.firstName.trim();
     const normalizedLastName = dto.lastName.trim();
+    const normalizedDateOfBirth = new Date(dto.dateOfBirth);
 
     this.logger.log('The applicant details were normalized for bureau matching.');
 
-    // Looks for a matching CIBIL report using application and applicant details
+    // Search the CIBIL master tables by customer identity.
+    // This no longer depends on cibil_reports.application_id, which was the main issue.
     const cibilReport = (await this.prisma.cibil_reports.findFirst({
       where: {
-        application_id: application.application_id,
         cibil_applicants: {
           is: {
-            sin_number: dto.sin,
-            date_of_birth: new Date(dto.dateOfBirth),
-            first_name: normalizedFirstName,
-            last_name: normalizedLastName,
+            sin_number: normalizedSin,
+            date_of_birth: normalizedDateOfBirth,
+            first_name: {
+              equals: normalizedFirstName,
+              mode: 'insensitive',
+            },
+            last_name: {
+              equals: normalizedLastName,
+              mode: 'insensitive',
+            },
           },
         },
+      },
+      orderBy: {
+        report_date: 'desc',
       },
       include: {
         cibil_applicants: true,
@@ -170,33 +136,39 @@ export class CreditScoreCheckService {
 
     this.logger.log('The bureau report lookup was completed.');
 
-    // Marks earlier latest credit checks as no longer latest
-    await this.prisma.application_credit_check.updateMany({
-      where: {
-        application_id: application.application_id,
-        is_latest: true,
-      },
-      data: {
-        is_latest: false,
-      },
-    });
+    this.logger.log('The bureau master lookup was completed.');
 
-    this.logger.log('Any previous latest credit check records were cleared.');
-
-    // Saves a not found result when no matching CIBIL report is available
+    // Keep the existing endpoint behavior by storing a NOT_FOUND snapshot when no master report matches.
+    // This still deactivates the previous latest record so the newest attempt remains visible.
     if (!cibilReport) {
       this.logger.warn('No matching bureau report was found for the provided applicant details.');
 
-      const notFoundCheck = await this.prisma.application_credit_check.create({
-        data: {
-          application_id: application.application_id,
-          bureau_name: 'CIBIL',
-          bureau_status: 'NOT_FOUND',
-          checked_by: checkedBy,
-          remarks: 'No matching CIBIL record found',
-          raw_response: Prisma.JsonNull,
-          is_latest: true,
-        },
+      const notFoundCheck = await this.prisma.$transaction(async (tx) => {
+        this.logger.log('The NOT_FOUND credit score transaction has started.');
+
+        await tx.application_credit_check.updateMany({
+          where: {
+            application_id: application.application_id,
+            is_latest: true,
+          },
+          data: {
+            is_latest: false,
+          },
+        });
+
+        this.logger.log('Any previous latest credit check records were cleared.');
+
+        return tx.application_credit_check.create({
+          data: {
+            application_id: application.application_id,
+            bureau_name: 'CIBIL',
+            bureau_status: 'NOT_FOUND',
+            checked_by: checkedBy,
+            remarks: 'No matching CIBIL record found in master tables',
+            raw_response: Prisma.JsonNull,
+            is_latest: true,
+          },
+        });
       });
 
       this.logger.log('A not found credit check record was created successfully.');
@@ -206,12 +178,12 @@ export class CreditScoreCheckService {
 
     this.logger.log('A matching bureau report was found successfully.');
 
-    // Builds the JSON payload that will be stored as raw bureau response
+    // Build the raw snapshot that will be stored in application_credit_check.
     const rawResponse = this.buildRawResponse(cibilReport);
 
     this.logger.log('The raw bureau response was prepared successfully.');
 
-    // Fetches the application status to apply after a successful credit check
+    // Fetch the status that should be applied after a successful credit check.
     const status = await this.prisma.application_status.findFirst({
       where: {
         status_code: 'CREDIT_CHECK_COMPLETED',
@@ -222,8 +194,10 @@ export class CreditScoreCheckService {
       },
     });
 
-    // Throws an error if the expected status is missing in the master data
     if (!status) {
+      this.logger.warn(
+        'The target application status for completed credit check could not be found.',
+      );
       this.logger.warn(
         'The target application status for completed credit check could not be found.',
       );
@@ -232,11 +206,22 @@ export class CreditScoreCheckService {
 
     this.logger.log('The target application status was found successfully.');
 
-    // Creates the credit check record and updates the application in one transaction
+    // Store the new application credit check snapshot and update the application in one transaction.
     const createdCheck = await this.prisma.$transaction(async (tx) => {
       this.logger.log('The credit score check transaction has started.');
 
-      // Stores the successful bureau result
+      await tx.application_credit_check.updateMany({
+        where: {
+          application_id: application.application_id,
+          is_latest: true,
+        },
+        data: {
+          is_latest: false,
+        },
+      });
+
+      this.logger.log('Any previous latest credit check records were cleared.');
+
       const creditCheck = await tx.application_credit_check.create({
         data: {
           application_id: application.application_id,
@@ -249,7 +234,7 @@ export class CreditScoreCheckService {
           score_band: cibilReport.score_band,
           risk_level: cibilReport.risk_level,
           checked_by: checkedBy,
-          remarks: 'Credit score fetched successfully from mock CIBIL tables',
+          remarks: 'Credit score fetched successfully from CIBIL master tables',
           raw_response: rawResponse,
           is_latest: true,
         },
@@ -257,7 +242,6 @@ export class CreditScoreCheckService {
 
       this.logger.log('The credit check record was created successfully.');
 
-      // Moves the application to the completed credit check status
       await tx.loan_application.update({
         where: {
           application_id: application.application_id,
@@ -267,6 +251,8 @@ export class CreditScoreCheckService {
           updated_by: checkedBy,
         },
       });
+
+      this.logger.log('The application status was updated after the credit check.');
 
       this.logger.log('The application status was updated after the credit check.');
 
@@ -281,24 +267,18 @@ export class CreditScoreCheckService {
   }
 
   /**
-   * Builds the JSON payload that will be stored as raw bureau response
+   * Builds the JSON payload that will be stored as raw bureau response.
    *
-   * This method takes a CibilReportWithRelations object as input and converts it into a clean JSON structure.
-   * The JSON structure is designed to be easily consumable by other parts of the application and is used to store the raw response from the credit check.
-   *
-   * @param cibilReport - The CibilReportWithRelations object to be converted
-   * @returns A Prisma.InputJsonObject representing the converted JSON structure
+   * @param cibilReport - The CIBIL report with related master data.
+   * @returns A Prisma.InputJsonObject representing the converted JSON structure.
    */
   private buildRawResponse(cibilReport: CibilReportWithRelations): Prisma.InputJsonObject {
     this.logger.log('The bureau response is being converted into the stored JSON format.');
 
-    // Short references for nested report sections
     const applicant = cibilReport.cibil_applicants;
     const riskIndicators = cibilReport.cibil_risk_indicators;
 
-    // Converts database data into a clean JSON structure for storage
     return {
-      // Header section containing request ID, reference ID, bureau, report date, and status
       header: {
         requestId: cibilReport.request_id,
         referenceId: cibilReport.reference_id,
@@ -306,8 +286,6 @@ export class CreditScoreCheckService {
         reportDate: cibilReport.report_date.toISOString(),
         status: cibilReport.status,
       },
-
-      // Applicant section containing first name, last name, date of birth, SIN, mobile number
       applicant: {
         firstName: applicant?.first_name ?? null,
         lastName: applicant?.last_name ?? null,
@@ -315,16 +293,12 @@ export class CreditScoreCheckService {
         sin: applicant?.sin_number ?? null,
         mobileNumber: applicant?.mobile_number ?? null,
       },
-
-      // Score section containing CIBIL score, score band, risk level, and score version
       score: {
         cibilScore: cibilReport.cibil_score,
         scoreBand: cibilReport.score_band,
         riskLevel: cibilReport.risk_level,
         scoreVersion: cibilReport.score_version,
       },
-
-      // Summary section containing total accounts, active accounts, closed accounts, total outstanding balance, secured loan accounts, unsecured loan accounts
       summary: {
         totalAccounts: cibilReport.total_accounts,
         activeAccounts: cibilReport.active_accounts,
@@ -333,10 +307,7 @@ export class CreditScoreCheckService {
         securedLoanAccounts: cibilReport.secured_loan_accounts,
         unsecuredLoanAccounts: cibilReport.unsecured_loan_accounts,
       },
-
-      // Accounts section containing an array of account objects
       accounts: cibilReport.cibil_accounts.map((account) => ({
-        // Account object containing account type, lender name, account number masked, ownership type, open date, current balance, credit limit, payment status, and days past due
         accountType: account.account_type,
         lenderName: account.lender_name,
         accountNumberMasked: account.account_number_masked,
@@ -347,31 +318,22 @@ export class CreditScoreCheckService {
         paymentStatus: account.payment_status,
         daysPastDue: account.days_past_due,
       })),
-
-      // Payment history section containing an array of payment history objects and total missed payments
       paymentHistory: {
         last12Months: cibilReport.cibil_payment_history.map((history) => history.status_code),
         totalMissedPayments: cibilReport.total_missed_payments,
         recentDelinquency: cibilReport.recent_delinquency,
       },
-
-      // Enquiries section containing an array of enquiry objects
       enquiries: cibilReport.cibil_enquiries.map((enquiry) => ({
-        // Enquiry object containing date, institution, and type
         date: this.toDateOnly(enquiry.enquiry_date),
         institution: enquiry.institution,
         type: enquiry.enquiry_type,
       })),
-
-      // Risk indicators section containing high credit utilizationization, recent hard enquiries, thin file, credit mix healthy, and high credit utilizationization ratio
       riskIndicators: {
         highCreditUtilization: riskIndicators?.high_credit_utilization ?? false,
         recentHardEnquiries: riskIndicators?.recent_hard_enquiries ?? false,
         thinFile: riskIndicators?.thin_file ?? false,
         creditMixHealthy: riskIndicators?.credit_mix_healthy ?? false,
       },
-
-      // Derived metrics section containing credit utilizationization ratio, average account age years, debt to income estimate
       derivedMetrics: {
         creditUtilizationRatio: this.toNumber(cibilReport.credit_utilization_ratio),
         averageAccountAgeYears: this.toNumber(cibilReport.average_account_age_years),
@@ -379,83 +341,50 @@ export class CreditScoreCheckService {
       },
     } satisfies Prisma.InputJsonObject;
   }
+
   /**
-   * Attempts to convert the given value into a number, returning 0 if the value is missing or if the conversion fails.
-   *
-   * This function is used to handle cases where the input value may be null, undefined, or a string that can't
-   * be parsed as a number. If the value is null or undefined, 0 is immediately returned without attempting to parse it.
-   *
-   * If the value is not null or undefined, the function attempts to convert the value to a number using the built-in Number() function.
-   * If the conversion is successful, the resulting number is returned. If the conversion fails (e.g. because the value is a string that can't be parsed as a number), 0 is returned to indicate that the conversion failed.
-   *
-   * @param value - The value to convert
-   * @returns The converted number, or 0 if the conversion fails or if the value is missing
+   * Converts the given value into a number, returning 0 when the value is missing or invalid.
    */
   private toNumber(value: unknown): number {
-    // Returns 0 when the value is missing
     if (value === null || value === undefined) {
       return 0;
     }
 
-    // Tries to convert the incoming value into a number
     const parsedValue = Number(value);
 
-    // Falls back to 0 if conversion fails
     if (Number.isNaN(parsedValue)) {
       return 0;
     }
 
-    // Returns the converted number
     return parsedValue;
   }
 
   /**
-   * Attempts to convert the given value into a number, returning null if the value is missing
-   * or if the conversion fails.
-   *
-   * This function is used to handle cases where the input value may be null, undefined, or a string that can't
-   * be parsed as a number. If the value is null or undefined, null is immediately returned.
-   *
-   * Otherwise, the function attempts to convert the value to a number using the built-in Number() function.
-   * If the conversion is successful, the resulting number is returned. If the conversion fails (e.g. because
-   * the value is a string that can't be parsed as a number), null is returned.
-   *
-   * @param value - The value to convert
-   * @returns The converted number, or null if the conversion fails or if the value is missing
+   * Converts the given value into a number, returning null when the value is missing or invalid.
    */
   private toNullableNumber(value: unknown): number | null {
-    // If the value is null or undefined, return null
     if (value === null || value === undefined) {
       return null;
     }
 
-    // Tries to convert the incoming value into a number
     const parsedValue = Number(value);
 
-    // If the conversion fails, return null
     if (Number.isNaN(parsedValue)) {
       return null;
     }
 
-    // If the conversion is successful, return the resulting number
     return parsedValue;
   }
+
   /**
-   * Returns a string representation of the given date in YYYY-MM-DD format,
-   * discarding the time part. If the value is null or undefined, returns an empty string.
-   * @param value - The date to convert
-   * @returns A string representation of the date in YYYY-MM-DD format
+   * Returns a date string in YYYY-MM-DD format.
    */
   private toDateOnly(value: Date): string {
-    // If the value is null or undefined, return an empty string
     if (value === null || value === undefined) {
       return '';
     }
 
-    // Split the ISO string into two parts: the date part and the time part
     const splitString = value.toISOString().split('T');
-
-    // Return the date part in YYYY-MM-DD format
     return splitString[0] ?? '';
   }
 }
