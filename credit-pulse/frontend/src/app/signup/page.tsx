@@ -5,18 +5,19 @@ import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  sanitizeMobile,
+  sanitizePhone,
   validateSignUp,
   normalizeSignUpValues,
   SignUpFormErrors,
   SignUpFormState,
 } from "../utils/signupValidation";
+import styles from "./page.module.css";
 
 type SignUpApiPayload = {
   firstName: string;
   lastName: string;
   email: string;
-  mobileNo: string;
+  phone: string;
   password: string;
 };
 
@@ -27,7 +28,7 @@ export default function SignUpPage() {
     firstName: "",
     lastName: "",
     email: "",
-    mobile: "",
+    phone: "",
     password: "",
   });
 
@@ -39,18 +40,15 @@ export default function SignUpPage() {
   const [submitError, setSubmitError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isValid = useMemo(() => {
-    return Object.keys(validateSignUp(form)).length === 0;
-  }, [form]);
+  const isValid = useMemo(
+    () => Object.keys(validateSignUp(form)).length === 0,
+    [form],
+  );
 
   function setField<K extends keyof SignUpFormState>(key: K, value: SignUpFormState[K]) {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
-
-      if (touched[key] || submitted) {
-        setErrors(validateSignUp(next));
-      }
-
+      if (touched[key] || submitted) setErrors(validateSignUp(next));
       return next;
     });
   }
@@ -80,108 +78,130 @@ export default function SignUpPage() {
     }
 
     setIsSubmitting(true);
-    setSuccessMsg("Account created (dummy). Redirecting to Sign In...");
 
-    setTimeout(() => router.push("/signin"), 900);
-  }
+    try {
+      const payload: SignUpApiPayload = {
+        firstName: normalizedForm.firstName,
+        lastName: normalizedForm.lastName,
+        email: normalizedForm.email,
+        phone: normalizedForm.phone,
+        password: normalizedForm.password,
+      };
 
-  function handleSocial(provider: "google" | "apple") {
-    if (isSubmitting) return;
+      const response = await fetch("http://localhost:3001/auth/signup", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-    setErrors({});
-    setTouched({});
-    setSubmitted(false);
+      const data = await response.json().catch(() => null);
 
-    setSuccessMsg("");
-    setIsSubmitting(true);
+      if (!response.ok) {
+        const backendMessage =
+          data?.message ||
+          data?.error ||
+          "Sign up failed. Please check your details and try again.";
 
-    setSuccessMsg(
-      provider === "google"
-        ? "Google sign-up (dummy). Redirecting to Home..."
-        : "Apple sign-up (dummy). Redirecting to Home..."
-    );
+        setSubmitError(
+          Array.isArray(backendMessage)
+            ? backendMessage.join(" ")
+            : String(backendMessage)
+        );
+        return;
+      }
 
-    setTimeout(() => router.push("/"), 900);
+      setSuccessMsg("Account created successfully. Redirecting to Sign In...");
+
+      setTimeout(() => {
+        router.push("/signin");
+      }, 1200);
+    } catch {
+      setSubmitError(
+        "Unable to connect to the server. Please try again later."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
-    <main className="container py-4">
-      <div className="row justify-content-center">
-        <div className="col-12 col-lg-10">
-          {/* SINGLE box only (no cp-hero-section wrapper) */}
-          <div className="cp-card p-0 overflow-hidden">
-            <div className="row g-0">
-              {/* Left panel (placeholder until you have an image) */}
-              <div className="col-12 col-lg-6 auth-left d-flex align-items-center justify-content-center p-4">
-                <div className="auth-image-box d-flex align-items-center justify-content-center">
-                  <span className="auth-muted fw-semibold">Image</span>
-                </div>
-              </div>
+    <main className={styles.page}>
+      <section className={styles.card}>
+        <div className={styles.visualPanel}>
+          <div className={styles.visualBox}>
+            <span className={styles.eyebrow}>Create account</span>
+            <h1 className={styles.visualTitle}>Start your CreditPulse journey.</h1>
+            <p className={styles.visualText}>
+              Build your account to follow application progress, submit details securely, and stay
+              informed about what comes next.
+            </p>
+            <div className={styles.visualPoints}>
+              <span className={styles.visualPoint}>Track every stage clearly</span>
+              <span className={styles.visualPoint}>Keep documents organized</span>
+              <span className={styles.visualPoint}>Receive next-step guidance</span>
+            </div>
+            <div className={styles.visualImageWrap}>
+              <Image
+                src="/signup/signup-illustration.svg"
+                alt="Illustration of a secure digital loan application journey"
+                width={720}
+                height={520}
+                className={styles.visualImage}
+                priority
+              />
+            </div>
+            <div className={styles.visualBadge}>Secure onboarding for applicants</div>
+          </div>
+        </div>
 
-              {/* Right panel */}
-              <div className="col-12 col-lg-6">
-                <div className="p-4 p-md-5">
-                  <h1 className="fw-bold mb-2">Sign Up</h1>
-                  <p className="auth-muted mb-4">
-                    Create your CreditPulse account.
-                  </p>
+        <div className={styles.formPanel}>
+          <div className={styles.formHeader}>
+            <span className={styles.formEyebrow}>Quick onboarding</span>
+            <h1 className={styles.title}>Sign Up</h1>
+            <p className={styles.subtitle}>Create your CreditPulse account in just a few details.</p>
+          </div>
 
-                  {successMsg && (
-                    <div className="alert alert-success" role="status" aria-live="polite">
-                      {successMsg}
-                    </div>
-                  )}
+          {successMsg && (
+            <div className="alert alert-success" role="status" aria-live="polite">
+              {successMsg}
+            </div>
+          )}
 
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary w-100 fw-semibold py-2 mb-2"
-                    onClick={() => handleSocial("google")}
-                    disabled={isSubmitting}
-                  >
-                    Continue with Google
-                  </button>
+          {submitError && (
+            <div className="alert alert-danger" role="alert" aria-live="assertive">
+              {submitError}
+            </div>
+          )}
 
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary w-100 fw-semibold py-2"
-                    onClick={() => handleSocial("apple")}
-                    disabled={isSubmitting}
-                  >
-                    Continue with Apple
-                  </button>
-
-                  <div className="auth-or my-4" aria-label="Alternative signup options">
-                    <div className="auth-or-line" aria-hidden="true" />
-                    <div className="auth-or-text" aria-hidden="true">
-                      or
-                    </div>
-                    <div className="auth-or-line" aria-hidden="true" />
+          <form onSubmit={handleSubmit} noValidate className={styles.form}>
+            <div className={styles.formGrid}>
+              <div>
+                <label htmlFor="firstName" className="form-label fw-semibold">
+                  First Name
+                </label>
+                <input
+                  id="firstName"
+                  className={`form-control ${errors.firstName ? "is-invalid" : ""}`}
+                  name="firstName"
+                  type="text"
+                  value={form.firstName}
+                  onChange={(e) => setField("firstName", e.target.value)}
+                  onBlur={() => onBlurField("firstName")}
+                  aria-invalid={!!errors.firstName}
+                  aria-describedby={errors.firstName ? "firstName-error" : undefined}
+                  placeholder="Enter your first name"
+                  disabled={isSubmitting}
+                  autoComplete="given-name"
+                  required
+                />
+                {errors.firstName && (
+                  <div id="firstName-error" className="invalid-feedback">
+                    {errors.firstName}
                   </div>
-
-                  <form onSubmit={handleSubmit} noValidate>
-                    <div className="mb-3">
-                      <label htmlFor="firstName" className="form-label fw-semibold">
-                        First Name
-                      </label>
-                      <input
-                        id="firstName"
-                        className={`form-control ${errors.firstName ? "is-invalid" : ""}`}
-                        type="text"
-                        value={form.firstName}
-                        onChange={(e) => setField("firstName", e.target.value)}
-                        onBlur={() => onBlurField("firstName")}
-                        aria-invalid={!!errors.firstName}
-                        aria-describedby={errors.firstName ? "firstName-error" : undefined}
-                        placeholder="Enter your first name"
-                        disabled={isSubmitting}
-                        required
-                      />
-                      {errors.firstName && (
-                        <div id="firstName-error" className="invalid-feedback">
-                          {errors.firstName}
-                        </div>
-                      )}
-                    </div>
+                )}
+              </div>
 
               <div>
                 <label htmlFor="lastName" className="form-label fw-semibold">
@@ -210,31 +230,31 @@ export default function SignUpPage() {
               </div>
             </div>
 
-                    <div className="mb-3">
-                      <label htmlFor="email" className="form-label fw-semibold">
-                        Email
-                      </label>
-                      <input
-                        id="email"
-                        className={`form-control ${errors.email ? "is-invalid" : ""}`}
-                        name="email"
-                        type="email"
-                        value={form.email}
-                        onChange={(e) => setField("email", e.target.value)}
-                        onBlur={() => onBlurField("email")}
-                        aria-invalid={!!errors.email}
-                        aria-describedby={errors.email ? "email-error" : undefined}
-                        placeholder="example@domain.com"
-                        disabled={isSubmitting}
-                        autoComplete="email"
-                        required
-                      />
-                      {errors.email && (
-                        <div id="email-error" className="invalid-feedback">
-                          {errors.email}
-                        </div>
-                      )}
-                    </div>
+            <div>
+              <label htmlFor="email" className="form-label fw-semibold">
+                Email
+              </label>
+              <input
+                id="email"
+                className={`form-control ${errors.email ? "is-invalid" : ""}`}
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={(e) => setField("email", e.target.value)}
+                onBlur={() => onBlurField("email")}
+                aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
+                placeholder="example@domain.com"
+                disabled={isSubmitting}
+                autoComplete="email"
+                required
+              />
+              {errors.email && (
+                <div id="email-error" className="invalid-feedback">
+                  {errors.email}
+                </div>
+              )}
+            </div>
 
             <div>
               <label htmlFor="mobile" className="form-label fw-semibold">
@@ -242,25 +262,25 @@ export default function SignUpPage() {
               </label>
               <input
                 id="mobile"
-                className={`form-control ${errors.mobile ? "is-invalid" : ""}`}
-                name="mobile"
+                className={`form-control ${errors.phone ? "is-invalid" : ""}`}
+                name="phone"
                 type="tel"
                 inputMode="numeric"
                 pattern="[0-9]*"
                 maxLength={10}
-                value={form.mobile}
-                onChange={(e) => setField("mobile", sanitizeMobile(e.target.value))}
-                onBlur={() => onBlurField("mobile")}
-                aria-invalid={!!errors.mobile}
-                aria-describedby={errors.mobile ? "mobile-error" : undefined}
+                value={form.phone}
+                onChange={(e) => setField("phone", sanitizePhone(e.target.value))}
+                onBlur={() => onBlurField("phone")}
+                aria-invalid={!!errors.phone}
+                aria-describedby={errors.phone ? "phone-error" : undefined}
                 placeholder="1234567890"
                 disabled={isSubmitting}
                 autoComplete="tel"
                 required
               />
-              {errors.mobile && (
-                <div id="mobile-error" className="invalid-feedback">
-                  {errors.mobile}
+              {errors.phone && (
+                <div id="phone-error" className="invalid-feedback">
+                  {errors.phone}
                 </div>
               )}
             </div>

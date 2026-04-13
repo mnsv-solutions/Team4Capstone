@@ -2,7 +2,7 @@ export type SignUpFormState = {
   firstName: string;
   lastName: string;
   email: string;
-  mobile: string;
+  phone: string;
   password: string;
 };
 
@@ -12,7 +12,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_REGEX = /^\d{10}$/;
 const NAME_REGEX = /^[A-Za-z][A-Za-z\s'-]*$/;
 
-export function sanitizeMobile(value: string): string {
+export function sanitizePhone(value: string): string {
   return value.replace(/\D/g, "").slice(0, 10);
 }
 
@@ -29,7 +29,7 @@ export function normalizeSignUpValues(values: SignUpFormState): SignUpFormState 
     firstName: normalizeName(values.firstName),
     lastName: normalizeName(values.lastName),
     email: normalizeEmail(values.email),
-    mobile: sanitizeMobile(values.mobile.trim()),
+    phone: sanitizePhone(values.phone.trim()),
     password: values.password,
   };
 }
@@ -42,7 +42,7 @@ export function validateSignUp(values: SignUpFormState): SignUpFormErrors {
   const firstName = normalizedValues.firstName;
   const lastName = normalizedValues.lastName;
   const email = normalizedValues.email;
-  const mobile = normalizedValues.mobile;
+  const phone = normalizedValues.phone;
   const password = normalizedValues.password;
 
   if (!firstName) {
@@ -71,10 +71,10 @@ export function validateSignUp(values: SignUpFormState): SignUpFormErrors {
     errors.email = "Enter a valid email address.";
   }
 
-  if (!mobile) {
-    errors.mobile = "Mobile number is required.";
-  } else if (!PHONE_REGEX.test(mobile)) {
-    errors.mobile = "Enter a valid 10-digit mobile number.";
+  if (!phone) {
+    errors.phone = "Mobile number is required.";
+  } else if (!PHONE_REGEX.test(phone)) {
+    errors.phone = "Enter a valid 10-digit mobile number.";
   }
 
   if (!password) {
