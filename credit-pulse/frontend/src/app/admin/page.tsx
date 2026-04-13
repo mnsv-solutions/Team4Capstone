@@ -1,13 +1,25 @@
 "use client";
 
+// This page must run in the browser because it uses hooks, routing, token decoding,
+// confirmation dialogs, file upload handling, and other interactive admin features.
 import axios from "axios";
+// React hooks used in this page:
+// useState -> stores UI/data state
+// useEffect -> runs side effects such as redirects and lazy loading
+// useMemo -> avoids recalculating filtered/paginated data unnecessarily
+// useCallback -> keeps fetch functions stable when passed into effects
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
+// Client-side router is used to redirect users who are not allowed to access this page.
 import { useRouter } from "next/navigation";
+// Auth context gives us the logged-in user, token, and admin access flag.
 import { useAuth } from "../../context/AuthContext";
+// Global stylesheet for the admin page layout and components.
 import "./admin.css";
 
+// Union type for the three top navigation tabs in the admin workspace.
 type AdminSection = "users" | "teams" | "products";
 
+// Shape of a user record used in the user management table.
 type AdminUser = {
   userId: string;
   roleType: string;
@@ -20,6 +32,7 @@ type AdminUser = {
   createdAt: string;
 };
 
+// Shape of a team record used in the team management table.
 type Team = {
   teamId: string;
   teamCode: string;
@@ -29,6 +42,7 @@ type Team = {
   isActive: boolean;
 };
 
+// Shape of a user listed inside a selected team.
 type TeamUser = {
   userId: string;
   name: string;
@@ -36,6 +50,7 @@ type TeamUser = {
   roleType: string;
 };
 
+// Shape of a product record used in the product management table.
 type Product = {
   productId: string;
   productCode: string;
@@ -52,6 +67,7 @@ type Product = {
   updatedAt: string;
 };
 
+// Expected response when the admin uploads an Excel sheet of users.
 type UploadUsersResponse = {
   message: string;
   totalRows: number;
@@ -69,6 +85,7 @@ type UploadUsersResponse = {
   }>;
 };
 
+// Each team code expects a specific user role when assigning members.
 const TEAM_ROLE_MAPPING: Record<string, string> = {
   SOURCING_TEAM: "SOURCING_OFFICER",
   UNDERWRITER_TEAM: "UNDERWRITER",
@@ -76,12 +93,15 @@ const TEAM_ROLE_MAPPING: Record<string, string> = {
 };
 
 export default function AdminPage() {
+  // Router helps us redirect unauthorized users away from this protected page.
   const router = useRouter();
+  // Auth context is the source of truth for login state and admin permission.
   const { token, user, isAdmin, isLoading } = useAuth();
 
+  // Controls which admin workspace tab is currently visible.
   const [activeSection, setActiveSection] = useState<AdminSection>("users");
 
-  // User state
+  // User management state: loaded records, upload flow, and UI filters.
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isUsersLoading, setIsUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState("");
@@ -93,7 +113,7 @@ export default function AdminPage() {
   const [userSearchText, setUserSearchText] = useState("");
   const [userStatusFilter, setUserStatusFilter] = useState("All");
 
-  // Team state
+  // Team management state: teams list, members for the selected team, and add-user modal.
   const [teams, setTeams] = useState<Team[]>([]);
   const [isTeamsLoading, setIsTeamsLoading] = useState(false);
   const [teamUsers, setTeamUsers] = useState<TeamUser[]>([]);
@@ -106,7 +126,7 @@ export default function AdminPage() {
   const [selectedUserForTeam, setSelectedUserForTeam] = useState<string>("");
   const [isAddingUserToTeam, setIsAddingUserToTeam] = useState(false);
 
-  // Product state
+  // Product management state: list, filters, create/edit form, and inline validation messages.
   const [products, setProducts] = useState<Product[]>([]);
   const [isProductsLoading, setIsProductsLoading] = useState(false);
   const [productSearchText, setProductSearchText] = useState("");
@@ -142,7 +162,7 @@ export default function AdminPage() {
   } | null>(null);
   const [uploadFormError, setUploadFormError] = useState("");
 
-  // Pagination state
+  // Pagination state is tracked separately for each admin section.
   const [userCurrentPage, setUserCurrentPage] = useState(1);
   const [userItemsPerPage, setUserItemsPerPage] = useState(10);
   const [teamCurrentPage, setTeamCurrentPage] = useState(1);
@@ -150,11 +170,11 @@ export default function AdminPage() {
   const [productCurrentPage, setProductCurrentPage] = useState(1);
   const [productItemsPerPage, setProductItemsPerPage] = useState(10);
 
-  // General state
+  // Shared success/error banner messages shown near the top of each section.
   const [actionMessage, setActionMessage] = useState("");
   const [actionError, setActionError] = useState("");
 
-  // Confirmation modal state
+  // Reusable confirmation modal state. Different actions plug in their own title/message/callbacks.
   const [confirmModal, setConfirmModal] = useState<{
     isOpen: boolean;
     title: string;
@@ -174,6 +194,7 @@ export default function AdminPage() {
   });
 
   const getUserIdFromToken = () => {
+    // Some API actions need the current user id. If it is not in context, decode it from the JWT payload.
     if (!token) {
       return "";
     }
@@ -185,6 +206,7 @@ export default function AdminPage() {
         return "";
       }
 
+      // Normalize the JWT payload so atob can decode it safely.
       const normalizedPayload = payload.replace(/-/g, "+").replace(/_/g, "/");
       const paddedPayload = normalizedPayload.padEnd(
         Math.ceil(normalizedPayload.length / 4) * 4,
@@ -201,10 +223,14 @@ export default function AdminPage() {
     }
   };
 
+  // Prefer the user id coming from context, but fall back to the token payload if needed.
   const currentUserId = user?.userId ?? user?.id ?? getUserIdFromToken();
 
   useEffect(() => {
-    // Waits until login state is fully ready
+    // Guard the page on the client:
+    // 1. Wait for auth state to finish loading
+    // 2. Redirect guests to sign-in
+    // 3. Redirect non-admin users away from the admin workspace
     if (isLoading) return;
 
     // Sends logged out users to sign in page
@@ -263,7 +289,7 @@ export default function AdminPage() {
     userId: string,
     status: "active" | "inactive" | "block" | "unblock",
   ) => {
-    // Validate inputs
+    // Simple defensive checks before making the API call.
     if (!userId || !userId.trim()) {
       setActionError("Invalid user selected. Please try again.");
       return;
@@ -274,7 +300,7 @@ export default function AdminPage() {
       return;
     }
 
-    // Updates active, inactive, block, or unblock state
+    // Calls the backend to change the selected user's state.
     try {
       setActionError("");
       setActionMessage("");
@@ -298,10 +324,10 @@ export default function AdminPage() {
 
       setActionMessage(message);
 
-      // Reloads user list after update
+      // Refresh the table so the latest backend state is shown immediately.
       await fetchAllUsers();
     } catch (error) {
-      // Shows backend or fallback error message
+      // Show the backend message when available, otherwise fall back to a generic one.
       if (axios.isAxiosError(error)) {
         const apiMessage = error.response?.data?.message;
 
@@ -317,6 +343,7 @@ export default function AdminPage() {
   };
 
   const handleUserActiveStatusConfirmation = (userId: string, userName: string, currentActive: boolean) => {
+    // Build a confirmation modal before toggling active/inactive status.
     const newStatus = currentActive ? "inactive" : "active";
     const action = currentActive ? "deactivate" : "activate";
     const title = currentActive ? "Deactivate User" : "Activate User";
@@ -342,6 +369,7 @@ export default function AdminPage() {
   };
 
   const handleUserBlockStatusConfirmation = (userId: string, userName: string, currentBlocked: boolean) => {
+    // Block/unblock uses the same reusable confirmation modal pattern.
     const newStatus = currentBlocked ? "unblock" : "block";
     const action = currentBlocked ? "unblock" : "block";
     const title = currentBlocked ? "Unblock User" : "Block User";
@@ -369,7 +397,9 @@ export default function AdminPage() {
   // ==================== TEAMS FUNCTIONS ====================
 
   const fetchAllTeams = useCallback(async () => {
+    // Loads all teams for the team management tab.
     try {
+      // Reset loading and banner state before the request starts.
       setIsTeamsLoading(true);
       setActionError("");
       setActionMessage("");
@@ -381,6 +411,7 @@ export default function AdminPage() {
       });
 
       const responseData = response.data;
+      // Support both wrapped and direct array responses from backend.
       const teamsList = Array.isArray(responseData?.data)
         ? responseData.data
         : Array.isArray(responseData)
@@ -405,6 +436,7 @@ export default function AdminPage() {
   }, [token]);
 
   const fetchTeamUsers = async (teamId: string) => {
+    // Loads members for a single team and switches the view into "team members" mode.
     try {
       setActionError("");
       setActionMessage("");
@@ -420,6 +452,7 @@ export default function AdminPage() {
       );
 
       const responseData = response.data;
+      // Different endpoints may wrap the users list differently, so we normalize it here.
       const usersData = Array.isArray(responseData?.data)
         ? responseData.data
         : Array.isArray(responseData?.users)
@@ -444,6 +477,7 @@ export default function AdminPage() {
   };
 
   const getTeamUserFormErrors = () => {
+    // Validates the add-user form before sending it to the backend.
     const errors: { team?: string; user?: string } = {};
 
     if (!selectedTeamForAddUser) {
@@ -464,6 +498,7 @@ export default function AdminPage() {
         ? TEAM_ROLE_MAPPING[selectedTeam.teamCode]
         : undefined;
 
+      // This client-side check stops the admin from pairing a user with the wrong team role.
       if (
         selectedUser &&
         expectedRole &&
@@ -477,6 +512,7 @@ export default function AdminPage() {
   };
 
   const handleAddUserToTeam = async () => {
+    // Stop early if the add-user form has missing or mismatched values.
     const errors = getTeamUserFormErrors();
     setTeamUserFormErrors(errors);
 
@@ -492,10 +528,11 @@ export default function AdminPage() {
     }
 
     try {
+      // Disable the modal button and clear old modal messages during submission.
       setIsAddingUserToTeam(true);
       setTeamUserFormMessage(null);
 
-      // Find user and team names for better feedback
+      // Resolve readable names so the success message feels clearer to the admin.
       const selectedUser = users.find((u) => u.userId === selectedUserForTeam);
       const selectedTeam = teams.find(
         (t) => t.teamId === selectedTeamForAddUser,
@@ -524,7 +561,7 @@ export default function AdminPage() {
         message: message,
       });
 
-      // Clear form after 1.5 seconds
+      // Briefly show the success banner, then close and reset the modal form.
       setTimeout(() => {
         setShowTeamUserModal(false);
         setSelectedTeamForAddUser("");
@@ -535,6 +572,7 @@ export default function AdminPage() {
 
       await fetchAllTeams();
 
+      // If the team currently on screen was updated, refresh that member list too.
       if (selectedTeamId === selectedTeamForAddUser) {
         await fetchTeamUsers(selectedTeamForAddUser);
       }
@@ -558,6 +596,7 @@ export default function AdminPage() {
   };
 
   const handleRemoveUserFromTeam = async (teamId: string, userId: string) => {
+    // Removing a user is wrapped in a confirmation modal to avoid accidental changes.
     const user = teamUsers.find((u) => u.userId === userId);
     const userDisplay = user ? `${user.name} (${user.userEmail})` : "this user";
 
@@ -584,6 +623,7 @@ export default function AdminPage() {
         setActionMessage(message);
         await fetchAllTeams();
 
+        // Refresh the member table if the removed user belongs to the team currently being viewed.
         if (selectedTeamId === teamId) {
           await fetchTeamUsers(teamId);
         }
@@ -617,6 +657,7 @@ export default function AdminPage() {
   // ==================== PRODUCTS FUNCTIONS ====================
 
   const fetchAllProducts = useCallback(async () => {
+    // Loads all loan products for the product management tab.
     try {
       setIsProductsLoading(true);
       setActionError("");
@@ -629,6 +670,7 @@ export default function AdminPage() {
       });
 
       const responseData = response.data;
+      // Support both array response styles from backend.
       const productsList = Array.isArray(responseData?.data)
         ? responseData.data
         : Array.isArray(responseData)
@@ -653,6 +695,7 @@ export default function AdminPage() {
   }, [token]);
 
   const validateProductForm = () => {
+    // Centralized product form validation keeps the save handler smaller and easier to follow.
     const errors: Record<string, string> = {};
     const trimmedCode = productFormData.productCode.trim();
     const trimmedName = productFormData.productName.trim();
@@ -667,6 +710,7 @@ export default function AdminPage() {
     const hasProcessingFee =
       productFormData.processingFeePercent.trim().length > 0;
 
+    // Product code rules: required, minimum length, and uppercase underscore format.
     if (!trimmedCode) {
       errors.productCode = "Product code is required.";
     } else if (trimmedCode.length < 3) {
@@ -676,12 +720,14 @@ export default function AdminPage() {
         "Product code must contain only uppercase letters and underscores.";
     }
 
+    // Product name rules: required and reasonably descriptive.
     if (!trimmedName) {
       errors.productName = "Product name is required.";
     } else if (trimmedName.length < 3) {
       errors.productName = "Product name must be at least 3 characters.";
     }
 
+    // Amount rules: both values must be positive and min cannot exceed max.
     if (Number.isNaN(minAmount) || minAmount <= 0) {
       errors.minAmount = "Min amount must be a positive number.";
     } else if (!decimalPattern.test(productFormData.minAmount.trim())) {
@@ -697,6 +743,7 @@ export default function AdminPage() {
         "Max amount must be greater than or equal to min amount.";
     }
 
+    // Tenure rules: values are in months and capped to a realistic limit.
     if (Number.isNaN(minTenure) || minTenure <= 0) {
       errors.minTenureMonths = "Min tenure must be a positive integer.";
     } else if (minTenure > 360) {
@@ -718,6 +765,7 @@ export default function AdminPage() {
         "Max tenure must be greater than or equal to min tenure.";
     }
 
+    // Interest rate rules: percentages must stay between 0 and 100.
     if (Number.isNaN(minRate) || minRate < 0) {
       errors.minInterestRate =
         "Min interest rate must be a non-negative number.";
@@ -747,6 +795,7 @@ export default function AdminPage() {
         "Max rate must be greater than or equal to min rate.";
     }
 
+    // Processing fee is optional, but if entered it must still be valid.
     if (hasProcessingFee && (Number.isNaN(feePercent) || feePercent < 0)) {
       errors.processingFeePercent =
         "Processing fee must be a non-negative number.";
@@ -760,7 +809,7 @@ export default function AdminPage() {
       errors.processingFeePercent = "Processing fee cannot exceed 100%.";
     }
 
-    // Check for duplicate product code if creating new
+    // Only block duplicate product codes when creating a new product.
     if (!editingProductId && !errors.productCode) {
       const isDuplicate = products.some(
         (p) => p.productCode.toUpperCase() === trimmedCode.toUpperCase(),
@@ -782,6 +831,7 @@ export default function AdminPage() {
     }
 
     if (Object.keys(errors).length > 0) {
+      // Save all field errors so the form can show inline feedback.
       setProductFormErrors(errors);
       return false;
     }
@@ -791,6 +841,7 @@ export default function AdminPage() {
   };
 
   const resetProductForm = () => {
+    // Restores the product form to its default "create new" state.
     setProductFormData({
       productCode: "",
       productName: "",
@@ -809,6 +860,7 @@ export default function AdminPage() {
   };
 
   const handleSaveProduct = async () => {
+    // Save handles both create and update depending on whether editingProductId exists.
     if (!validateProductForm()) {
       setProductFormMessage({
         type: "error",
@@ -826,12 +878,14 @@ export default function AdminPage() {
     }
 
     try {
+      // Disable repeated clicks and clear old banners while saving.
       setIsCreatingProduct(true);
       setActionError("");
       setActionMessage("");
       setProductFormMessage(null);
 
       if (editingProductId) {
+        // Editing updates an existing product record.
         const response = await axios.patch(
           "/api/products/update-product",
           {
@@ -850,6 +904,7 @@ export default function AdminPage() {
           response.data?.message || "Product updated successfully.";
         setActionMessage(message);
       } else {
+        // Creating sends a brand new product record to the backend.
         const response = await axios.post(
           "/api/products/add",
           {
@@ -896,6 +951,7 @@ export default function AdminPage() {
     currentStatus: string,
     productName: string,
   ) => {
+    // Toggle active/inactive product status. Deactivation asks for confirmation first.
     const newStatus = currentStatus === "active" ? "inactive" : "active";
     const performStatusUpdate = async () => {
       try {
@@ -934,6 +990,7 @@ export default function AdminPage() {
     };
 
     if (newStatus === "inactive") {
+      // Extra confirmation protects against accidental deactivation.
       setConfirmModal({
         isOpen: true,
         title: "Deactivate Product",
@@ -952,6 +1009,7 @@ export default function AdminPage() {
   };
 
   const handleEditProduct = (product: Product) => {
+    // Pre-fills the product form with the selected record and opens it in edit mode.
     setProductFormErrors({});
     setProductFormMessage(null);
     setActionError("");
@@ -971,47 +1029,48 @@ export default function AdminPage() {
   };
 
   const handleCancelProductForm = () => {
+    // Cancel simply resets the form back to its hidden default state.
     resetProductForm();
   };
 
   useEffect(() => {
-    // Reset to page 1 when search or filter changes
+    // Whenever filters change, go back to page 1 so pagination stays consistent with the filtered list.
     setUserCurrentPage(1);
   }, [userSearchText, userStatusFilter]);
 
   useEffect(() => {
-    // Reset to page 1 when team search changes
+    // Team search can shrink the result set, so we reset pagination back to page 1.
     setTeamCurrentPage(1);
   }, [teamSearchText]);
 
   useEffect(() => {
-    // Reset to page 1 when product search or filter changes
+    // Product search/filter can change the result count, so reset pagination too.
     setProductCurrentPage(1);
   }, [productSearchText, productStatusFilter]);
 
   useEffect(() => {
-    // Loads users only when the user management tab is open
+    // Load users lazily only when their tab is active.
     if (!token || !isAdmin || activeSection !== "users") return;
 
     fetchAllUsers();
   }, [token, isAdmin, activeSection, fetchAllUsers]);
 
   useEffect(() => {
-    // Loads teams only when the team management tab is open
+    // Load teams lazily only when their tab is active.
     if (!token || !isAdmin || activeSection !== "teams") return;
 
     fetchAllTeams();
   }, [token, isAdmin, activeSection, fetchAllTeams]);
 
   useEffect(() => {
-    // Loads products only when the product management tab is open
+    // Load products lazily only when their tab is active.
     if (!token || !isAdmin || activeSection !== "products") return;
 
     fetchAllProducts();
   }, [token, isAdmin, activeSection, fetchAllProducts]);
 
   const handleFileSelect = (event: ChangeEvent<HTMLInputElement>) => {
-    // Stores the selected Excel file before upload
+    // Runs quick client-side checks before the upload button is even pressed.
     const file = event.target.files?.[0] || null;
 
     // Validate file type
@@ -1041,6 +1100,7 @@ export default function AdminPage() {
       }
     }
 
+    // A valid new selection clears the previous upload result and any old banner messages.
     setSelectedFile(file);
     setUploadResult(null);
     setUploadFormError("");
@@ -1049,13 +1109,13 @@ export default function AdminPage() {
   };
 
   const handleExcelUpload = async () => {
-    // Stops upload when no file is selected
+    // Stops upload when no file is selected.
     if (!selectedFile) {
       setUploadFormError("Please select an Excel file first.");
       return;
     }
 
-    // Validate file before uploading
+    // Re-validate before upload in case the selected file changed unexpectedly.
     const validTypes = [
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "application/vnd.ms-excel",
@@ -1079,7 +1139,7 @@ export default function AdminPage() {
 
     setUploadFormError("");
 
-    // Uploads the selected Excel file to backend
+    // Send the file as multipart/form-data so the backend can parse it as an uploaded file.
     try {
       setIsUploading(true);
       setActionError("");
@@ -1087,6 +1147,7 @@ export default function AdminPage() {
       setUploadResult(null);
 
       const formData = new FormData();
+      // Backend expects the uploaded file under the key named "file".
       formData.append("file", selectedFile);
 
       const response = await axios.post("/api/users/upload-excel", formData, {
@@ -1100,10 +1161,10 @@ export default function AdminPage() {
       setUploadResult(responseData);
       setActionMessage(responseData?.message || "Users uploaded successfully.");
 
-      // Reloads user list after successful upload
+      // Refresh the table so newly created users appear right away.
       await fetchAllUsers();
     } catch (error) {
-      // Shows backend or fallback error message
+      // Show the backend message when available, otherwise fall back to a generic one.
       if (axios.isAxiosError(error)) {
         const apiMessage = error.response?.data?.message;
 
@@ -1121,12 +1182,13 @@ export default function AdminPage() {
   };
 
   const filteredUsers = useMemo(() => {
-    // Applies search and filter values on the loaded user list
+    // Filtering is memoized so we only recompute when the source data or filter inputs change.
     let result = [...users];
 
     if (userSearchText.trim()) {
       const keyword = userSearchText.trim().toLowerCase();
 
+      // Search across multiple visible columns so the admin can find users more easily.
       result = result.filter((item) => {
         return (
           item.name.toLowerCase().includes(keyword) ||
@@ -1137,6 +1199,7 @@ export default function AdminPage() {
       });
     }
 
+    // Apply one dropdown filter at a time on top of the search results.
     if (userStatusFilter === "Active") {
       result = result.filter((item) => item.isActive);
     }
@@ -1156,7 +1219,7 @@ export default function AdminPage() {
     return result;
   }, [users, userSearchText, userStatusFilter]);
 
-  // Pagination for users
+  // Build the current page slice after filtering users.
   const userTotalPages = Math.ceil(filteredUsers.length / userItemsPerPage);
   const paginatedUsers = useMemo(() => {
     const startIndex = (userCurrentPage - 1) * userItemsPerPage;
@@ -1168,6 +1231,7 @@ export default function AdminPage() {
 
     if (teamSearchText.trim()) {
       const keyword = teamSearchText.trim().toLowerCase();
+      // Team search matches code, name, and description.
       result = result.filter((item) => {
         return (
           item.teamName.toLowerCase().includes(keyword) ||
@@ -1180,7 +1244,7 @@ export default function AdminPage() {
     return result;
   }, [teams, teamSearchText]);
 
-  // Pagination for teams
+  // Build the current page slice after filtering teams.
   const teamTotalPages = Math.ceil(filteredTeams.length / teamItemsPerPage);
   const paginatedTeams = useMemo(() => {
     const startIndex = (teamCurrentPage - 1) * teamItemsPerPage;
@@ -1192,6 +1256,7 @@ export default function AdminPage() {
 
     if (productSearchText.trim()) {
       const keyword = productSearchText.trim().toLowerCase();
+      // Product search matches both business name and unique code.
       result = result.filter((item) => {
         return (
           item.productName.toLowerCase().includes(keyword) ||
@@ -1213,7 +1278,7 @@ export default function AdminPage() {
     return result;
   }, [products, productSearchText, productStatusFilter]);
 
-  // Pagination for products
+  // Build the current page slice after filtering products.
   const productTotalPages = Math.ceil(
     filteredProducts.length / productItemsPerPage,
   );
@@ -1222,13 +1287,13 @@ export default function AdminPage() {
     return filteredProducts.slice(startIndex, startIndex + productItemsPerPage);
   }, [filteredProducts, productCurrentPage, productItemsPerPage]);
 
-  // Builds summary values from the real backend data
+  // Summary cards are derived from the currently loaded user data.
   const totalUsers = users.length;
   const totalLoggedInUsers = users.filter((item) => item.isLoggedIn).length;
   const totalActiveUsers = users.filter((item) => item.isActive).length;
   const totalBlockedUsers = users.filter((item) => item.isBlocked).length;
 
-  // Creates a clean welcome name for the admin header
+  // Compose a friendly display name with sensible fallbacks.
   const displayName =
     user?.name ||
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
@@ -1261,8 +1326,10 @@ export default function AdminPage() {
     onPageChange: (page: number) => void;
     onItemsPerPageChange: (items: number) => void;
   }) => {
+    // Shared pager used by all three sections to avoid duplicating the same JSX.
     if (totalItems === 0) return null;
 
+    // Calculate the human-readable item range for the current page.
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
@@ -1303,7 +1370,7 @@ export default function AdminPage() {
   };
 
   const renderUserManagementContent = () => {
-    // Shows the fully connected user management tab
+    // Renders the full user management workspace: summary cards, upload, filters, table, and actions.
     return (
       <div className="cp-admin-panel">
         <div className="cp-admin-panel-header">
@@ -1371,6 +1438,7 @@ export default function AdminPage() {
                 actionError && !selectedFile ? "cp-loan-upload-error" : ""
               }`}
             >
+              {/* Inline SVG icon used instead of importing a separate icon component. */}
               <svg
                 className="cp-loan-upload-svg"
                 viewBox="0 0 24 24"
@@ -1386,6 +1454,7 @@ export default function AdminPage() {
               </svg>
 
               <p className="cp-loan-upload-text">
+                {/* Show selected file name after choosing a file, otherwise show the empty prompt. */}
                 {selectedFile
                   ? selectedFile.name
                   : "Click to choose Excel file"}
@@ -1413,6 +1482,7 @@ export default function AdminPage() {
         </div>
 
         {uploadResult && (
+          // Upload result is shown only after the backend processes the Excel file.
           <div className="cp-admin-upload-result">
             <h3 className="cp-admin-section-subtitle">Upload Summary</h3>
             <p className="cp-admin-note">
@@ -1426,6 +1496,7 @@ export default function AdminPage() {
             </p>
 
             {uploadResult.failures.length > 0 && (
+              // Failed rows are listed one by one so the admin can see exactly what went wrong.
               <div className="cp-admin-failure-list">
                 {uploadResult.failures.map((failure, index) => (
                   <div key={index} className="cp-admin-failure-item">
@@ -1440,6 +1511,7 @@ export default function AdminPage() {
         )}
 
         <div className="cp-admin-toolbar">
+          {/* Free-text search filters the currently loaded user list on the client side. */}
           <input
             type="text"
             className="cp-admin-field"
@@ -1453,6 +1525,7 @@ export default function AdminPage() {
             value={userStatusFilter}
             onChange={(event) => setUserStatusFilter(event.target.value)}
           >
+            {/* Status filter narrows the already-loaded user list without another API request. */}
             <option value="All">All Users</option>
             <option value="Active">Active Users</option>
             <option value="Inactive">Inactive Users</option>
@@ -1479,12 +1552,14 @@ export default function AdminPage() {
 
             <tbody>
               {isUsersLoading ? (
+                // Keep the table layout stable while data is loading.
                 <tr>
                   <td colSpan={9}>
                     <div className="cp-admin-empty-state">Loading users...</div>
                   </td>
                 </tr>
               ) : filteredUsers.length > 0 ? (
+                // Only paginatedUsers are rendered here, not the full filtered array.
                 paginatedUsers.map((item) => (
                   <tr key={item.userId}>
                     <td>{item.name}</td>
@@ -1586,7 +1661,7 @@ export default function AdminPage() {
   };
 
   const renderTeamManagementContent = () => {
-    // Team summary values
+    // Team summary values are computed locally from the fetched team list.
     const totalTeams = teams.length;
     const activeTeams = teams.filter((item) => item.isActive).length;
     const totalTeamUsers = teams.reduce((sum, team) => sum + team.userCount, 0);
@@ -1632,6 +1707,7 @@ export default function AdminPage() {
         </div>
 
         {isShowingTeamUsers ? (
+          // When a team is selected, the normal team list is replaced by this member view.
           <div className="cp-admin-upload-result">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h3 className="cp-admin-section-subtitle">Team Members</h3>
@@ -1649,6 +1725,7 @@ export default function AdminPage() {
             </div>
 
             {teamUsers.length > 0 ? (
+              // Team member table for the selected team.
               <div className="cp-admin-table-wrap">
                 <table className="cp-admin-table">
                   <thead>
@@ -1687,12 +1764,14 @@ export default function AdminPage() {
                 </table>
               </div>
             ) : (
+              // Empty state makes it clear the request succeeded but no users belong to the team.
               <div className="cp-admin-empty-state">
                 No members in this team.
               </div>
             )}
           </div>
         ) : (
+          // Default team view: search teams, optionally open add-user panel, and list teams.
           <>
             <div className="cp-admin-upload-row mb-4">
               <input
@@ -1716,6 +1795,7 @@ export default function AdminPage() {
             </div>
 
             {showTeamUserModal && (
+              // Inline form panel for assigning one existing user to one selected team.
               <div className="cp-admin-upload-result">
                 <h3 className="cp-admin-section-subtitle">Add User to Team</h3>
 
@@ -1741,6 +1821,7 @@ export default function AdminPage() {
                         setSelectedTeamForAddUser(event.target.value)
                       }
                     >
+                      {/* Team dropdown is populated from the loaded teams array. */}
                       <option value="">-- Select Team --</option>
                       {teams.map((team) => (
                         <option key={team.teamId} value={team.teamId}>
@@ -1766,6 +1847,7 @@ export default function AdminPage() {
                         setSelectedUserForTeam(event.target.value)
                       }
                     >
+                      {/* User dropdown is populated from the already-fetched users list. */}
                       <option value="">-- Select User --</option>
                       {users.map((u) => (
                         <option key={u.userId} value={u.userId}>
@@ -1822,6 +1904,7 @@ export default function AdminPage() {
 
                 <tbody>
                   {isTeamsLoading ? (
+                    // Preserve the table shell while the teams request is in progress.
                     <tr>
                       <td colSpan={6}>
                         <div className="cp-admin-empty-state">
@@ -1830,6 +1913,7 @@ export default function AdminPage() {
                       </td>
                     </tr>
                   ) : filteredTeams.length > 0 ? (
+                    // Render only the current team page after client-side search filtering.
                     paginatedTeams.map((team) => (
                       <tr key={team.teamId}>
                         <td>
@@ -1896,7 +1980,7 @@ export default function AdminPage() {
   };
 
   const renderProductManagementContent = () => {
-    // Product summary values
+    // Product summary values are computed locally from the fetched products list.
     const totalProducts = products.length;
     const activeProducts = products.filter(
       (item) => item.status.toLowerCase() === "active",
@@ -1960,6 +2044,7 @@ export default function AdminPage() {
         </div>
 
         <div className="cp-admin-product-toolbar mb-4">
+          {/* Product search and status filter both work on the locally loaded product list. */}
           <input
             type="text"
             className="cp-admin-field"
@@ -1986,11 +2071,13 @@ export default function AdminPage() {
               setShowProductForm(true);
             }}
           >
+            {/* This opens the same form component used for both create and edit flows. */}
             New Product
           </button>
         </div>
 
         {showProductForm && (
+          // Reusable product form panel. If editingProductId exists, the same form becomes edit mode.
           <div className="cp-admin-upload-result">
             {!editingProductId && (
               <h3 className="cp-admin-section-subtitle">
@@ -2028,6 +2115,7 @@ export default function AdminPage() {
                   }
                   disabled={!!editingProductId}
                 />
+                {/* Product code is editable only during creation; in edit mode it stays locked. */}
                 {productFormErrors.productCode && (
                   <p className="cp-admin-field-error">
                     {productFormErrors.productCode}
@@ -2230,6 +2318,7 @@ export default function AdminPage() {
             </div>
 
             <div className="d-flex gap-2">
+              {/* Primary button saves either a new product or changes to an existing one. */}
               <button
                 type="button"
                 className="btn btn-primary"
@@ -2247,6 +2336,7 @@ export default function AdminPage() {
                 className="cp-admin-action-btn"
                 onClick={handleCancelProductForm}
               >
+                {/* Cancel closes the form and clears any draft values. */}
                 Cancel
               </button>
             </div>
@@ -2270,6 +2360,7 @@ export default function AdminPage() {
 
             <tbody>
               {isProductsLoading ? (
+                // Keep table shape visible while products are being fetched.
                 <tr>
                   <td colSpan={8}>
                     <div className="cp-admin-empty-state">
@@ -2278,6 +2369,7 @@ export default function AdminPage() {
                   </td>
                 </tr>
               ) : filteredProducts.length > 0 ? (
+                // Render the current page of filtered products.
                 paginatedProducts.map((product) => (
                   <tr key={product.productId}>
                     <td>
@@ -2369,7 +2461,7 @@ export default function AdminPage() {
   };
 
   const renderSectionContent = () => {
-    // Switches the visible content based on the active top tab
+    // Simple section switcher for the top admin tabs.
     if (activeSection === "users") {
       return renderUserManagementContent();
     }
@@ -2382,7 +2474,7 @@ export default function AdminPage() {
   };
 
   if (isLoading) {
-    // Shows a waiting message while login state is loading
+    // Keep the UI simple while auth context is restoring the current session.
     return (
       <main className="page cp-admin-page">
         <div className="cp-admin-container">
@@ -2395,7 +2487,7 @@ export default function AdminPage() {
   }
 
   if (!token || !isAdmin) {
-    // Shows a short message while redirecting away
+    // The redirect effect will run, but this fallback prevents the page from rendering protected content.
     return (
       <main className="page cp-admin-page">
         <div className="cp-admin-container">
@@ -2408,6 +2500,7 @@ export default function AdminPage() {
   return (
     <main className="page cp-admin-page">
       <div className="cp-admin-container">
+        {/* Top admin header with welcome text and tab buttons. */}
         <div className="cp-admin-topnav panel">
           <div className="cp-admin-topnav-head">
             <div>
@@ -2417,6 +2510,7 @@ export default function AdminPage() {
           </div>
 
           <div className="cp-admin-tabbar">
+            {/* These buttons switch local section state rather than navigating to a new URL. */}
             <button
               type="button"
               className={`cp-admin-tab-btn ${
@@ -2453,6 +2547,7 @@ export default function AdminPage() {
 
         {/* Confirmation Modal */}
         {confirmModal.isOpen && (
+          // The overlay closes the modal on outside click, while the inner dialog stops propagation.
           <div
             className="cp-confirm-modal-overlay"
             onClick={confirmModal.onCancel}
