@@ -1,201 +1,256 @@
 import Image from "next/image";
+import styles from "./page.module.css";
+
+const platformHighlights = [
+  {
+    title: "Transparent application journey",
+    description:
+      "Applicants can understand where they are in the process, what has been completed, and what comes next without guesswork.",
+  },
+  {
+    title: "Action-focused guidance",
+    description:
+      "CreditPulse reduces delays by showing the next required step, the right documents, and the checks still in progress.",
+  },
+  {
+    title: "Built for trust and clarity",
+    description:
+      "The experience is designed to feel approachable for applicants while still reflecting the structure of a credit workflow.",
+  },
+];
+
+const journeySteps = [
+  {
+    number: "01",
+    title: "Submit and verify",
+    description:
+      "Applicants begin with core details and identity verification so the platform can establish a reliable application record.",
+    image: "/about/about-hero.svg",
+    alt: "Illustration of a digital loan application dashboard",
+  },
+  {
+    number: "02",
+    title: "Track progress clearly",
+    description:
+      "Status updates, checkpoints, and review stages are surfaced in a simple way so users always know what is happening.",
+    image: "/about/about-workflow.svg",
+    alt: "Illustration of a loan workflow with progress cards",
+  },
+  {
+    number: "03",
+    title: "Move forward with confidence",
+    description:
+      "The platform helps applicants prepare documents, respond faster, and stay informed through decision milestones.",
+    image: "/about/about-security.svg",
+    alt: "Illustration showing secure review and document readiness",
+  },
+];
+
+const teamMembers = [
+  {
+    name: "Victor Ferreira Araujo",
+    role: "Frontend and workflow contributor",
+    initials: "VF",
+  },
+  {
+    name: "Sukhpreet Singh",
+    role: "Platform and implementation contributor",
+    initials: "SS",
+  },
+  {
+    name: "Nirali Dineshkumar Patel",
+    role: "Design and user experience contributor",
+    initials: "NP",
+  },
+  {
+    name: "Miswa Shaileshbhai Patel",
+    role: "Research and delivery contributor",
+    initials: "MP",
+  },
+];
+
+const knowledgeCards = [
+  {
+    title: "Loan origination",
+    description:
+      "The origination process covers application intake, identity capture, document collection, review, and decisioning.",
+  },
+  {
+    title: "Credit assessment",
+    description:
+      "Credit assessment looks at repayment ability through information such as income, liabilities, history, and verification outcomes.",
+  },
+  {
+    title: "Why visibility matters",
+    description:
+      "Applicants feel more confident when they can see their stage, understand requirements, and respond to issues quickly.",
+  },
+];
 
 export default function AboutPage() {
   return (
-    <main className="d-flex flex-column gap-4">
-      <section className="cp-hero-section">
-        <h1 className="fw-bold mb-3">About CreditPulse</h1>
+    <main className={styles.page}>
+      <section className={styles.hero}>
+        <div className={styles.heroContent}>
+          <h1 className={styles.heroTitle}>About CreditPulse</h1>
+          <p className={styles.heroLead}>
+            CreditPulse is a digital loan origination and credit assessment platform created for
+            our final-year Capstone project. We built it around one core idea: applicants should
+            never feel lost during an important financial process.
+          </p>
+          <p className={styles.heroBody}>
+            Instead of vague updates and confusing handoffs, the platform focuses on clear stages,
+            visible progress, and practical next steps so users can move through the loan journey
+            with more confidence.
+          </p>
 
-        <p className="mb-2">
-          CreditPulse is a Digital Loan Origination & Credit Assessment Platform created as our
-          final-year Capstone project. Our goal is to make the loan journey easier for users by
-          providing clear steps, transparent status updates, and a simple dashboard experience.
-        </p>
-
-        <p className="mb-0">
-          This project focuses on helping users understand where their loan application stands,
-          what actions are required next, and what information is needed to move forward.
-        </p>
-      </section>
-
-      <section className="cp-hero-section">
-        <h2 className="fw-bold mb-3">What the platform helps users do</h2>
-
-        <div className="row g-3">
-          <div className="col-12 col-md-6">
-            <div className="cp-card h-100">
-              <h3 className="h5 fw-bold mb-2">Loan Application Tracking</h3>
-              <p className="mb-0">
-                Users can check the progress of their application and understand the current stage
-                in a clear way.
-              </p>
+          <div className={styles.metrics}>
+            <div className={styles.metricCard}>
+              <strong>Clear stages</strong>
+              <span>Application milestones explained in plain language</span>
             </div>
-          </div>
-
-          <div className="col-12 col-md-6">
-            <div className="cp-card h-100">
-              <h3 className="h5 fw-bold mb-2">Clear Next Steps</h3>
-              <p className="mb-0">
-                The platform highlights what the user needs to do next, so there is less confusion
-                and fewer delays.
-              </p>
+            <div className={styles.metricCard}>
+              <strong>Faster follow-up</strong>
+              <span>Document and action visibility helps reduce delays</span>
             </div>
-          </div>
-
-          <div className="col-12 col-md-6">
-            <div className="cp-card h-100">
-              <h3 className="h5 fw-bold mb-2">Document Readiness</h3>
-              <p className="mb-0">
-                Users can understand which documents are typically needed and prepare them early to
-                avoid rework.
-              </p>
-            </div>
-          </div>
-
-          <div className="col-12 col-md-6">
-            <div className="cp-card h-100">
-              <h3 className="h5 fw-bold mb-2">Improved User Experience</h3>
-              <p className="mb-0">
-                We aim for a simple, modern UI that is easy to use for everyone, on desktop and
-                mobile.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="cp-hero-section">
-        <h2 className="fw-bold mb-3">Basic Loan Information</h2>
-
-        <div className="row g-3">
-          <div className="col-12 col-lg-6">
-            <div className="cp-card h-100">
-              <h3 className="h5 fw-bold mb-2">What is loan origination?</h3>
-              <p className="mb-0">
-                Loan origination is the process of applying for a loan, submitting details, and
-                getting the request reviewed by the lender.
-              </p>
-            </div>
-          </div>
-
-          <div className="col-12 col-lg-6">
-            <div className="cp-card h-100">
-              <h3 className="h5 fw-bold mb-2">What is credit assessment?</h3>
-              <p className="mb-0">
-                Credit assessment is the evaluation of a user’s ability to repay, usually based on
-                factors like income, existing debt, credit history, and verification checks.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="cp-hero-section">
-        <h2 className="fw-bold mb-3">Meet the Team</h2>
-        <p className="mb-4">
-          This Capstone project is developed by students from Conestoga College:
-        </p>
-
-        <div className="row g-3">
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div className="cp-card text-center h-100">
-              <div className="mb-3">
-                <Image
-                  src="/team/victor.jpg"
-                  alt="Victor Ferreira Araujo"
-                  width={140}
-                  height={140}
-                  style={{ borderRadius: "50%" }}
-                />
-              </div>
-              <h3 className="h6 fw-bold mb-1">Victor Ferreira Araujo</h3>
-              <p className="mb-0">Team Member</p>
-            </div>
-          </div>
-
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div className="cp-card text-center h-100">
-              <div className="mb-3">
-                <Image
-                  src="/team/sukhpreet.jpg"
-                  alt="Sukhpreet Singh"
-                  width={140}
-                  height={140}
-                  style={{ borderRadius: "50%" }}
-                />
-              </div>
-              <h3 className="h6 fw-bold mb-1">Sukhpreet Singh</h3>
-              <p className="mb-0">Team Member</p>
-            </div>
-          </div>
-
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div className="cp-card text-center h-100">
-              <div className="mb-3">
-                <Image
-                  src="/team/nirali.jpg"
-                  alt="Nirali Dineshkumar Patel"
-                  width={140}
-                  height={140}
-                  style={{ borderRadius: "50%" }}
-                />
-              </div>
-              <h3 className="h6 fw-bold mb-1">Nirali Dineshkumar Patel</h3>
-              <p className="mb-0">Team Member</p>
-            </div>
-          </div>
-
-          <div className="col-12 col-sm-6 col-lg-3">
-            <div className="cp-card text-center h-100">
-              <div className="mb-3">
-                <Image
-                  src="/team/miswa.jpg"
-                  alt="Miswa Shaileshbhai Patel"
-                  width={140}
-                  height={140}
-                  style={{ borderRadius: "50%" }}
-                />
-              </div>
-              <h3 className="h6 fw-bold mb-1">Miswa Shaileshbhai Patel</h3>
-              <p className="mb-0">Team Member</p>
+            <div className={styles.metricCard}>
+              <strong>User-first design</strong>
+              <span>Built for desktop and mobile applicants alike</span>
             </div>
           </div>
         </div>
 
-      
+        <div className={styles.heroVisual}>
+          <div className={styles.heroImageShell}>
+            <Image
+              src="/about/about-hero.svg"
+              alt="CreditPulse dashboard and loan journey illustration"
+              width={700}
+              height={520}
+              className={styles.heroImage}
+              priority
+            />
+          </div>
+          <div className={styles.heroVisualAccent} aria-hidden="true" />
+        </div>
+
       </section>
 
-      <section className="cp-hero-section">
-        <h2 className="fw-bold mb-3">Project Details</h2>
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionEyebrow}>Meet the team</span>
+          <h2 className={styles.sectionTitle}>Built by Conestoga College capstone students</h2>
+          <p className={styles.sectionText}>
+            This project was developed collaboratively with a focus on usability, transparency, and
+            a modern applicant experience.
+          </p>
+        </div>
 
-        <div className="row g-3">
-          <div className="col-12 col-lg-6">
-            <div className="cp-card h-100">
-              <h3 className="h5 fw-bold mb-2">Project Type</h3>
-              <p className="mb-0">
-                Final Year Capstone Project (Conestoga College)
-              </p>
-            </div>
+        <div className={styles.teamGrid}>
+          {teamMembers.map((member) => (
+            <article key={member.name} className={styles.teamCard}>
+              <div className={styles.avatar}>{member.initials}</div>
+              <h3>{member.name}</h3>
+              <p>{member.role}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionEyebrow}>Why it matters</span>
+          <h2 className={styles.sectionTitle}>The platform is built around applicant clarity.</h2>
+          <p className={styles.sectionText}>
+            CreditPulse is not just about submitting a loan request. It is about helping users
+            understand status, prepare what is needed, and stay confident while their application
+            is reviewed.
+          </p>
+        </div>
+
+        <div className={styles.highlightGrid}>
+          {platformHighlights.map((item) => (
+            <article key={item.title} className={styles.highlightCard}>
+              <h3>{item.title}</h3>
+              <p>{item.description}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <span className={styles.sectionEyebrow}>Platform journey</span>
+          <h2 className={styles.sectionTitle}>How CreditPulse supports the loan experience</h2>
+        </div>
+
+        <div className={styles.journeyGrid}>
+          {journeySteps.map((step) => (
+            <article key={step.number} className={styles.journeyCard}>
+              <div className={styles.journeyImageWrap}>
+                <Image
+                  src={step.image}
+                  alt={step.alt}
+                  width={420}
+                  height={260}
+                  className={styles.journeyImage}
+                />
+              </div>
+              <div className={styles.journeyBody}>
+                <span className={styles.stepNumber}>{step.number}</span>
+                <h3>{step.title}</h3>
+                <p>{step.description}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className={styles.infoSection}>
+        <div className={styles.infoPanel}>
+          <div className={styles.infoIntro}>
+            <span className={styles.sectionEyebrow}>Core concepts</span>
+            <h2 className={styles.sectionTitle}>The project combines process design and credit visibility.</h2>
+            <p className={styles.sectionText}>
+              We wanted the About page to explain the product in simple language, especially for
+              users who may not be familiar with lending terms.
+            </p>
           </div>
 
-          <div className="col-12 col-lg-6">
-            <div className="cp-card h-100">
-              <h3 className="h5 fw-bold mb-2">Goal</h3>
-              <p className="mb-0">
-                Build a modern loan platform UI that is simple, clear, and user-friendly.
-              </p>
-            </div>
+          <div className={styles.knowledgeGrid}>
+            {knowledgeCards.map((card) => (
+              <article key={card.title} className={styles.knowledgeCard}>
+                <h3>{card.title}</h3>
+                <p>{card.description}</p>
+              </article>
+            ))}
           </div>
+        </div>
+      </section>
 
-          <div className="col-12">
-            <div className="cp-card">
-              <h3 className="h5 fw-bold mb-2">Website Purpose</h3>
-              <p className="mb-0">
-                This website demonstrates our planned UI and user flow for loan application tracking,
-                guidance, and credit assessment visibility. Backend features will be integrated as
-                the project progresses.
-              </p>
-            </div>
+      <section className={styles.footerPanel}>
+        <div>
+          <span className={styles.sectionEyebrow}>Project details</span>
+          <h2 className={styles.sectionTitle}>A modern academic prototype with real product intent</h2>
+          <p className={styles.sectionText}>
+            CreditPulse demonstrates a complete front-end experience for loan application tracking,
+            next-step guidance, and credit assessment visibility. The goal is to show how a clearer
+            interface can make a complex process feel more approachable.
+          </p>
+        </div>
+
+        <div className={styles.footerStats}>
+          <div className={styles.footerStatCard}>
+            <span>Project type</span>
+            <strong>Final Year Capstone</strong>
+          </div>
+          <div className={styles.footerStatCard}>
+            <span>Focus</span>
+            <strong>Clarity, trust, and guidance</strong>
+          </div>
+          <div className={styles.footerStatCard}>
+            <span>Experience goal</span>
+            <strong>Simple, informative, and user-friendly</strong>
           </div>
         </div>
       </section>

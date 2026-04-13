@@ -1,0 +1,67 @@
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logo:hover {
+  text-decoration: none;
+}
+
+.mark {
+  width: 52px;
+  height: 52px;
+  flex-shrink: 0;
+}
+
+.svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.wordmark {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.05;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #ffffff;
+}
+
+.tag {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+:global(html[data-theme="light"]) .title {
+  color: #111827;
+}
+
+:global(html[data-theme="light"]) .tag {
+  color: rgba(17, 24, 39, 0.62);
+}
+
+@media (max-width: 575px) {
+  .mark {
+    width: 46px;
+    height: 46px;
+  }
+
+  .title {
+    font-size: 18px;
+  }
+
+  .tag {
+    display: none;
+  }
+}

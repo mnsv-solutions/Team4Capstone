@@ -48,64 +48,9 @@ body {
   transition: 0.3s;
 }
 
-
 /* =========================
    NAVBAR
 ========================= */
-
-.cp-topbar {
-  padding: 10px 0;
-  border-bottom: 1px solid #cccccc;
-}
-
-.cp-brand {
-  font-weight: bold;
-  padding: 8px 15px;
-  color: white;
-  text-decoration: none;
-}
-
-html[data-theme="light"] .cp-brand {
-  background-color: white;
-  color: black;
-}
-
-.cp-navlink {
-  padding: 8px 12px;
-  border-radius: 6px;
-  margin-left: 8px;
-  background-color: #1e293b;
-  color: white;
-}
-
-html[data-theme="light"] .cp-navlink {
-  background-color: white;
-  color: black;
-}
-
-.cp-navlink:hover {
-  background-color: #6366f1;
-  color: white;
-}
-
-.cp-theme-btn {
-  padding: 8px 12px;
-  border-radius: 6px;
-  border: 1px solid #cccccc;
-  margin-left: 8px;
-  background-color: #1e293b;
-  color: white;
-}
-
-html[data-theme="light"] .cp-theme-btn {
-  background-color: white;
-  color: black;
-}
-
-.cp-theme-btn:hover {
-  background-color: #2563eb;
-  color: white;
-}
 
 
 /* =========================
@@ -1402,7 +1347,6 @@ html[data-theme="light"] .cp-dashboard-page-btn--active {
     grid-template-columns: 1fr;
   }
 }
-
 @media (max-width: 767px) {
   .cp-dashboard-pagination {
     flex-direction: column;
@@ -1911,3 +1855,4 @@ html[data-theme="dark"] .cp-loan-radio-wrap {
     font-size: 17px;
   }
 }
+

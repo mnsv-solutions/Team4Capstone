@@ -2,15 +2,48 @@
 
 import axios from "axios";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useMemo, useState } from "react";
 import ThemeToggle from "./ThemeToggle";
+import CreditPulseLogo from "./CreditPulseLogo";
 import { useAuth } from "../context/AuthContext";
+import styles from "./Navbar.module.css";
+
+type NavItem = {
+  href: string;
+  label: string;
+};
 
 export default function Navbar() {
   const router = useRouter();
+  const pathname = usePathname();
   const { token, isAuthenticated, isAdmin, isLoading, logout } = useAuth();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const navItems = useMemo<NavItem[]>(() => {
+    const baseItems: NavItem[] = [
+      { href: "/", label: "Home" },
+      { href: "/about", label: "About" },
+      { href: "/contact", label: "Contact" },
+    ];
+
+    if (isAuthenticated) {
+      return [
+        ...baseItems,
+        {
+          href: isAdmin ? "/admin" : "/dashboard",
+          label: isAdmin ? "Admin" : "Dashboard",
+        },
+      ];
+    }
+
+    return baseItems;
+  }, [isAdmin, isAuthenticated]);
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+  };
 
   const handleSignOut = async () => {
     if (isSigningOut) return;
@@ -21,6 +54,7 @@ export default function Navbar() {
       if (!token) {
         console.error("Sign out skipped because no access token was found.");
         logout();
+        closeMenu();
         router.push("/signin");
         return;
       }
@@ -36,6 +70,7 @@ export default function Navbar() {
       );
 
       logout();
+      closeMenu();
       router.push("/signin");
     } catch (error) {
       if (axios.isAxiosError(error)) {
@@ -53,63 +88,70 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg cp-topbar">
-      <div className="container">
-        <Link className="cp-brand" href="/">
-          CreditPulse
-        </Link>
+    <nav className={styles.topbar}>
+      <div className={`container ${styles.navShell}`}>
+        <CreditPulseLogo className={styles.navBrand} />
 
-        <div className="navbar-nav ms-auto gap-2 align-items-lg-right">
-          <Link className="nav-link cp-navlink" href="/">
-            Home
-          </Link>
+        <button
+          type="button"
+          className={styles.navToggle}
+          aria-label="Toggle navigation menu"
+          aria-expanded={isMenuOpen}
+          onClick={() => setIsMenuOpen((previous) => !previous)}
+        >
+          <span />
+          <span />
+          <span />
+        </button>
 
-          {!isLoading && isAuthenticated && (
-            <>
-              {isAdmin ? (
-                <Link className="nav-link cp-navlink" href="/admin">
-                  Admin
+        <div className={`${styles.navMenu} ${isMenuOpen ? styles.navMenuOpen : ""}`}>
+          <div className={styles.navLinks}>
+            {navItems.map((item) => {
+              const isActive = pathname === item.href;
+
+              return (
+                <Link
+                  key={item.href}
+                  className={`${styles.navlink} ${isActive ? styles.navlinkActive : ""}`}
+                  href={item.href}
+                  onClick={closeMenu}
+                >
+                  {item.label}
                 </Link>
-              ) : (
-                <Link className="nav-link cp-navlink" href="/dashboard">
-                  Dashboard
+              );
+            })}
+          </div>
+
+          <div className={styles.navActions}>
+            {!isLoading && !isAuthenticated && (
+              <>
+                <Link className={styles.navlink} href="/signin" onClick={closeMenu}>
+                  Sign In
                 </Link>
-              )}
 
-              <Link className="nav-link cp-navlink" href="/about">
-                About Us
-              </Link>
+                <Link
+                  className={`btn btn-primary ${styles.navButton}`}
+                  href="/signup"
+                  onClick={closeMenu}
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
 
-              <Link className="nav-link cp-navlink" href="/contact">
-                Contact Us
-              </Link>
-            </>
-          )}
+            {!isLoading && isAuthenticated && (
+              <button
+                type="button"
+                className={`btn btn-primary ${styles.navButton}`}
+                onClick={handleSignOut}
+                disabled={isSigningOut}
+              >
+                {isSigningOut ? "Signing Out..." : "Sign Out"}
+              </button>
+            )}
 
-          {!isLoading && !isAuthenticated && (
-            <>
-              <Link className="nav-link cp-navlink" href="/signin">
-                Sign In
-              </Link>
-
-              <Link className="btn btn-primary cp-navbtn" href="/signup">
-                Sign Up
-              </Link>
-            </>
-          )}
-
-          {!isLoading && isAuthenticated && (
-            <button
-              type="button"
-              className="btn btn-primary cp-navbtn"
-              onClick={handleSignOut}
-              disabled={isSigningOut}
-            >
-              {isSigningOut ? "Signing Out..." : "Sign Out"}
-            </button>
-          )}
-
-          <ThemeToggle />
+            <ThemeToggle className={styles.themeButton} />
+          </div>
         </div>
       </div>
     </nav>
