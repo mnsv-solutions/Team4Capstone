@@ -35,6 +35,27 @@ type ApiEnvelope<T> = {
   data?: T;
 };
 
+type ProductDto = {
+  productId: string;
+  productCode: string;
+  productName: string;
+  minAmount: string;
+  maxAmount: string;
+  minTenureMonths: number;
+  maxTenureMonths: number;
+  minInterestRate: string;
+  maxInterestRate: string;
+  processingFeePercent: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type FetchAllProductsResponseDto = {
+  message: string;
+  data: ProductDto[];
+};
+
 type ContactAddressDto = {
   line1: string;
   line2?: string;
@@ -111,6 +132,9 @@ type FinancialDetailsResponseDto = {
   loanAmount?: string | number;
   interestRate?: string | number;
   tenure?: string | number;
+  productId?: string;
+  productCode?: string;
+  productName?: string;
 };
 
 type FinancialDetailsApiResponse =
@@ -518,7 +542,13 @@ const APPLICATION_STATUS_STEPS: StatusStep[] = [
   },
 ];
 
-const accordionSections = [
+type AccordionSection = {
+  key: AccordionKey;
+  title: string;
+  icon: React.ReactNode;
+};
+
+const accordionSections: AccordionSection[] = [
   { key: "personal", title: "Personal Details", icon: <UserRound size={18} /> },
   { key: "communication", title: "Communication Details", icon: <MessageSquare size={18} /> },
   { key: "education", title: "Education Details", icon: <GraduationCap size={18} /> },
@@ -588,7 +618,6 @@ const OFFICER_READONLY_VISIBLE_SECTIONS: AccordionKey[] = [
   "repayment",
   "communicationHistory",
 ];
-
 const initialDetails: ApplicationDetailsState = {
   applicationNumber: "",
   applicationStatus: "",
@@ -836,6 +865,7 @@ function getSenderTypeForRole(role: UserRole): string {
   if (role === "ADMIN") return "ADMIN";
   return "SOURCING_OFFICER";
 }
+
 function getRecipientOptionsForSender(senderType: string): string[] {
   if (senderType === "CUSTOMER") {
     return ["SOURCING_OFFICER", "LOAN_OFFICER", "ADMIN"];
@@ -870,7 +900,6 @@ function getHistoryScopeForRole(role: UserRole): HistoryScope {
 function getIsInternalFromRecipient(recipientType: string) {
   return recipientType.trim().toUpperCase() !== "CUSTOMER";
 }
-
 function isPermanentAttachmentLink(path: string) {
   if (!path) return false;
   return path.startsWith("http://") || path.startsWith("https://") || path.startsWith("/");
@@ -1009,6 +1038,9 @@ function extractFinancialDetailsResponse(
     tenure:
       (source.approvedTenureMonths as string | number | undefined) ??
       (source.tenure as string | number | undefined),
+    productId: String(source.productId ?? source.product_id ?? ""),
+    productCode: String(source.productCode ?? source.product_code ?? ""),
+    productName: String(source.productName ?? source.product_name ?? ""),
   };
 }
 
@@ -1057,7 +1089,6 @@ function extractCreditDetailsResponse(
   const data = extractApiData<FetchCreditDetailsResponseDto>(response);
   return data && typeof data === "object" ? data : null;
 }
-
 function normalizeApplicationStatus(
   statusCode?: string,
   statusName?: string,
@@ -1292,7 +1323,6 @@ function downloadRepaymentScheduleCsv(
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
-
 export default function ApplicationDetailsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -1304,6 +1334,8 @@ export default function ApplicationDetailsPage() {
     ...initialDetails,
     applicationNumber: applicationNumberFromUrl,
   });
+  const [products, setProducts] = useState<ProductDto[]>([]);
+  const [pageError, setPageError] = useState("");
 
   const [repaymentSchedule, setRepaymentSchedule] = useState<LoanInstallmentDto[]>([]);
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>("UNKNOWN");
@@ -1460,7 +1492,27 @@ export default function ApplicationDetailsPage() {
       details.tenureMonths,
     ]
   );
-    useEffect(() => {
+
+  const topLevelErrorMessage = useMemo(() => {
+    return (
+      pageError ||
+      decisionError ||
+      documentError ||
+      creditError ||
+      loanParametersError ||
+      communicationError ||
+      ""
+    );
+  }, [
+    pageError,
+    decisionError,
+    documentError,
+    creditError,
+    loanParametersError,
+    communicationError,
+  ]);
+
+  useEffect(() => {
     if (applicationNumberFromUrl) {
       setDetails((prev) => ({
         ...prev,
@@ -1504,6 +1556,7 @@ export default function ApplicationDetailsPage() {
     } catch (error) {
       console.error("Failed to fetch user role:", error);
       setCurrentUserRole("UNKNOWN");
+      setPageError("Failed to fetch current user role.");
     } finally {
       setRoleLoading(false);
     }
@@ -1532,8 +1585,7 @@ export default function ApplicationDetailsPage() {
       };
     });
   }, [currentUserRole]);
-
-  useEffect(() => {
+    useEffect(() => {
     setOpenSections((prev) => {
       const next = { ...prev };
 
@@ -1578,6 +1630,27 @@ export default function ApplicationDetailsPage() {
       }));
     } catch (error) {
       console.error("Failed to fetch application status:", error);
+      setPageError("Failed to fetch application status.");
+    }
+  }
+
+  async function fetchAllProducts() {
+    if (!token) return;
+
+    try {
+      const response = await axios.get<FetchAllProductsResponseDto>(
+        "/api/product/fetch-all-products",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setProducts(Array.isArray(response.data?.data) ? response.data.data : []);
+    } catch (error) {
+      console.error("Failed to fetch products:", error);
+      setPageError("Failed to fetch product list.");
     }
   }
 
@@ -1802,8 +1875,7 @@ export default function ApplicationDetailsPage() {
       setLoanParametersLoading(false);
     }
   }
-
-  async function saveDocumentVerification() {
+    async function saveDocumentVerification() {
     if (!token || !isDocumentVerificationSavable) return;
 
     try {
@@ -1880,6 +1952,7 @@ export default function ApplicationDetailsPage() {
       }));
     } catch (error) {
       console.error("Failed to fetch personal details:", error);
+      setPageError("Failed to fetch personal details.");
     }
   }
 
@@ -1927,6 +2000,7 @@ export default function ApplicationDetailsPage() {
       }));
     } catch (error) {
       console.error("Failed to fetch contact details:", error);
+      setPageError("Failed to fetch contact details.");
     }
   }
 
@@ -1959,9 +2033,11 @@ export default function ApplicationDetailsPage() {
       }));
     } catch (error) {
       console.error("Failed to fetch education details:", error);
+      setPageError("Failed to fetch education details.");
     }
   }
-    async function fetchFinancialDetails() {
+
+  async function fetchFinancialDetails() {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
@@ -1984,6 +2060,19 @@ export default function ApplicationDetailsPage() {
       console.log("financial-details mapped response", financialData);
 
       if (!financialData) return;
+
+      const responseData = response.data as any;
+      const responsePayload =
+        responseData && typeof responseData === "object" && "data" in responseData
+          ? responseData.data
+          : responseData;
+
+      const matchedProduct = products.find(
+        (product) =>
+          product.productId === String(responsePayload?.productId ?? "") ||
+          product.productCode === String(responsePayload?.productCode ?? "") ||
+          product.productCode === String(financialData.productCode ?? "")
+      );
 
       setDetails((prev) => ({
         ...prev,
@@ -2009,13 +2098,13 @@ export default function ApplicationDetailsPage() {
           "",
 
         approvedLoanAmount:
-          String((response.data as any)?.approvedLoanAmount ?? ""),
+          String(responsePayload?.approvedLoanAmount ?? ""),
 
         approvedInterestRate:
-          String((response.data as any)?.approvedInterestRate ?? ""),
+          String(responsePayload?.approvedInterestRate ?? ""),
 
         approvedTenureMonths:
-          String((response.data as any)?.approvedTenureMonths ?? ""),
+          String(responsePayload?.approvedTenureMonths ?? ""),
 
         requestedTenureMonths:
           financialData.requestedTenureMonths ||
@@ -2026,25 +2115,38 @@ export default function ApplicationDetailsPage() {
         bankAccounts: Array.isArray(financialData.bankAccounts)
           ? financialData.bankAccounts
           : [],
+
+        loanProduct:
+          financialData.productName ||
+          matchedProduct?.productName ||
+          financialData.productCode ||
+          matchedProduct?.productCode ||
+          "",
       }));
     } catch (error) {
       console.error("Failed to fetch financial details:", error);
+      setPageError("Failed to fetch financial details.");
     }
   }
 
   useEffect(() => {
     if (!token) return;
+    fetchAllProducts();
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
+    setPageError("");
     fetchPersonalDetails();
     fetchContactDetails();
     fetchEducationDetails();
     fetchFinancialDetails();
     fetchDocumentDetails();
     fetchCreditDetails();
-  }, [token, details.applicationNumber]);
-
-  useEffect(() => {
+  }, [token, details.applicationNumber, products.length]);
+    useEffect(() => {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
     if (!details.dob) return;
@@ -2238,8 +2340,7 @@ export default function ApplicationDetailsPage() {
       attachments: Array.isArray(item.attachments) ? item.attachments : [],
     }));
   }
-
-  async function fetchCommunicationHistory() {
+    async function fetchCommunicationHistory() {
     setCommunicationLoading(true);
     setCommunicationError("");
     setCommunicationSuccess("");
@@ -2334,6 +2435,7 @@ export default function ApplicationDetailsPage() {
       return extractStageHistoryResponse(response.data);
     } catch (error) {
       console.error("Failed to fetch stage history:", error);
+      setPageError("Failed to fetch stage history.");
       return [];
     }
   }
@@ -2399,7 +2501,8 @@ export default function ApplicationDetailsPage() {
     const payload = getResolvedLoanParameterRequest(details);
     return payload?.tenureMonths && payload.tenureMonths > 0 ? payload.tenureMonths : 1;
   }
-    async function pushDecisionMessage(messageText: string) {
+
+  async function pushDecisionMessage(messageText: string) {
     if (!token) return;
 
     await axios.post(
@@ -2447,8 +2550,7 @@ export default function ApplicationDetailsPage() {
       },
     });
   }
-
-  async function handleSaveUnderwriterDecision() {
+    async function handleSaveUnderwriterDecision() {
     if (!canEditUnderwriterDecisionSection) {
       setDecisionError("Only underwriter can save underwriter decision.");
       return;
@@ -2657,8 +2759,7 @@ export default function ApplicationDetailsPage() {
 
     hydrateDecisionStateFromStageHistory();
   }, [token, details.applicationNumber]);
-
-  async function handleSendCommunication(e: React.FormEvent<HTMLFormElement>) {
+    async function handleSendCommunication(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setCommunicationError("");
     setCommunicationSuccess("");
@@ -2783,7 +2884,8 @@ export default function ApplicationDetailsPage() {
       setSendingCommunication(false);
     }
   }
-    function renderAccordionHeader(section: {
+
+  function renderAccordionHeader(section: {
     key: AccordionKey;
     title: string;
     icon: React.ReactNode;
@@ -2882,34 +2984,36 @@ export default function ApplicationDetailsPage() {
             </div>
           </div>
 
-        <div className="d-flex flex-column align-items-end gap-3">
-          <button
-            type="button"
-            className="btn cp-loan-btn-back"
-            onClick={() => router.back()}
-          >
-            ← Back
-          </button>
+          <div className="d-flex flex-column align-items-end gap-3">
+            <button
+              type="button"
+              className="btn cp-loan-btn-back"
+              onClick={() => router.back()}
+            >
+              ← Back
+            </button>
 
-          <button
-            type="button"
-            className="btn cp-loan-btn-back"
-            onClick={expandAllSections}
-          >
-            Expand All
-          </button>
+            <button
+              type="button"
+              className="btn cp-loan-btn-back"
+              onClick={expandAllSections}
+            >
+              Expand All
+            </button>
 
-          <button
-            type="button"
-            className="btn cp-loan-btn-back"
-            onClick={collapseAllSections}
-          >
-            Collapse All
-          </button>
-
-
+            <button
+              type="button"
+              className="btn cp-loan-btn-back"
+              onClick={collapseAllSections}
+            >
+              Collapse All
+            </button>
           </div>
         </div>
+
+        {topLevelErrorMessage ? (
+          <div className="alert alert-danger mb-3">{topLevelErrorMessage}</div>
+        ) : null}
 
         <div className="cp-app-status-card">
           <div className="cp-app-status-title">Application Status</div>
@@ -2978,9 +3082,8 @@ export default function ApplicationDetailsPage() {
         </div>
 
         <div className="cp-loan-form">
-          
 
-          {renderSectionShell(
+                  {renderSectionShell(
             accordionSections[0],
             <div className="row g-3">
               <div className="col-12 col-md-4">
@@ -3158,7 +3261,8 @@ export default function ApplicationDetailsPage() {
               {renderStaticField("Interest Rate", details.requestedInterestRate)}
             </div>
           )}
-                    {renderSectionShell(
+
+          {renderSectionShell(
             accordionSections[4],
             <div className="row g-3">
               {details.bankAccounts.length === 0 ? (
@@ -3447,7 +3551,8 @@ export default function ApplicationDetailsPage() {
               )}
             </div>
           )}
-                    {renderSectionShell(
+
+          {renderSectionShell(
             accordionSections[8],
             <div className="row g-3">
               <div className="col-12 col-md-4">
@@ -3688,7 +3793,8 @@ export default function ApplicationDetailsPage() {
               )}
             </>
           ) : null}
-                    {renderSectionShell(
+
+          {renderSectionShell(
             accordionSections[12],
             <div className="cp-loan-communication-stack">
               <div className="cp-loan-bank-card cp-loan-communication-form-card mb-0">
@@ -3925,7 +4031,8 @@ export default function ApplicationDetailsPage() {
               </div>
             </div>
           )}
-                    <div className="cp-loan-footer">
+
+          <div className="cp-loan-footer">
             <div className="cp-loan-note d-flex align-items-center gap-2">
               <MapPin size={16} />
             </div>

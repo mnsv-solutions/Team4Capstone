@@ -50,7 +50,7 @@ export type LoanApplicationForm = {
   totalMonthlyLoanPayments: string;
   tenureMonths: string;
   loanAmount: string;
-  loanProductId?: string;
+  loanTypeId?: string;
 
   bankAccounts: BankAccount[];
 
@@ -144,7 +144,7 @@ export function normalizeLoanApplicationForm(
     ).slice(0, 9),
     tenureMonths: sanitizeDigits(form.tenureMonths).slice(0, 3),
     loanAmount: sanitizeDigits(form.loanAmount).slice(0, 9),
-    loanProductId: form.loanProductId?.trim() || "",
+    loanTypeId: form.loanTypeId?.trim() || "",
     bankAccounts: form.bankAccounts.map((account) => ({
       ...account,
       bankName: trimAndCollapseSpaces(account.bankName),
@@ -480,7 +480,7 @@ export function validateLoanStep(
       }
     }
 
-    if (!form.loanProductId?.trim()) {
+    if (!form.loanTypeId?.trim()) {
       nextErrors.loanProductId = "Loan product is required.";
     }
 
