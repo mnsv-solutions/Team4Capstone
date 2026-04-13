@@ -15,7 +15,6 @@ export default function SignInPage() {
   const [loginId, setLoginId] = useState("");
   const [password, setPassword] = useState("");
   const [errors, setErrors] = useState<SignInErrors>({});
-  const [successMsg, setSuccessMsg] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,7 +27,6 @@ export default function SignInPage() {
     if (Object.keys(validationErrors).length > 0) return;
 
     setIsSubmitting(true);
-    setSuccessMsg("");
     setErrors({});
 
     try {
@@ -58,15 +56,7 @@ export default function SignInPage() {
 
       const isAdminUser = await login(accessToken, userData);
 
-      setSuccessMsg(
-        isAdminUser
-          ? "Signed in successfully. Redirecting to admin page..."
-          : "Signed in successfully. Redirecting to dashboard...",
-      );
-
-      setTimeout(() => {
-        router.push(isAdminUser ? "/admin" : "/dashboard");
-      }, 900);
+      router.push(isAdminUser ? "/admin" : "/dashboard");
     } catch (error) {
       if (axios.isAxiosError(error)) {
         const apiMessage = error.response?.data?.message;

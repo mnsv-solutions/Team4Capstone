@@ -29,6 +29,12 @@ type VerificationStatus = "VERIFIED" | "NOT_VERIFIED" | "";
 type UnderwriterDecisionOption = "" | "APPROVED" | "REJECTED";
 type DisbursalDecisionOption = "" | "DISBURSED" | "REJECTED";
 
+type ApiEnvelope<T> = {
+  success?: boolean;
+  message?: string;
+  data?: T;
+};
+
 type ContactAddressDto = {
   line1: string;
   line2?: string;
@@ -48,11 +54,7 @@ type GetContactDetailsResponseDto = {
 };
 
 type ContactDetailsApiResponse =
-  | {
-      success?: boolean;
-      message?: string;
-      data?: GetContactDetailsResponseDto;
-    }
+  | ApiEnvelope<GetContactDetailsResponseDto>
   | GetContactDetailsResponseDto;
 
 type PersonalDetailsResponseDto = {
@@ -68,11 +70,7 @@ type PersonalDetailsResponseDto = {
 };
 
 type PersonalDetailsApiResponse =
-  | {
-      success?: boolean;
-      message?: string;
-      data?: PersonalDetailsResponseDto;
-    }
+  | ApiEnvelope<PersonalDetailsResponseDto>
   | PersonalDetailsResponseDto;
 
 type EducationDetailsResponseDto = {
@@ -83,11 +81,7 @@ type EducationDetailsResponseDto = {
 };
 
 type EducationDetailsApiResponse =
-  | {
-      success?: boolean;
-      message?: string;
-      data?: EducationDetailsResponseDto;
-    }
+  | ApiEnvelope<EducationDetailsResponseDto>
   | EducationDetailsResponseDto;
 
 type FinancialBankAccount = {
@@ -113,15 +107,16 @@ type FinancialDetailsResponseDto = {
   bankAccounts?: FinancialBankAccount[];
   requestedLoanAmount?: string;
   requestedInterestRate?: string;
+  requestedTenureMonths?: string;
+  loanAmount?: string | number;
+  interestRate?: string | number;
+  tenure?: string | number;
 };
-
 type FinancialDetailsApiResponse =
-  | {
-      success?: boolean;
-      message?: string;
-      data?: FinancialDetailsResponseDto;
-    }
-  | FinancialDetailsResponseDto;
+  | ApiEnvelope<FinancialDetailsResponseDto>
+  | FinancialDetailsResponseDto
+  | ApiEnvelope<Record<string, unknown>>
+  | Record<string, unknown>;
 
 type DocumentDetailItemDto = {
   documentType?: string;
@@ -139,13 +134,8 @@ type GetDocumentDetailsResponseDto = {
 
 type DocumentDetailsApiResponse =
   | GetDocumentDetailsResponseDto
-  | {
-      success?: boolean;
-      message?: string;
-      data?: GetDocumentDetailsResponseDto | DocumentDetailItemDto[];
-      documents?: DocumentDetailItemDto[];
-    }
-  | DocumentDetailItemDto[];
+  | ApiEnvelope<GetDocumentDetailsResponseDto | DocumentDetailItemDto[]>
+  | (DocumentDetailItemDto[] & unknown[]);
 
 type ApplicationStatusResponseDto = {
   success?: boolean;
@@ -230,103 +220,6 @@ type BankAccount = {
   swiftBic: string;
   isRepaymentAccount: boolean;
 };
-
-type LoanInstallmentDto = {
-  scheduleId?: string;
-  installmentNumber?: number;
-  dueDate?: string;
-  openingBalance?: number;
-  principalComponent?: number;
-  interestComponent?: number;
-  installmentAmount?: number;
-  closingBalance?: number;
-  paidAmount?: number;
-  paymentStatus?: string;
-  paidDate?: string | null;
-};
-
-type LoanRepaymentScheduleDto = {
-  message?: string;
-  applicationNumber?: string;
-  applicationId?: string;
-  emi?: number;
-  totalInstallments?: number;
-  installments?: LoanInstallmentDto[];
-};
-
-type LoanRatiosDto = {
-  message?: string;
-  applicationNumber?: string;
-  customerId?: string;
-  monthlyIncome?: number;
-  annualIncome?: number;
-  totalMonthlyDebtPayments?: number;
-  proposedEmi?: number;
-  requestedLoanAmount?: number;
-  dbr?: number;
-  emiToIncome?: number;
-  creditUtilization?: number;
-  loanToIncome?: number;
-};
-
-type LoanEligibilityDto = {
-  applicationNumber?: string;
-  ruleSetCode?: string;
-  ruleSetVersion?: number;
-  eligibilityStatus?: string;
-  message?: string;
-  failedRuleCount?: number;
-  reasons?: string[];
-  failedRules?: Array<Record<string, unknown>>;
-  metrics?: Record<string, unknown>;
-  calculatedAt?: string;
-};
-
-type FetchLoanParametersRequestDto = {
-  applicationNumber: string;
-  loanAmount: number;
-  interestRate: number;
-  tenureMonths: number;
-};
-
-type FetchLoanParametersResponseDto = {
-  message?: string;
-  applicationNumber?: string;
-  repaymentSchedule?: LoanRepaymentScheduleDto;
-  ratios?: LoanRatiosDto;
-  eligibility?: LoanEligibilityDto;
-};
-
-type FetchCreditDetailsResponseDto = {
-  score?: number;
-  risk_level?: string;
-  report_date?: string;
-  report_time?: string;
-  reference_id?: string;
-  total_accounts?: number;
-  active_accounts?: number;
-  closed_accounts?: number;
-  debt_to_income_estimate?: string;
-  credit_utilization_ratio?: string;
-  average_account_age_years?: string;
-  total_outstanding_balance?: string;
-};
-
-type AccordionKey =
-  | "personal"
-  | "communication"
-  | "education"
-  | "financial"
-  | "bank"
-  | "documents"
-  | "cibil"
-  | "repayment"
-  | "ratios"
-  | "eligibility"
-  | "underwriterReview"
-  | "underwriterDecision"
-  | "communicationHistory";
-
 type ApplicationDetailsState = {
   applicationNumber: string;
   applicationStatus: string;
@@ -378,9 +271,6 @@ type ApplicationDetailsState = {
   documentRows: DocumentRow[];
 
   cibilScore: string;
-  cibilStatus: string;
-  cibilRemarks: string;
-  cibilLastUpdated: string;
   cibilRiskLevel: string;
   cibilDebtToIncomeEstimate: string;
   cibilCreditUtilizationRatio: string;
@@ -461,7 +351,6 @@ type AttachmentDownloadInfo = {
   isLocal: boolean;
   unavailableAfterRefresh: boolean;
 };
-
 type StatusStepKey =
   | "SUBMITTED"
   | "CREDIT_CHECK_COMPLETED"
@@ -491,6 +380,12 @@ type PushStageRequestDto = {
   metadataJson?: Record<string, unknown>;
 };
 
+type AssignApplicationRequestDto = {
+  applicationNumber: string;
+  assignedTeamId: string;
+  remarks: string;
+};
+
 type StageHistoryItem = {
   actionType?: string;
   remarks?: string;
@@ -499,12 +394,10 @@ type StageHistoryItem = {
 };
 
 type FetchStageHistoryResponse =
-  | {
-      success?: boolean;
-      message?: string;
-      data?: StageHistoryItem[];
-    }
+  | ApiEnvelope<StageHistoryItem[]>
   | StageHistoryItem[];
+
+const DISBURSAL_TEAM_ID = "3fa68ab1-df8e-4977-b7bb-837fe72e443f";
 
 const APPLICATION_STATUS_STEPS: StatusStep[] = [
   { key: "SUBMITTED", label: "Submitted" },
@@ -522,44 +415,20 @@ const APPLICATION_STATUS_STEPS: StatusStep[] = [
   },
 ];
 
-const accordionSections: {
-  key: AccordionKey;
-  title: string;
-  icon: React.ReactNode;
-}[] = [
+const accordionSections = [
   { key: "personal", title: "Personal Details", icon: <UserRound size={18} /> },
-  {
-    key: "communication",
-    title: "Communication Details",
-    icon: <MessageSquare size={18} />,
-  },
+  { key: "communication", title: "Communication Details", icon: <MessageSquare size={18} /> },
   { key: "education", title: "Education Details", icon: <GraduationCap size={18} /> },
-  {
-    key: "financial",
-    title: "Financial Details",
-    icon: <BriefcaseBusiness size={18} />,
-  },
+  { key: "financial", title: "Financial Details", icon: <BriefcaseBusiness size={18} /> },
   { key: "bank", title: "Bank Details", icon: <Landmark size={18} /> },
   { key: "documents", title: "Document Details", icon: <FileText size={18} /> },
   { key: "cibil", title: "CIBIL Details", icon: <ShieldCheck size={18} /> },
   { key: "repayment", title: "Repayment Schedule Details", icon: <Calculator size={18} /> },
   { key: "ratios", title: "Loan Parameters", icon: <Calculator size={18} /> },
   { key: "eligibility", title: "Eligibility", icon: <ShieldCheck size={18} /> },
-  {
-    key: "underwriterReview",
-    title: "Underwriter Decision",
-    icon: <FileText size={18} />,
-  },
-  {
-    key: "underwriterDecision",
-    title: "Disbursal Decision",
-    icon: <FileText size={18} />,
-  },
-  {
-    key: "communicationHistory",
-    title: "Communication History",
-    icon: <MessageSquare size={18} />,
-  },
+  { key: "underwriterReview", title: "Underwriter Decision", icon: <FileText size={18} /> },
+  { key: "underwriterDecision", title: "Disbursal Decision", icon: <FileText size={18} /> },
+  { key: "communicationHistory", title: "Communication History", icon: <MessageSquare size={18} /> },
 ];
 
 const CUSTOMER_VISIBLE_SECTIONS: AccordionKey[] = [
@@ -616,7 +485,6 @@ const OFFICER_READONLY_VISIBLE_SECTIONS: AccordionKey[] = [
   "repayment",
   "communicationHistory",
 ];
-
 const initialDetails: ApplicationDetailsState = {
   applicationNumber: "",
   applicationStatus: "",
@@ -634,7 +502,7 @@ const initialDetails: ApplicationDetailsState = {
 
   email: "",
   mobile: "",
- alternatePhone: "",
+  alternatePhone: "",
   residentialLine1: "",
   residentialLine2: "",
   residentialCity: "",
@@ -668,9 +536,6 @@ const initialDetails: ApplicationDetailsState = {
   documentRows: [],
 
   cibilScore: "",
-  cibilStatus: "",
-  cibilRemarks: "",
-  cibilLastUpdated: "",
   cibilRiskLevel: "",
   cibilDebtToIncomeEstimate: "",
   cibilCreditUtilizationRatio: "",
@@ -717,6 +582,65 @@ const initialDecisionForm: DecisionFormState = {
   disbursedAmount: "",
 };
 
+function createEmptyCibilFields(): Pick<
+  ApplicationDetailsState,
+  | "cibilScore"
+  | "cibilRiskLevel"
+  | "cibilDebtToIncomeEstimate"
+  | "cibilCreditUtilizationRatio"
+  | "cibilAverageAccountAgeYears"
+  | "cibilTotalOutstandingBalance"
+  | "cibilTotalAccounts"
+  | "cibilActiveAccounts"
+  | "cibilClosedAccounts"
+  | "cibilReportDate"
+  | "cibilReportTime"
+  | "cibilReferenceId"
+> {
+  return {
+    cibilScore: "",
+    cibilRiskLevel: "",
+    cibilDebtToIncomeEstimate: "",
+    cibilCreditUtilizationRatio: "",
+    cibilAverageAccountAgeYears: "",
+    cibilTotalOutstandingBalance: "",
+    cibilTotalAccounts: "",
+    cibilActiveAccounts: "",
+    cibilClosedAccounts: "",
+    cibilReportDate: "",
+    cibilReportTime: "",
+    cibilReferenceId: "",
+  };
+}
+function createEmptyLoanParameterFields(): Pick<
+  ApplicationDetailsState,
+  | "emiAmount"
+  | "totalRepayment"
+  | "interestAmount"
+  | "scheduleStartDate"
+  | "scheduleEndDate"
+  | "foirRatio"
+  | "dtiRatio"
+  | "ltvRatio"
+  | "dscrRatio"
+  | "eligibilityStatus"
+  | "eligibilityMessage"
+> {
+  return {
+    emiAmount: "",
+    totalRepayment: "",
+    interestAmount: "",
+    scheduleStartDate: "",
+    scheduleEndDate: "",
+    foirRatio: "",
+    dtiRatio: "",
+    ltvRatio: "",
+    dscrRatio: "",
+    eligibilityStatus: "",
+    eligibilityMessage: "",
+  };
+}
+
 function getRecipientUserId(recipientType: string): string {
   return recipientType.trim().toUpperCase() === "CUSTOMER" ? "" : "";
 }
@@ -736,6 +660,27 @@ function isValidApplicationNumber(value: string) {
   return /^APPL\d{10}$/.test(value.trim());
 }
 
+function parseNumberValue(value: string | number | null | undefined) {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : 0;
+  }
+
+  const cleaned = String(value ?? "").replace(/[^0-9.-]/g, "");
+  const parsed = Number(cleaned);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatMoney(value: string | number | null | undefined) {
+  const parsed = parseNumberValue(value);
+  return parsed.toFixed(2);
+}
+
+function formatPercentLikeValue(value: string | number | null | undefined) {
+  const parsed = parseNumberValue(value);
+  if (!Number.isFinite(parsed)) return "";
+  return String(parsed);
+}
+
 function formatDate(value: string) {
   if (!value) return "-";
   const date = new Date(value);
@@ -748,22 +693,6 @@ function formatDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
-}
-
-function parseNumberValue(value: string | number | null | undefined) {
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : 0;
-  }
-
-  const cleaned = String(value || "").replace(/[^0-9.-]/g, "");
-  const parsed = Number(cleaned);
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function formatMoney(value: string | number | null | undefined) {
-  const parsed = parseNumberValue(value);
-  if (!parsed) return "0.00";
-  return parsed.toFixed(2);
 }
 
 function buildAttachmentFromFile(file: File): CommunicationAttachment {
@@ -792,7 +721,6 @@ function normalizeBackendRole(roleCode: string | null | undefined): UserRole {
 
   return "UNKNOWN";
 }
-
 function getSenderTypeForRole(role: UserRole): string {
   if (role === "CUSTOMER") return "CUSTOMER";
   if (role === "SOURCING_OFFICER") return "SOURCING_OFFICER";
@@ -802,7 +730,6 @@ function getSenderTypeForRole(role: UserRole): string {
   if (role === "ADMIN") return "ADMIN";
   return "SOURCING_OFFICER";
 }
-
 function getRecipientOptionsForSender(senderType: string): string[] {
   if (senderType === "CUSTOMER") {
     return ["SOURCING_OFFICER", "LOAN_OFFICER", "ADMIN"];
@@ -872,68 +799,110 @@ function getSafeAddress(address?: ContactAddressDto): ContactAddressDto {
   };
 }
 
+function extractApiData<T>(response: ApiEnvelope<T> | T | null | undefined): T | null {
+  if (!response) return null;
+
+  if (
+    typeof response === "object" &&
+    response !== null &&
+    "data" in response &&
+    typeof (response as ApiEnvelope<T>).data !== "undefined"
+  ) {
+    return ((response as ApiEnvelope<T>).data ?? null) as T | null;
+  }
+
+  return response as T;
+}
+
 function extractContactDetailsResponse(
   response: ContactDetailsApiResponse
 ): GetContactDetailsResponseDto | null {
-  if (!response) return null;
-
-  if ("data" in response && response.data) {
-    return response.data;
-  }
-
-  if ("email" in response) {
-    return response as GetContactDetailsResponseDto;
-  }
-
-  return null;
+  const data = extractApiData<GetContactDetailsResponseDto>(response);
+  return data && "email" in data ? data : null;
 }
 
 function extractPersonalDetailsResponse(
   response: PersonalDetailsApiResponse
 ): PersonalDetailsResponseDto | null {
-  if (!response) return null;
-
-  if ("data" in response && response.data) {
-    return response.data;
-  }
-
-  if ("firstName" in response) {
-    return response as PersonalDetailsResponseDto;
-  }
-
-  return null;
+  const data = extractApiData<PersonalDetailsResponseDto>(response);
+  return data && "firstName" in data ? data : null;
 }
 
 function extractEducationDetailsResponse(
   response: EducationDetailsApiResponse
 ): EducationDetailsResponseDto | null {
-  if (!response) return null;
-
-  if ("data" in response && response.data) {
-    return response.data;
-  }
-
-  if ("highestEducation" in response) {
-    return response as EducationDetailsResponseDto;
-  }
-
-  return null;
+  const data = extractApiData<EducationDetailsResponseDto>(response);
+  return data && "highestEducation" in data ? data : null;
 }
-
 function extractFinancialDetailsResponse(
   response: FinancialDetailsApiResponse
 ): FinancialDetailsResponseDto | null {
-  if (!response) return null;
+  const data = extractApiData<Record<string, unknown> | FinancialDetailsResponseDto>(response);
 
-  if ("data" in response && response.data) {
-    return response.data;
-  }
+  if (!data || typeof data !== "object") return null;
 
-  if ("employmentStatus" in response) {
-    return response as FinancialDetailsResponseDto;
-  }
+  const source = data as Record<string, unknown>;
 
-  return null;
+  return {
+    employmentStatus: String(source.employmentStatus ?? source.employment_status ?? ""),
+    employerName: String(source.employerName ?? source.employer_name ?? ""),
+    jobTitle: String(source.jobTitle ?? source.job_title ?? ""),
+    workExperience: String(source.workExperience ?? source.work_experience ?? ""),
+    monthlyIncome: String(source.monthlyIncome ?? source.monthly_income ?? ""),
+    otherIncomeSources: String(
+      source.otherIncomeSources ?? source.other_income_sources ?? ""
+    ),
+    existingLoans: String(source.existingLoans ?? source.existing_loans ?? ""),
+    totalMonthlyLoanPayments: String(
+      source.totalMonthlyLoanPayments ?? source.total_monthly_loan_payments ?? ""
+    ),
+    tenureMonths: String(
+      source.tenureMonths ??
+        source.tenure_months ??
+        source.requestedTenureMonths ??
+        source.requested_tenure_months ??
+        source.tenure ??
+        ""
+    ),
+    requestedLoanAmount: String(
+      source.requestedLoanAmount ??
+        source.requestedAmount ??
+        source.requested_loan_amount ??
+        source.requested_amount ??
+        source.loanAmount ??
+        source.loan_amount ??
+        ""
+    ),
+    requestedInterestRate: String(
+      source.requestedInterestRate ??
+        source.interestRate ??
+        source.requested_interest_rate ??
+        source.interest_rate ??
+        ""
+    ),
+    requestedTenureMonths: String(
+      source.requestedTenureMonths ??
+        source.requested_tenure_months ??
+        source.tenureMonths ??
+        source.tenure_months ??
+        source.tenure ??
+        ""
+    ),
+    bankAccounts: Array.isArray(source.bankAccounts)
+      ? (source.bankAccounts as FinancialBankAccount[])
+      : Array.isArray(source.bank_accounts)
+        ? (source.bank_accounts as FinancialBankAccount[])
+        : [],
+    loanAmount:
+      (source.approvedLoanAmount as string | number | undefined) ??
+      (source.loanAmount as string | number | undefined),
+    interestRate:
+      (source.approvedInterestRate as string | number | undefined) ??
+      (source.interestRate as string | number | undefined),
+    tenure:
+      (source.approvedTenureMonths as string | number | undefined) ??
+      (source.tenure as string | number | undefined),
+  };
 }
 
 function extractDocumentDetailsResponse(
@@ -945,16 +914,18 @@ function extractDocumentDetailsResponse(
     return response;
   }
 
-  if ("data" in response && Array.isArray(response.data)) {
-    return response.data;
+  const extracted = extractApiData<GetDocumentDetailsResponseDto | DocumentDetailItemDto[]>(
+    response as ApiEnvelope<GetDocumentDetailsResponseDto | DocumentDetailItemDto[]>
+  );
+
+  if (!extracted) return [];
+
+  if (Array.isArray(extracted)) {
+    return extracted;
   }
 
-  if ("data" in response && response.data && "documents" in response.data) {
-    return response.data.documents || [];
-  }
-
-  if ("documents" in response && Array.isArray(response.documents)) {
-    return response.documents;
+  if ("documents" in extracted && Array.isArray(extracted.documents)) {
+    return extracted.documents;
   }
 
   return [];
@@ -969,11 +940,15 @@ function extractStageHistoryResponse(
     return response;
   }
 
-  if ("data" in response && Array.isArray(response.data)) {
-    return response.data;
-  }
+  const extracted = extractApiData<StageHistoryItem[]>(response);
+  return Array.isArray(extracted) ? extracted : [];
+}
 
-  return [];
+function extractCreditDetailsResponse(
+  response: FetchCreditDetailsApiResponse
+): FetchCreditDetailsResponseDto | null {
+  const data = extractApiData<FetchCreditDetailsResponseDto>(response);
+  return data && typeof data === "object" ? data : null;
 }
 
 function normalizeApplicationStatus(
@@ -1014,7 +989,6 @@ function normalizeApplicationStatus(
 
   return raw;
 }
-
 function getStatusStepIndex(normalizedStatus: string): number {
   switch (normalizedStatus) {
     case "SUBMITTED":
@@ -1253,6 +1227,12 @@ export default function ApplicationDetailsPage() {
   const [documentError, setDocumentError] = useState("");
   const [documentSuccess, setDocumentSuccess] = useState("");
 
+  const [creditLoading, setCreditLoading] = useState(false);
+  const [creditError, setCreditError] = useState("");
+
+  const [loanParametersLoading, setLoanParametersLoading] = useState(false);
+  const [loanParametersError, setLoanParametersError] = useState("");
+
   const [communicationHistory, setCommunicationHistory] = useState<
     CommunicationHistoryItem[]
   >([]);
@@ -1371,8 +1351,7 @@ export default function ApplicationDetailsPage() {
       details.tenureMonths,
     ]
   );
-
-  useEffect(() => {
+    useEffect(() => {
     if (applicationNumberFromUrl) {
       setDetails((prev) => ({
         ...prev,
@@ -1514,7 +1493,7 @@ export default function ApplicationDetailsPage() {
         }
       );
 
-      const data = extractDocumentDetailsResponse(response.data) || [];
+      const data = extractDocumentDetailsResponse(response.data);
 
       const rows: DocumentRow[] = data.map((doc, index) => ({
         id: `${doc.documentType || "doc"}-${index}`,
@@ -1547,7 +1526,15 @@ export default function ApplicationDetailsPage() {
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
     try {
-      const response = await axios.post<FetchCreditDetailsResponseDto>(
+      setCreditLoading(true);
+      setCreditError("");
+
+      setDetails((prev) => ({
+        ...prev,
+        ...createEmptyCibilFields(),
+      }));
+
+      const response = await axios.post<FetchCreditDetailsApiResponse>(
         "/api/application/fetch-credit-details",
         {
           applicationNumber: details.applicationNumber.trim(),
@@ -1559,39 +1546,56 @@ export default function ApplicationDetailsPage() {
         }
       );
 
-      const creditData = response.data;
+      const creditData = extractCreditDetailsResponse(response.data);
+
+      if (!creditData) {
+        setCreditError("Credit details were not returned for this application.");
+        return;
+      }
 
       setDetails((prev) => ({
         ...prev,
         cibilScore:
-          typeof creditData?.score !== "undefined" ? String(creditData.score) : "",
-        cibilRiskLevel: creditData?.risk_level || "",
-        cibilDebtToIncomeEstimate: creditData?.debt_to_income_estimate || "",
-        cibilCreditUtilizationRatio: creditData?.credit_utilization_ratio || "",
-        cibilAverageAccountAgeYears: creditData?.average_account_age_years || "",
-        cibilTotalOutstandingBalance: creditData?.total_outstanding_balance || "",
+          typeof creditData.score !== "undefined" ? String(creditData.score) : "",
+        cibilRiskLevel: creditData.risk_level || "",
+        cibilDebtToIncomeEstimate: creditData.debt_to_income_estimate || "",
+        cibilCreditUtilizationRatio: creditData.credit_utilization_ratio || "",
+        cibilAverageAccountAgeYears: creditData.average_account_age_years || "",
+        cibilTotalOutstandingBalance:
+          typeof creditData.total_outstanding_balance !== "undefined"
+            ? String(creditData.total_outstanding_balance)
+            : "",
         cibilTotalAccounts:
-          typeof creditData?.total_accounts !== "undefined"
+          typeof creditData.total_accounts !== "undefined"
             ? String(creditData.total_accounts)
             : "",
         cibilActiveAccounts:
-          typeof creditData?.active_accounts !== "undefined"
+          typeof creditData.active_accounts !== "undefined"
             ? String(creditData.active_accounts)
             : "",
         cibilClosedAccounts:
-          typeof creditData?.closed_accounts !== "undefined"
+          typeof creditData.closed_accounts !== "undefined"
             ? String(creditData.closed_accounts)
             : "",
-        cibilReportDate: creditData?.report_date || "",
-        cibilReportTime: creditData?.report_time || "",
-        cibilReferenceId: creditData?.reference_id || "",
+        cibilReportDate: creditData.report_date || "",
+        cibilReportTime: creditData.report_time || "",
+        cibilReferenceId: creditData.reference_id || "",
       }));
     } catch (error) {
       console.error("Failed to fetch credit details:", error);
 
+      setDetails((prev) => ({
+        ...prev,
+        ...createEmptyCibilFields(),
+      }));
+
       if (axios.isAxiosError(error) && error.response?.status === 404) {
-        setDocumentError("Credit check record not found for this application.");
+        setCreditError("Credit check record not found for this application.");
+      } else {
+        setCreditError("Failed to fetch CIBIL details.");
       }
+    } finally {
+      setCreditLoading(false);
     }
   }
 
@@ -1600,9 +1604,21 @@ export default function ApplicationDetailsPage() {
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
     const payload = getResolvedLoanParameterRequest(details);
-    if (!payload) return;
+
+    if (!payload) {
+      setRepaymentSchedule([]);
+      setDetails((prev) => ({
+        ...prev,
+        ...createEmptyLoanParameterFields(),
+      }));
+      setLoanParametersError("Loan parameters request was not sent.");
+      return;
+    }
 
     try {
+      setLoanParametersLoading(true);
+      setLoanParametersError("");
+
       const response = await axios.post<FetchLoanParametersResponseDto>(
         "/api/application/fetch-loan-parameters",
         payload,
@@ -1614,6 +1630,7 @@ export default function ApplicationDetailsPage() {
       );
 
       const loanData = response.data;
+
       const schedule = loanData?.repaymentSchedule;
       const installments = Array.isArray(schedule?.installments)
         ? schedule.installments
@@ -1625,12 +1642,16 @@ export default function ApplicationDetailsPage() {
       const lastInstallment = installments[installments.length - 1];
 
       const emiAmount = schedule?.emi || 0;
-      const totalInstallments = schedule?.totalInstallments || 0;
+      const totalInstallments = schedule?.totalInstallments || installments.length || 0;
       const totalRepayment = emiAmount * totalInstallments;
       const interestAmount =
         totalRepayment > 0 && payload.loanAmount > 0
           ? totalRepayment - payload.loanAmount
           : 0;
+
+      const eligibilityReasons = Array.isArray(loanData?.eligibility?.reasons)
+        ? loanData.eligibility.reasons.join("\n")
+        : loanData?.eligibility?.message || "";
 
       setDetails((prev) => ({
         ...prev,
@@ -1640,26 +1661,36 @@ export default function ApplicationDetailsPage() {
         scheduleStartDate: firstInstallment?.dueDate || "",
         scheduleEndDate: lastInstallment?.dueDate || "",
         foirRatio:
-          loanData?.ratios?.dbr !== undefined ? String(loanData.ratios.dbr) : "",
+          typeof loanData?.ratios?.dbr !== "undefined"
+            ? String(loanData.ratios.dbr)
+            : "",
         dtiRatio:
-          loanData?.ratios?.emiToIncome !== undefined
+          typeof loanData?.ratios?.emiToIncome !== "undefined"
             ? String(loanData.ratios.emiToIncome)
             : "",
         ltvRatio:
-          loanData?.ratios?.creditUtilization !== undefined
+          typeof loanData?.ratios?.creditUtilization !== "undefined"
             ? String(loanData.ratios.creditUtilization)
             : "",
         dscrRatio:
-          loanData?.ratios?.loanToIncome !== undefined
+          typeof loanData?.ratios?.loanToIncome !== "undefined"
             ? String(loanData.ratios.loanToIncome)
             : "",
         eligibilityStatus: loanData?.eligibility?.eligibilityStatus || "",
-        eligibilityMessage: Array.isArray(loanData?.eligibility?.reasons)
-          ? loanData.eligibility.reasons.join("\n")
-          : loanData?.eligibility?.message || "",
+        eligibilityMessage: eligibilityReasons,
       }));
     } catch (error) {
       console.error("Failed to fetch loan parameters:", error);
+
+      setRepaymentSchedule([]);
+      setDetails((prev) => ({
+        ...prev,
+        ...createEmptyLoanParameterFields(),
+      }));
+
+      setLoanParametersError("Failed to fetch loan parameters.");
+    } finally {
+      setLoanParametersLoading(false);
     }
   }
 
@@ -1821,8 +1852,7 @@ export default function ApplicationDetailsPage() {
       console.error("Failed to fetch education details:", error);
     }
   }
-
-  async function fetchFinancialDetails() {
+    async function fetchFinancialDetails() {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
@@ -1840,6 +1870,10 @@ export default function ApplicationDetailsPage() {
       );
 
       const financialData = extractFinancialDetailsResponse(response.data);
+
+      console.log("financial-details raw response", response.data);
+      console.log("financial-details mapped response", financialData);
+
       if (!financialData) return;
 
       setDetails((prev) => ({
@@ -1852,13 +1886,34 @@ export default function ApplicationDetailsPage() {
         otherIncomeSources: financialData.otherIncomeSources || "",
         existingLoans: financialData.existingLoans || "",
         totalMonthlyLoanPayments: financialData.totalMonthlyLoanPayments || "",
-        tenureMonths: financialData.tenureMonths || "",
+        tenureMonths:
+          financialData.tenureMonths || String(financialData.tenure ?? "") || "",
+
         requestedLoanAmount:
-          prev.requestedLoanAmount || financialData.requestedLoanAmount || "",
+          financialData.requestedLoanAmount ||
+          String(financialData.loanAmount ?? "") ||
+          "",
+
         requestedInterestRate:
-          prev.requestedInterestRate || financialData.requestedInterestRate || "",
+          financialData.requestedInterestRate ||
+          String(financialData.interestRate ?? "") ||
+          "",
+
+        approvedLoanAmount:
+          String((response.data as any)?.approvedLoanAmount ?? ""),
+
+        approvedInterestRate:
+          String((response.data as any)?.approvedInterestRate ?? ""),
+
+        approvedTenureMonths:
+          String((response.data as any)?.approvedTenureMonths ?? ""),
+
         requestedTenureMonths:
-          prev.requestedTenureMonths || financialData.tenureMonths || "",
+          financialData.requestedTenureMonths ||
+          financialData.tenureMonths ||
+          String(financialData.tenure ?? "") ||
+          "",
+
         bankAccounts: Array.isArray(financialData.bankAccounts)
           ? financialData.bankAccounts
           : [],
@@ -1867,8 +1922,7 @@ export default function ApplicationDetailsPage() {
       console.error("Failed to fetch financial details:", error);
     }
   }
-
-  useEffect(() => {
+    useEffect(() => {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
@@ -1912,6 +1966,30 @@ export default function ApplicationDetailsPage() {
       ...prev,
       [section]: !prev[section],
     }));
+  }
+
+  function expandAllSections() {
+    setOpenSections((prev) => {
+      const next = { ...prev };
+
+      visibleSections.forEach((sectionKey) => {
+        next[sectionKey] = true;
+      });
+
+      return next;
+    });
+  }
+
+  function collapseAllSections() {
+    setOpenSections((prev) => {
+      const next = { ...prev };
+
+      visibleSections.forEach((sectionKey) => {
+        next[sectionKey] = false;
+      });
+
+      return next;
+    });
   }
 
   function updateDetail<K extends keyof ApplicationDetailsState>(
@@ -2118,7 +2196,8 @@ export default function ApplicationDetailsPage() {
       setCommunicationLoading(false);
     }
   }
-    useEffect(() => {
+
+  useEffect(() => {
     if (!token) return;
     if (!isValidApplicationNumber(details.applicationNumber)) return;
 
@@ -2210,8 +2289,7 @@ export default function ApplicationDetailsPage() {
     const payload = getResolvedLoanParameterRequest(details);
     return payload?.tenureMonths && payload.tenureMonths > 0 ? payload.tenureMonths : 1;
   }
-
-  async function pushDecisionMessage(messageText: string) {
+    async function pushDecisionMessage(messageText: string) {
     if (!token) return;
 
     await axios.post(
@@ -2238,6 +2316,22 @@ export default function ApplicationDetailsPage() {
     if (!token) return;
 
     await axios.post("/api/application/push-stage", payload, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+  }
+
+  async function assignToDisbursalTeam() {
+    if (!token) return;
+
+    const payload: AssignApplicationRequestDto = {
+      applicationNumber: details.applicationNumber.trim(),
+      assignedTeamId: DISBURSAL_TEAM_ID,
+      remarks: "Assigned to Disbursal Team",
+    };
+
+    await axios.post("/api/application/assign", payload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -2315,6 +2409,10 @@ export default function ApplicationDetailsPage() {
           note: decisionForm.underwriterComments.trim(),
         },
       });
+
+      if (decisionForm.underwriterDecisionStatus === "APPROVED") {
+        await assignToDisbursalTeam();
+      }
 
       const message = `${COMMUNICATION_PROPERTIES.UNDERWRITER_COMMENTS || ""}${
         COMMUNICATION_PROPERTIES.UNDERWRITER_COMMENTS ? " " : ""
@@ -2575,8 +2673,7 @@ export default function ApplicationDetailsPage() {
       setSendingCommunication(false);
     }
   }
-
-  function renderAccordionHeader(section: {
+    function renderAccordionHeader(section: {
     key: AccordionKey;
     title: string;
     icon: React.ReactNode;
@@ -2639,7 +2736,8 @@ export default function ApplicationDetailsPage() {
       </main>
     );
   }
-    return (
+
+  return (
     <main className="cp-loan-page">
       <section className="cp-loan-card">
         <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
@@ -2674,14 +2772,32 @@ export default function ApplicationDetailsPage() {
             </div>
           </div>
 
-          <div className="d-flex gap-2 flex-wrap">
-            <button
-              type="button"
-              className="btn btn-outline-secondary cp-loan-btn-back"
-              onClick={() => router.back()}
-            >
-              ← Back
-            </button>
+        <div className="d-flex flex-column align-items-end gap-3">
+          <button
+            type="button"
+            className="btn cp-loan-btn-back"
+            onClick={() => router.back()}
+          >
+            ← Back
+          </button>
+
+          <button
+            type="button"
+            className="btn cp-loan-btn-back"
+            onClick={expandAllSections}
+          >
+            Expand All
+          </button>
+
+          <button
+            type="button"
+            className="btn cp-loan-btn-back"
+            onClick={collapseAllSections}
+          >
+            Collapse All
+          </button>
+
+
           </div>
         </div>
 
@@ -2694,7 +2810,6 @@ export default function ApplicationDetailsPage() {
 
           <div className="cp-app-status-steps">
             {APPLICATION_STATUS_STEPS.map((step, index) => {
-              const isCompleted = activeStatusIndex > index;
               const isCurrent = activeStatusIndex === index;
               const isReached = activeStatusIndex >= index;
 
@@ -2704,30 +2819,31 @@ export default function ApplicationDetailsPage() {
                 (normalizedApplicationStatus === "DISBURSAL_REJECTED" &&
                   step.key === "DISBURSAL_DECISION");
 
+              const isCompleted =
+                isReached &&
+                !isRejectedStep &&
+                normalizedApplicationStatus !== "UNDERWRITER_REJECTED" &&
+                normalizedApplicationStatus !== "DISBURSAL_REJECTED";
+
               return (
                 <div key={step.key} className="cp-app-status-step">
                   <div
                     className={`cp-app-status-circle ${
-                      isCompleted
-                        ? "completed"
-                        : isRejectedStep && isCurrent
-                          ? "rejected"
-                          : isCurrent
-                            ? "active"
-                            : "pending"
+                      isRejectedStep
+                        ? "rejected"
+                        : isCompleted
+                          ? "completed"
+                          : "pending"
                     }`}
                   >
-                    {isCompleted ? (
-                      <CheckCircle2 className="cp-app-status-icon" />
-                    ) : isRejectedStep && isCurrent ? (
+                    {isRejectedStep ? (
                       <XCircle className="cp-app-status-icon" />
-                    ) : isCurrent ? (
-                      <Circle className="cp-app-status-icon" />
+                    ) : isCompleted ? (
+                      <CheckCircle2 className="cp-app-status-icon" />
                     ) : (
                       index + 1
                     )}
                   </div>
-
                   <div className={`cp-app-status-label ${isReached ? "active" : ""}`}>
                     {getStepLabel(step, normalizedApplicationStatus)}
                   </div>
@@ -2752,20 +2868,7 @@ export default function ApplicationDetailsPage() {
         </div>
 
         <div className="cp-loan-form">
-          {decisionError ? <div className="alert alert-danger mb-3">{decisionError}</div> : null}
-          {decisionSuccess ? (
-            <div className="alert alert-success mb-3">{decisionSuccess}</div>
-          ) : null}
-          {documentError ? <div className="alert alert-danger mb-3">{documentError}</div> : null}
-          {documentSuccess ? (
-            <div className="alert alert-success mb-3">{documentSuccess}</div>
-          ) : null}
-          {communicationError ? (
-            <div className="alert alert-danger mb-3">{communicationError}</div>
-          ) : null}
-          {communicationSuccess ? (
-            <div className="alert alert-success mb-3">{communicationSuccess}</div>
-          ) : null}
+          
 
           {renderSectionShell(
             accordionSections[0],
@@ -2941,10 +3044,11 @@ export default function ApplicationDetailsPage() {
                 details.totalMonthlyLoanPayments
               )}
               {renderStaticField("Tenure (Months)", details.tenureMonths)}
+              {renderStaticField("Loan Amount", details.requestedLoanAmount)}
+              {renderStaticField("Interest Rate", details.requestedInterestRate)}
             </div>
           )}
-
-          {renderSectionShell(
+                    {renderSectionShell(
             accordionSections[4],
             <div className="row g-3">
               {details.bankAccounts.length === 0 ? (
@@ -3081,7 +3185,9 @@ export default function ApplicationDetailsPage() {
 
           {renderSectionShell(
             accordionSections[6],
-            !details.cibilScore && !details.cibilReferenceId ? (
+            creditLoading ? (
+              <div className="cp-loan-note">Loading CIBIL details...</div>
+            ) : !details.cibilScore && !details.cibilReferenceId ? (
               <div className="alert alert-warning mb-0">
                 Credit check record not found for this application.
               </div>
@@ -3150,14 +3256,17 @@ export default function ApplicationDetailsPage() {
                 {renderStaticField("EMI Amount", details.emiAmount)}
                 {renderStaticField("Total Repayment", details.totalRepayment)}
                 {renderStaticField("Interest Amount", details.interestAmount)}
-                {renderStaticField("Schedule Start Date", formatDate(details.scheduleStartDate))}
+                {renderStaticField(
+                  "Schedule Start Date",
+                  formatDate(details.scheduleStartDate)
+                )}
                 {renderStaticField("Schedule End Date", formatDate(details.scheduleEndDate))}
               </div>
 
               <div className="d-flex justify-content-end">
                 <button
                   type="button"
-                  className="btn btn-outline-primary cp-loan-btn-next"
+                  className="btn btn-primary cp-loan-btn-next"
                   onClick={() =>
                     downloadRepaymentScheduleCsv(
                       details.applicationNumber,
@@ -3165,64 +3274,70 @@ export default function ApplicationDetailsPage() {
                     )
                   }
                   disabled={repaymentSchedule.length === 0}
+                  style={{ color: "#ffffff" }}
                 >
                   <Download size={16} className="me-2" />
                   Export Repayment Schedule
                 </button>
               </div>
 
-              <div className="table-responsive">
-                <table className="table cp-loan-history-table align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th>Installment #</th>
-                      <th>Due Date</th>
-                      <th>Opening Balance</th>
-                      <th>Principal</th>
-                      <th>Interest</th>
-                      <th>Installment Amount</th>
-                      <th>Closing Balance</th>
-                      <th>Paid Amount</th>
-                      <th>Status</th>
-                      <th>Paid Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {repaymentSchedule.length === 0 ? (
-                      <tr>
-                        <td colSpan={10} className="cp-loan-table-empty">
-                          No repayment schedule available.
-                        </td>
-                      </tr>
-                    ) : (
-                      repaymentSchedule.map((installment, index) => (
-                        <tr
-                          key={`${
-                            installment.scheduleId ||
-                            installment.installmentNumber ||
-                            "installment"
-                          }-${index}`}
-                        >
-                          <td>{installment.installmentNumber ?? "-"}</td>
-                          <td>{installment.dueDate ? formatDate(installment.dueDate) : "-"}</td>
-                          <td>{formatMoney(installment.openingBalance)}</td>
-                          <td>{formatMoney(installment.principalComponent)}</td>
-                          <td>{formatMoney(installment.interestComponent)}</td>
-                          <td>{formatMoney(installment.installmentAmount)}</td>
-                          <td>{formatMoney(installment.closingBalance)}</td>
-                          <td>{formatMoney(installment.paidAmount)}</td>
-                          <td>{installment.paymentStatus || "-"}</td>
-                          <td>{installment.paidDate ? formatDate(installment.paidDate) : "-"}</td>
+              {loanParametersLoading ? (
+                <div className="cp-loan-note">Loading repayment schedule...</div>
+              ) : (
+                <div className="cp-loan-table-scroll-box">
+                  <div className="cp-loan-table-wrap">
+                    <table className="table cp-loan-history-table align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th>Installment #</th>
+                          <th>Due Date</th>
+                          <th>Opening Balance</th>
+                          <th>Principal</th>
+                          <th>Interest</th>
+                          <th>Installment Amount</th>
+                          <th>Closing Balance</th>
+                          <th>Paid Amount</th>
+                          <th>Status</th>
+                          <th>Paid Date</th>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
+                      </thead>
+                      <tbody>
+                        {repaymentSchedule.length === 0 ? (
+                          <tr>
+                            <td colSpan={10} className="cp-loan-table-empty">
+                              No repayment schedule available.
+                            </td>
+                          </tr>
+                        ) : (
+                          repaymentSchedule.map((installment, index) => (
+                            <tr
+                              key={`${
+                                installment.scheduleId ||
+                                installment.installmentNumber ||
+                                "installment"
+                              }-${index}`}
+                            >
+                              <td>{installment.installmentNumber ?? "-"}</td>
+                              <td>{installment.dueDate ? formatDate(installment.dueDate) : "-"}</td>
+                              <td>{formatMoney(installment.openingBalance)}</td>
+                              <td>{formatMoney(installment.principalComponent)}</td>
+                              <td>{formatMoney(installment.interestComponent)}</td>
+                              <td>{formatMoney(installment.installmentAmount)}</td>
+                              <td>{formatMoney(installment.closingBalance)}</td>
+                              <td>{formatMoney(installment.paidAmount)}</td>
+                              <td>{installment.paymentStatus || "-"}</td>
+                              <td>{installment.paidDate ? formatDate(installment.paidDate) : "-"}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           )}
-
-          {renderSectionShell(
+                    {renderSectionShell(
             accordionSections[8],
             <div className="row g-3">
               <div className="col-12 col-md-4">
@@ -3256,6 +3371,19 @@ export default function ApplicationDetailsPage() {
               </div>
 
               {renderStaticField(
+                "Requested Loan Amount",
+                details.requestedLoanAmount || "-"
+              )}
+              {renderStaticField(
+                "Requested Interest Rate",
+                details.requestedInterestRate || "-"
+              )}
+              {renderStaticField(
+                "Requested Tenure Months",
+                details.requestedTenureMonths || details.tenureMonths || "-"
+              )}
+
+              {renderStaticField(
                 "Loan Amount (Request Sent)",
                 resolvedLoanRequest?.loanAmount ?? ""
               )}
@@ -3268,10 +3396,13 @@ export default function ApplicationDetailsPage() {
                 resolvedLoanRequest?.tenureMonths ?? ""
               )}
               {renderStaticField("EMI", details.emiAmount)}
-              {renderStaticField("DBR", details.foirRatio)}
-              {renderStaticField("EMI To Income", details.dtiRatio)}
-              {renderStaticField("Credit Utilization", details.ltvRatio)}
-              {renderStaticField("Loan To Income", details.dscrRatio)}
+              {renderStaticField("DBR", formatPercentLikeValue(details.foirRatio))}
+              {renderStaticField("EMI To Income", formatPercentLikeValue(details.dtiRatio))}
+              {renderStaticField(
+                "Credit Utilization",
+                formatPercentLikeValue(details.ltvRatio)
+              )}
+              {renderStaticField("Loan To Income", formatPercentLikeValue(details.dscrRatio))}
             </div>
           )}
 
@@ -3344,6 +3475,7 @@ export default function ApplicationDetailsPage() {
                         className="btn btn-primary cp-loan-btn-next"
                         onClick={handleSaveUnderwriterDecision}
                         disabled={decisionLoading}
+                        style={{ color: "#ffffff" }}
                       >
                         {decisionLoading ? "Saving..." : "Save"}
                       </button>
@@ -3436,6 +3568,7 @@ export default function ApplicationDetailsPage() {
                           normalizedApplicationStatus === "DISBURSAL_COMPLETED" ||
                           normalizedApplicationStatus === "DISBURSAL_REJECTED"
                         }
+                        style={{ color: "#ffffff" }}
                       >
                         {decisionLoading ? "Saving..." : "Save"}
                       </button>
@@ -3445,8 +3578,7 @@ export default function ApplicationDetailsPage() {
               )}
             </>
           ) : null}
-
-          {renderSectionShell(
+                    {renderSectionShell(
             accordionSections[12],
             <div className="cp-loan-communication-stack">
               <div className="cp-loan-bank-card cp-loan-communication-form-card mb-0">
@@ -3454,7 +3586,7 @@ export default function ApplicationDetailsPage() {
                   <h6 className="cp-loan-bank-card-title mb-0">Push Communication</h6>
                 </div>
 
-                <form onSubmit={handleSendCommunication} className="row g-3">
+                <form onSubmit={handleSendCommunication} className="row g-3 p-3">
                   <div className="col-12 col-md-6">
                     <label className="form-label fw-semibold">Recipient Type</label>
                     <select
@@ -3563,6 +3695,7 @@ export default function ApplicationDetailsPage() {
                       type="submit"
                       className="btn btn-primary cp-loan-btn-next"
                       disabled={sendingCommunication}
+                      style={{ color: "#ffffff" }}
                     >
                       <Send size={16} className="me-2" />
                       {sendingCommunication ? "Saving..." : "Push Communication"}
@@ -3589,102 +3722,100 @@ export default function ApplicationDetailsPage() {
                 </div>
 
                 <div className="cp-loan-table-wrap">
-                  <div className="table-responsive">
-                    <table className="table cp-loan-history-table align-middle mb-0">
-                      <thead>
+                  <table className="table cp-loan-history-table align-middle mb-0">
+                    <thead>
+                      <tr>
+                        <th>Date</th>
+                        <th>Sender</th>
+                        <th>Recipient</th>
+                        <th>Message Category</th>
+                        <th>Message Text</th>
+                        <th>Attachment Details</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {communicationHistory.length === 0 ? (
                         <tr>
-                          <th>Date</th>
-                          <th>Sender</th>
-                          <th>Recipient</th>
-                          <th>Message Category</th>
-                          <th>Message Text</th>
-                          <th>Attachment Details</th>
+                          <td colSpan={6} className="cp-loan-table-empty">
+                            No communication history loaded.
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody>
-                        {communicationHistory.length === 0 ? (
-                          <tr>
-                            <td colSpan={6} className="cp-loan-table-empty">
-                              No communication history loaded.
-                            </td>
-                          </tr>
-                        ) : (
-                          communicationHistory.map((item) => (
-                            <tr key={item.messageId}>
-                              <td>{formatDate(item.createdAt)}</td>
-                              <td>{item.senderType || "-"}</td>
-                              <td>{item.recipientType || "-"}</td>
-                              <td>{item.messageCategory || "-"}</td>
-                              <td>{item.messageText || "-"}</td>
-                              <td>
-                                {(item.attachments ?? []).length === 0 ? (
-                                  <span className="cp-loan-note">No attachment</span>
-                                ) : (
-                                  <div className="d-flex flex-column gap-2">
-                                    {(item.attachments ?? []).map((attachment) => {
-                                      const downloadInfo = getAttachmentDownloadInfo(attachment);
+                      ) : (
+                        communicationHistory.map((item) => (
+                          <tr key={item.messageId}>
+                            <td>{formatDate(item.createdAt)}</td>
+                            <td>{item.senderType || "-"}</td>
+                            <td>{item.recipientType || "-"}</td>
+                            <td>{item.messageCategory || "-"}</td>
+                            <td>{item.messageText || "-"}</td>
+                            <td>
+                              {(item.attachments ?? []).length === 0 ? (
+                                <span className="cp-loan-note">No attachment</span>
+                              ) : (
+                                <div className="d-flex flex-column gap-2">
+                                  {(item.attachments ?? []).map((attachment) => {
+                                    const downloadInfo = getAttachmentDownloadInfo(attachment);
 
-                                      if (downloadInfo.downloadable) {
-                                        return (
-                                          <div
-                                            key={attachment.attachmentId}
-                                            className="cp-loan-attachment-chip"
-                                          >
-                                            <a
-                                              href={downloadInfo.href}
-                                              target="_blank"
-                                              rel="noreferrer"
-                                              className="cp-loan-attachment-link"
-                                              download={
-                                                downloadInfo.isLocal
-                                                  ? downloadInfo.fileName
-                                                  : undefined
-                                              }
-                                            >
-                                              <Download size={14} />
-                                              <span>{attachment.originalFileName || "-"}</span>
-                                            </a>
-                                          </div>
-                                        );
-                                      }
-
-                                      if (downloadInfo.unavailableAfterRefresh) {
-                                        return (
-                                          <div
-                                            key={attachment.attachmentId}
-                                            className="cp-loan-attachment-chip"
-                                          >
-                                            <span className="cp-loan-note">
-                                              {attachment.originalFileName || "-"} — Unavailable after refresh
-                                            </span>
-                                          </div>
-                                        );
-                                      }
-
+                                    if (downloadInfo.downloadable) {
                                       return (
                                         <div
                                           key={attachment.attachmentId}
                                           className="cp-loan-attachment-chip"
                                         >
-                                          <span>{attachment.originalFileName || "-"}</span>
+                                          <a
+                                            href={downloadInfo.href}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="cp-loan-attachment-link"
+                                            download={
+                                              downloadInfo.isLocal
+                                                ? downloadInfo.fileName
+                                                : undefined
+                                            }
+                                          >
+                                            <Download size={14} />
+                                            <span>{attachment.originalFileName || "-"}</span>
+                                          </a>
                                         </div>
                                       );
-                                    })}
-                                  </div>
-                                )}
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
+                                    }
+
+                                    if (downloadInfo.unavailableAfterRefresh) {
+                                      return (
+                                        <div
+                                          key={attachment.attachmentId}
+                                          className="cp-loan-attachment-chip"
+                                        >
+                                          <span className="cp-loan-note">
+                                            {attachment.originalFileName || "-"} — Unavailable after
+                                            refresh
+                                          </span>
+                                        </div>
+                                      );
+                                    }
+
+                                    return (
+                                      <div
+                                        key={attachment.attachmentId}
+                                        className="cp-loan-attachment-chip"
+                                      >
+                                        <span>{attachment.originalFileName || "-"}</span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
           )}
-
-          <div className="cp-loan-footer">
+                    <div className="cp-loan-footer">
             <div className="cp-loan-note d-flex align-items-center gap-2">
               <MapPin size={16} />
             </div>

@@ -2140,3 +2140,97 @@ html[data-theme="dark"] .cp-app-status-progress {
     min-width: 100%;
   }
 }
+
+.cp-loan-btn-next,
+.cp-loan-btn-next:hover,
+.cp-loan-btn-next:focus,
+.cp-loan-btn-next:active,
+.cp-loan-btn-next:disabled {
+  color: #ffffff !important;
+}
+
+.cp-loan-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.cp-loan-history-table,
+.cp-loan-doc-table {
+  min-width: 1200px;
+}
+
+.cp-loan-history-table th,
+.cp-loan-history-table td,
+.cp-loan-doc-table th,
+.cp-loan-doc-table td {
+  white-space: nowrap;
+}
+
+html[data-theme="dark"] .cp-loan-btn-next {
+  color: #ffffff !important;
+}
+
+html[data-theme="light"] .cp-loan-btn-next {
+  color: #ffffff !important;
+}
+.cp-loan-table-scroll-box {
+  width: 100%;
+  max-height: 420px;
+  overflow: auto;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 16px;
+}
+
+.cp-loan-table-wrap {
+  min-width: 100%;
+  overflow-x: auto;
+  overflow-y: visible;
+}
+
+.cp-loan-history-table {
+  min-width: 1250px;
+  margin-bottom: 0;
+}
+
+.cp-loan-history-table th,
+.cp-loan-history-table td {
+  white-space: nowrap;
+}
+
+.cp-loan-table-scroll-box::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.cp-loan-table-scroll-box::-webkit-scrollbar-track {
+  background: rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+}
+
+.cp-loan-table-scroll-box::-webkit-scrollbar-thumb {
+  background: rgba(100, 116, 139, 0.7);
+  border-radius: 999px;
+}
+
+.cp-loan-table-scroll-box::-webkit-scrollbar-thumb:hover {
+  background: rgba(100, 116, 139, 0.9);
+}
+
+html[data-theme="dark"] .cp-loan-table-scroll-box {
+  border-color: #334155;
+  background: #1e293b;
+}
+
+html[data-theme="dark"] .cp-loan-table-scroll-box::-webkit-scrollbar-track {
+  background: rgba(51, 65, 85, 0.9);
+}
+
+html[data-theme="dark"] .cp-loan-table-scroll-box::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.6);
+}
+
+html[data-theme="dark"] .cp-loan-table-scroll-box::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.85);
+}

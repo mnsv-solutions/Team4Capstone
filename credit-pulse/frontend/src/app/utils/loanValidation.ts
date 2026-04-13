@@ -50,6 +50,7 @@ export type LoanApplicationForm = {
   totalMonthlyLoanPayments: string;
   tenureMonths: string;
   loanAmount: string;
+  loanProductId?: string;
 
   bankAccounts: BankAccount[];
 
@@ -87,6 +88,76 @@ export function sanitizeAlphaNumericBasic(value: string) {
   return value.replace(/[^a-zA-Z0-9\s./&-]/g, "").replace(/\s{2,}/g, " ");
 }
 
+export function trimAndCollapseSpaces(value: string) {
+  return value.trim().replace(/\s{2,}/g, " ");
+}
+
+export function normalizeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+export function normalizePostalCode(value: string) {
+  return value.trim().toUpperCase().replace(/\s+/g, " ");
+}
+
+export function normalizeGovernmentId(value: string) {
+  return value.trim().toUpperCase();
+}
+
+export function normalizeLoanApplicationForm(
+  form: LoanApplicationForm
+): LoanApplicationForm {
+  const normalizeAddress = (address: Address): Address => ({
+    line1: trimAndCollapseSpaces(address.line1),
+    line2: trimAndCollapseSpaces(address.line2),
+    city: trimAndCollapseSpaces(address.city),
+    state: trimAndCollapseSpaces(address.state),
+    postalCode: normalizePostalCode(address.postalCode),
+    country: trimAndCollapseSpaces(address.country),
+  });
+
+  return {
+    ...form,
+    firstName: trimAndCollapseSpaces(form.firstName),
+    lastName: trimAndCollapseSpaces(form.lastName),
+    nationality: trimAndCollapseSpaces(form.nationality),
+    governmentIdNumber: normalizeGovernmentId(form.governmentIdNumber),
+    sinTaxId: sanitizeDigits(form.sinTaxId).slice(0, 9),
+    email: normalizeEmail(form.email),
+    mobile: sanitizeDigits(form.mobile).slice(0, 10),
+    alternatePhone: sanitizeDigits(form.alternatePhone).slice(0, 10),
+    residentialAddress: normalizeAddress(form.residentialAddress),
+    mailingAddress: form.mailingSameAsResidential
+      ? normalizeAddress(form.residentialAddress)
+      : normalizeAddress(form.mailingAddress),
+    fieldOfStudy: trimAndCollapseSpaces(form.fieldOfStudy),
+    institutionName: trimAndCollapseSpaces(form.institutionName),
+    graduationYear: sanitizeDigits(form.graduationYear).slice(0, 4),
+    employerName: trimAndCollapseSpaces(form.employerName),
+    jobTitle: trimAndCollapseSpaces(form.jobTitle),
+    workExperience: sanitizeDigits(form.workExperience).slice(0, 2),
+    monthlyIncome: sanitizeDigits(form.monthlyIncome).slice(0, 9),
+    otherIncomeSources: trimAndCollapseSpaces(form.otherIncomeSources),
+    existingLoans: form.existingLoans,
+    totalMonthlyLoanPayments: sanitizeDigits(
+      form.totalMonthlyLoanPayments
+    ).slice(0, 9),
+    tenureMonths: sanitizeDigits(form.tenureMonths).slice(0, 3),
+    loanAmount: sanitizeDigits(form.loanAmount).slice(0, 9),
+    loanProductId: form.loanProductId?.trim() || "",
+    bankAccounts: form.bankAccounts.map((account) => ({
+      ...account,
+      bankName: trimAndCollapseSpaces(account.bankName),
+      institutionNumber: sanitizeDigits(account.institutionNumber).slice(0, 3),
+      transitNumber: sanitizeDigits(account.transitNumber).slice(0, 5),
+      accountNumber: sanitizeDigits(account.accountNumber).slice(0, 17),
+      accountType: account.accountType,
+      swiftBic: sanitizeAlphaNumericUpper(account.swiftBic).slice(0, 11),
+      isRepaymentAccount: account.isRepaymentAccount,
+    })),
+  };
+}
+
 export function createEmptyBankAccount(): BankAccount {
   return {
     bankName: "",
@@ -106,6 +177,7 @@ export function isAdult(dateString: string) {
   const dob = new Date(dateString);
 
   if (Number.isNaN(dob.getTime())) return false;
+  if (dob > today) return false;
 
   let age = today.getFullYear() - dob.getFullYear();
   const monthDiff = today.getMonth() - dob.getMonth();
@@ -143,8 +215,23 @@ function isValidPostalCode(value: string) {
   return canada.test(trimmed) || us.test(trimmed);
 }
 
-function isValidGovernmentId(value: string) {
-  return /^[A-Za-z0-9-]{5,20}$/.test(value.trim());
+function isValidGovernmentId(value: string, idType?: string) {
+  const trimmed = value.trim().toUpperCase();
+
+  if (!/^[A-Z0-9-]{5,20}$/.test(trimmed)) return false;
+
+  switch (idType) {
+    case "Passport":
+      return /^[A-Z0-9]{6,9}$/.test(trimmed);
+    case "Driver License":
+      return /^[A-Z0-9-]{6,20}$/.test(trimmed);
+    case "PR Card":
+      return /^[A-Z]{2}\d{6}$|^\d{8,10}$/.test(trimmed);
+    case "National ID":
+      return /^[A-Z0-9-]{5,20}$/.test(trimmed);
+    default:
+      return /^[A-Z0-9-]{5,20}$/.test(trimmed);
+  }
 }
 
 function isValidYear(value: string) {
@@ -156,6 +243,10 @@ function isValidYear(value: string) {
 
 function isPositiveNumberString(value: string) {
   return /^\d+$/.test(value) && Number(value) > 0;
+}
+
+function hasValidMoneyLength(value: string, maxDigits = 9) {
+  return /^\d+$/.test(value) && value.length <= maxDigits;
 }
 
 export function validateFile(file: File | null, label: string) {
@@ -203,7 +294,8 @@ export function validateLoanStep(
     if (!form.dob) {
       nextErrors.dob = "Date of birth is required.";
     } else if (!isAdult(form.dob)) {
-      nextErrors.dob = "Applicant must be at least 18 years old.";
+      nextErrors.dob =
+        "Date of birth must be in the past and applicant must be at least 18 years old.";
     }
 
     if (!form.gender) {
@@ -226,7 +318,9 @@ export function validateLoanStep(
 
     if (!form.governmentIdNumber.trim()) {
       nextErrors.governmentIdNumber = "Government ID number is required.";
-    } else if (!isValidGovernmentId(form.governmentIdNumber)) {
+    } else if (
+      !isValidGovernmentId(form.governmentIdNumber, form.governmentIdType)
+    ) {
       nextErrors.governmentIdNumber =
         "Government ID number must be 5 to 20 letters, numbers, or hyphens.";
     }
@@ -355,16 +449,7 @@ export function validateLoanStep(
       nextErrors.employmentStatus = "Employment status is required.";
     }
 
-    if (
-      form.employmentStatus === "Employed" ||
-      form.employmentStatus === "Self-employed"
-    ) {
-      if (!form.monthlyIncome.trim()) {
-        nextErrors.monthlyIncome = "Monthly income is required.";
-      } else if (!isPositiveNumberString(form.monthlyIncome)) {
-        nextErrors.monthlyIncome = "Monthly income must be a valid number.";
-      }
-
+    if (form.employmentStatus === "Employed") {
       if (!form.employerName.trim()) {
         nextErrors.employerName = "Employer name is required.";
       } else if (form.employerName.trim().length < 2) {
@@ -385,22 +470,32 @@ export function validateLoanStep(
         nextErrors.workExperience =
           "Work experience must be a valid number of years.";
       }
+
+      if (!form.monthlyIncome.trim()) {
+        nextErrors.monthlyIncome = "Monthly income is required.";
+      } else if (!isPositiveNumberString(form.monthlyIncome)) {
+        nextErrors.monthlyIncome = "Monthly income must be a valid number.";
+      } else if (!hasValidMoneyLength(form.monthlyIncome, 9)) {
+        nextErrors.monthlyIncome = "Monthly income cannot exceed 9 digits.";
+      }
+    }
+
+    if (!form.loanProductId?.trim()) {
+      nextErrors.loanProductId = "Loan product is required.";
     }
 
     if (!form.loanAmount.trim()) {
-      nextErrors.loanAmount = "Loan amount is required.";
+      nextErrors.loanAmount = "Requested loan amount is required.";
     } else if (!isPositiveNumberString(form.loanAmount)) {
-      nextErrors.loanAmount = "Loan amount must be a valid number.";
+      nextErrors.loanAmount = "Requested loan amount must be a valid number.";
+    } else if (!hasValidMoneyLength(form.loanAmount, 9)) {
+      nextErrors.loanAmount = "Requested loan amount cannot exceed 9 digits.";
     }
 
     if (!form.tenureMonths.trim()) {
-      nextErrors.tenureMonths = "Loan tenure is required.";
+      nextErrors.tenureMonths = "Requested loan tenure is required.";
     } else if (!/^\d+$/.test(form.tenureMonths)) {
-      nextErrors.tenureMonths = "Tenure must be a number.";
-    } else if (Number(form.tenureMonths) <= 0) {
-      nextErrors.tenureMonths = "Tenure must be greater than 0.";
-    } else if (Number(form.tenureMonths) > 360) {
-      nextErrors.tenureMonths = "Tenure cannot exceed 360 months.";
+      nextErrors.tenureMonths = "Requested loan tenure must be a number.";
     }
 
     if (!form.existingLoans) {
@@ -415,6 +510,9 @@ export function validateLoanStep(
       } else if (!isPositiveNumberString(form.totalMonthlyLoanPayments)) {
         nextErrors.totalMonthlyLoanPayments =
           "Total monthly loan payments must be a valid number.";
+      } else if (!hasValidMoneyLength(form.totalMonthlyLoanPayments, 9)) {
+        nextErrors.totalMonthlyLoanPayments =
+          "Total monthly loan payments cannot exceed 9 digits.";
       }
     }
 
@@ -449,9 +547,9 @@ export function validateLoanStep(
 
       if (!account.accountNumber.trim()) {
         nextErrors[`${prefix}.accountNumber`] = "Account number is required.";
-      } else if (!/^\d{5,17}$/.test(account.accountNumber)) {
+      } else if (!/^\d{7,17}$/.test(account.accountNumber)) {
         nextErrors[`${prefix}.accountNumber`] =
-          "Account number must be 5 to 17 digits.";
+          "Account number must be 7 to 17 digits.";
       }
 
       if (!account.accountType) {
