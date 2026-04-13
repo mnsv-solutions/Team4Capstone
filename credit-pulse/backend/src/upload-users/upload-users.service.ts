@@ -4,6 +4,7 @@ import * as bcrypt from 'bcrypt';
 import { plainToInstance } from 'class-transformer';
 import { validate } from 'class-validator';
 import type { Express } from 'express';
+import 'multer';
 import * as XLSX from 'xlsx';
 
 import { PrismaService } from '../prisma/prisma.service.js';

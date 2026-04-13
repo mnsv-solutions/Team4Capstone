@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { CalculateEligibilityService } from '../../calculate-eligibility/calculate-eligibility.service.js';
 import { CalculateRatiosService } from '../../calculate-ratios/calculate-ratios.service.js';
@@ -13,6 +13,8 @@ import {
 // This service is used to collect all loan parameter details in one place.
 @Injectable()
 export class FetchLoanParametersService {
+  private readonly logger = new Logger(FetchLoanParametersService.name);
+
   constructor(
     // This is used to read repayment schedule data from the database.
     private readonly prisma: PrismaService,
@@ -32,13 +34,19 @@ export class FetchLoanParametersService {
     dto: FetchLoanParametersRequestDto,
     userId: string,
   ): Promise<FetchLoanParametersResponseDto> {
+    this.logger.log('The loan parameter fetch process has started.');
+
     // This first generates the repayment schedule for the given application.
+    this.logger.log('The repayment schedule is being generated.');
     const repaymentScheduleResult = await this.generateRepaymentScheduleService.generateSchedule(
       dto,
       userId,
     );
 
     // This then reads the saved installment records from the database.
+    this.logger.log(
+      'The saved repayment schedule installments are being fetched from the database.',
+    );
     const installmentRows = await this.prisma.repayment_schedule.findMany({
       where: {
         application_id: repaymentScheduleResult.applicationId,
@@ -50,6 +58,7 @@ export class FetchLoanParametersService {
     });
 
     // This converts the installment records into the response format.
+    this.logger.log('The repayment schedule installments are being prepared for the response.');
     const installments: RepaymentScheduleInstallmentDto[] = installmentRows.map((row) => ({
       // This is the unique ID of the schedule row.
       scheduleId: row.schedule_id,
@@ -86,6 +95,7 @@ export class FetchLoanParametersService {
     }));
 
     // This calculates the ratios for the same application.
+    this.logger.log('The financial ratios are being calculated.');
     const ratiosResult = await this.calculateRatiosService.calculateRatios(
       {
         applicationNumber: dto.applicationNumber,
@@ -94,12 +104,15 @@ export class FetchLoanParametersService {
     );
 
     // This calculates the eligibility after ratios are ready.
+    this.logger.log('The eligibility details are being calculated.');
     const eligibilityResult = await this.calculateEligibilityService.calculateEligibility(
       {
         applicationNumber: dto.applicationNumber,
       },
       userId,
     );
+
+    this.logger.log('The loan parameter details were prepared successfully.');
 
     // This returns the final combined response.
     return {
@@ -132,6 +145,7 @@ export class FetchLoanParametersService {
   private toNumber(value: unknown): number {
     // This returns 0 if the value is missing.
     if (value === null || value === undefined) {
+      this.logger.log('A numeric value was missing, so 0 was returned.');
       return 0;
     }
 

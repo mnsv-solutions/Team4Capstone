@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { randomUUID } from 'node:crypto';
 
@@ -26,6 +26,8 @@ const TEAM_ROLE_MAPPING: Record<string, string> = {
 // Service for fetching all teams
 @Injectable()
 export class TeamsService {
+  private readonly logger = new Logger(TeamsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -45,6 +47,8 @@ export class TeamsService {
    * @returns A promise that resolves to a FetchAllTeamsResponseDto object.
    */
   async fetchAllTeams(): Promise<FetchAllTeamsResponseDto> {
+    this.logger.log('The team list fetch process has started.');
+
     const teams = await this.prisma.teams.findMany({
       // Select the team's ID, code, name, description, and whether the team is active.
       // Also select the count of active team members.
@@ -71,6 +75,8 @@ export class TeamsService {
         team_name: 'asc',
       },
     });
+
+    this.logger.log(`The team list was fetched successfully. Total records found: ${teams.length}`);
 
     // Map each team to a FetchAllTeamsResponseDto object.
     const teamsResponse = teams.map((team) => ({
@@ -107,6 +113,8 @@ export class TeamsService {
   ): Promise<FetchTeamUsersListResponseDto> {
     const { teamId } = fetchTeamUsersRequestDto;
 
+    this.logger.log(`The team users fetch process has started for team ID: ${teamId}`);
+
     // First check whether the team exists and is active
     const team = await this.prisma.$queryRaw<TeamLookupRow[]>`
       SELECT t.team_id AS "teamId"
@@ -117,8 +125,13 @@ export class TeamsService {
     `;
 
     if (!team.length) {
+      this.logger.warn(
+        `The team users request could not continue because team ID ${teamId} was not found.`,
+      );
       throw new NotFoundException('Team not found.');
     }
+
+    this.logger.log('The selected team was found successfully.');
 
     // Then fetch all active team members and their role details
     const teamUsers = await this.prisma.$queryRaw<TeamUserRow[]>`
@@ -139,6 +152,10 @@ export class TeamsService {
         AND tm.is_active = true
       ORDER BY u.created_at DESC
     `;
+
+    this.logger.log(
+      `The team users were fetched successfully. Total records found: ${teamUsers.length}`,
+    );
 
     return {
       message: 'Team users fetched successfully.',
@@ -177,6 +194,8 @@ export class TeamsService {
   ): Promise<AddUserToTeamResponseDto> {
     const { teamId, userId } = addUserToTeamRequestDto;
 
+    this.logger.log(`The add user to team process has started for team ID: ${teamId}`);
+
     // First, check whether the team exists and is active
     const team = await this.prisma.teams.findFirst({
       where: {
@@ -191,8 +210,13 @@ export class TeamsService {
     });
 
     if (!team) {
+      this.logger.warn(
+        `The add user request could not continue because team ID ${teamId} was not found.`,
+      );
       throw new NotFoundException('Team not found.');
     }
+
+    this.logger.log(`The selected team was found successfully: ${team.team_name}`);
 
     // Then check whether the user exists and is active
     const user = await this.prisma.users.findFirst({
@@ -209,8 +233,13 @@ export class TeamsService {
     });
 
     if (!user) {
+      this.logger.warn(
+        `The add user request could not continue because user ID ${userId} was not found.`,
+      );
       throw new NotFoundException('User not found.');
     }
+
+    this.logger.log('The selected user was found successfully.');
 
     // Next, check whether the user's role is valid for the team
     const role = await this.prisma.roles.findFirst({
@@ -224,20 +253,31 @@ export class TeamsService {
     });
 
     if (!role) {
+      this.logger.warn(
+        'The add user request could not continue because the user role was not found.',
+      );
       throw new NotFoundException('User role not found.');
     }
 
     const expectedRoleCode = TEAM_ROLE_MAPPING[team.team_code];
 
     if (!expectedRoleCode) {
+      this.logger.warn(
+        `The add user request could not continue because team code ${team.team_code} is not supported.`,
+      );
       throw new BadRequestException('Unsupported team code.');
     }
 
     if (role.role_code !== expectedRoleCode) {
+      this.logger.warn(
+        `The add user request was blocked because role ${role.role_code} does not match team ${team.team_code}.`,
+      );
       throw new BadRequestException(
         `User role ${role.role_code} can only be assigned to ${team.team_code}.`,
       );
     }
+
+    this.logger.log('The user role was verified successfully for the selected team.');
 
     // Check whether the user is already assigned to this team
     const existingActiveTeamMember = await this.prisma.team_members.findFirst({
@@ -252,6 +292,9 @@ export class TeamsService {
     });
 
     if (existingActiveTeamMember) {
+      this.logger.warn(
+        'The add user request was blocked because the user is already assigned to this team.',
+      );
       throw new BadRequestException('User is already assigned to this team.');
     }
 
@@ -270,6 +313,9 @@ export class TeamsService {
     });
 
     if (existingOtherActiveTeamMember) {
+      this.logger.warn(
+        'The add user request was blocked because the user is already assigned to another team.',
+      );
       throw new BadRequestException(
         'User is already assigned to another team. Remove the user from the current team first.',
       );
@@ -288,6 +334,8 @@ export class TeamsService {
     });
 
     if (existingInactiveTeamMember) {
+      this.logger.log('An inactive team mapping was found, so it will be reactivated.');
+
       // If the user is already assigned but is inactive, update the team member to be active
       await this.prisma.team_members.update({
         where: {
@@ -299,6 +347,10 @@ export class TeamsService {
         },
       });
     } else {
+      this.logger.log(
+        'No existing team mapping was found, so a new team member record will be created.',
+      );
+
       // If the user is not already assigned to this team, create a new team member
       await this.prisma.team_members.create({
         data: {
@@ -313,6 +365,8 @@ export class TeamsService {
     }
 
     const userName = `${user.first_name} ${user.last_name}`.trim();
+
+    this.logger.log(`${userName} was added to team ${team.team_name} successfully.`);
 
     return {
       message: `${userName} is successfully added to ${team.team_name}.`,
@@ -346,6 +400,8 @@ export class TeamsService {
     // Takes team id and user id from the request body
     const { teamId, userId } = removeUserFromTeamRequestDto;
 
+    this.logger.log(`The remove user from team process has started for team ID: ${teamId}`);
+
     // Checks whether the team exists and is active
     const team = await this.prisma.teams.findFirst({
       where: {
@@ -360,8 +416,13 @@ export class TeamsService {
 
     // Stops the flow if the team is not found
     if (!team) {
+      this.logger.warn(
+        `The remove user request could not continue because team ID ${teamId} was not found.`,
+      );
       throw new NotFoundException('Team not found.');
     }
+
+    this.logger.log(`The selected team was found successfully: ${team.team_name}`);
 
     // Checks whether the user exists
     const user = await this.prisma.users.findFirst({
@@ -377,8 +438,13 @@ export class TeamsService {
 
     // Stops the flow if the user is not found
     if (!user) {
+      this.logger.warn(
+        `The remove user request could not continue because user ID ${userId} was not found.`,
+      );
       throw new NotFoundException('User not found.');
     }
+
+    this.logger.log('The selected user was found successfully.');
 
     // Finds the active team membership for this user and team
     const activeTeamMember = await this.prisma.team_members.findFirst({
@@ -394,8 +460,13 @@ export class TeamsService {
 
     // Throws an error if the user is not currently an active member of the team
     if (!activeTeamMember) {
+      this.logger.warn(
+        'The remove user request could not continue because the user is not mapped to this team.',
+      );
       throw new NotFoundException('User is not mapped to this team.');
     }
+
+    this.logger.log('The active team membership was found successfully.');
 
     // Soft deletes the membership by marking it as inactive
     await this.prisma.team_members.update({
@@ -410,6 +481,8 @@ export class TeamsService {
 
     // Builds the full user name for the response message
     const userName = `${user.first_name} ${user.last_name}`.trim();
+
+    this.logger.log(`${userName} was removed from team ${team.team_name} successfully.`);
 
     return {
       message: `${userName} is successfully removed from Team named ${team.team_name}.`,

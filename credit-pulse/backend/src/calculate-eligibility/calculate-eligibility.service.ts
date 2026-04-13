@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CalculateEligibilityRequestDto } from './dto/calculate-eligibility-request.dto.js';
@@ -46,6 +46,8 @@ type EligibilityRuleRecord = {
 
 @Injectable()
 export class CalculateEligibilityService {
+  private readonly logger = new Logger(CalculateEligibilityService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -66,6 +68,8 @@ export class CalculateEligibilityService {
     dto: CalculateEligibilityRequestDto,
     userId: string,
   ): Promise<CalculateEligibilityResponseDto> {
+    this.logger.log('The eligibility calculation process has started.');
+
     // Keep one common timestamp for this full eligibility calculation
     const now = new Date();
 
@@ -84,8 +88,13 @@ export class CalculateEligibilityService {
 
     // Stop if the application does not exist
     if (!application) {
+      this.logger.warn(
+        `No active application was found for application number: ${dto.applicationNumber}`,
+      );
       throw new NotFoundException('Application not found.');
     }
+
+    this.logger.log(`The application was found for application number: ${dto.applicationNumber}`);
 
     // Get the latest active ratio summary for this application
     const ratioSummary = await this.prisma.application_ratio_summary.findFirst({
@@ -100,8 +109,13 @@ export class CalculateEligibilityService {
 
     // Ratios must be calculated before eligibility can be checked
     if (!ratioSummary) {
+      this.logger.warn(
+        'The eligibility calculation could not continue because the ratio summary was not found.',
+      );
       throw new BadRequestException('Ratio summary not found. Please calculate ratios first.');
     }
+
+    this.logger.log('The latest ratio summary was found successfully.');
 
     // Get the latest credit check result for this application
     const creditCheck = await this.prisma.application_credit_check.findFirst({
@@ -116,10 +130,15 @@ export class CalculateEligibilityService {
 
     // Credit score check must be completed before eligibility can be checked
     if (!creditCheck) {
+      this.logger.warn(
+        'The eligibility calculation could not continue because the credit score check was not found.',
+      );
       throw new BadRequestException(
         'Credit score not found. Please complete credit score check first.',
       );
     }
+
+    this.logger.log('The latest credit check record was found successfully.');
 
     // Load the primary applicant so age-based rules can be evaluated
     const primaryApplicant = await this.prisma.sub_loan.findFirst({
@@ -139,6 +158,8 @@ export class CalculateEligibilityService {
         created_at: 'asc',
       },
     });
+
+    this.logger.log('The primary applicant details were loaded for eligibility checks.');
 
     // Pull important numeric values from the ratio summary
     const monthlyIncome = Number(ratioSummary.monthly_income ?? 0);
@@ -174,6 +195,8 @@ export class CalculateEligibilityService {
       age_at_maturity: ageAtMaturity,
     };
 
+    this.logger.log('The eligibility metrics were prepared successfully.');
+
     // Get the currently active eligibility rule set based on date and active flag
     const activeRuleSet = await this.prisma.eligibility_rule_set.findFirst({
       where: {
@@ -186,8 +209,13 @@ export class CalculateEligibilityService {
 
     // Stop if no active rule set is available
     if (!activeRuleSet) {
+      this.logger.warn('No active eligibility rule set was found.');
       throw new NotFoundException('Active eligibility rule set not found.');
     }
+
+    this.logger.log(
+      `The active eligibility rule set was found with code: ${activeRuleSet.rule_set_code}`,
+    );
 
     // Get all active rules for the selected rule set in evaluation order
     const rules = await this.prisma.eligibility_rule.findMany({
@@ -200,8 +228,13 @@ export class CalculateEligibilityService {
 
     // Stop if the rule set exists but has no active rules
     if (rules.length === 0) {
+      this.logger.warn(
+        'The active rule set was found, but no active eligibility rules were available.',
+      );
       throw new NotFoundException('Active eligibility rules not found.');
     }
+
+    this.logger.log(`The eligibility rules were loaded successfully. Total rules: ${rules.length}`);
 
     // This will store every rule that fails during evaluation
     const failedRules: FailedEligibilityRuleDto[] = [];
@@ -214,6 +247,8 @@ export class CalculateEligibilityService {
 
       // If a rule fails, collect all useful details for the response
       if (!passed) {
+        this.logger.warn(`The eligibility rule failed for metric: ${typedRule.metric_name}`);
+
         const thresholdValue =
           typedRule.threshold_value !== null && typedRule.threshold_value !== undefined
             ? Number(typedRule.threshold_value)
@@ -271,6 +306,8 @@ export class CalculateEligibilityService {
       message = `Applicant is conditionally eligible as per the active rule set. Soft fails: ${softFailCount}.`;
     }
 
+    this.logger.log(`The eligibility evaluation was completed with status: ${eligibilityStatus}`);
+
     // Save the latest eligibility decision and deactivate any earlier active summary for the same rule set
     await this.prisma.$transaction(async (tx) => {
       await tx.application_eligibility_summary.updateMany({
@@ -301,6 +338,8 @@ export class CalculateEligibilityService {
         },
       });
     });
+
+    this.logger.log('The eligibility summary was saved successfully.');
 
     // Return the full eligibility result to the caller
     return {

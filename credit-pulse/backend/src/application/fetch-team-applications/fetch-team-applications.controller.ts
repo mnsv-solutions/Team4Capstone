@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Logger, Post, UseGuards } from '@nestjs/common';
 
 import { AuthGuard } from '../../auth/auth.guard.js';
 import { FetchTeamApplicationsRequestDto } from './dto/fetch-team-applications-request.dto.js';
@@ -9,6 +9,8 @@ import { FetchTeamApplicationsService } from './fetch-team-applications.service.
 @Controller('applications')
 @UseGuards(AuthGuard)
 export class FetchTeamApplicationsController {
+  private readonly logger = new Logger(FetchTeamApplicationsController.name);
+
   // This constructor injects the service needed to fetch team application data.
   constructor(private readonly FetchTeamApplicationsService: FetchTeamApplicationsService) {}
 
@@ -17,6 +19,8 @@ export class FetchTeamApplicationsController {
   async fetchApplicationsByTeam(
     @Body() dto: FetchTeamApplicationsRequestDto,
   ): Promise<TeamDashboardDto[]> {
+    this.logger.log('A request was received to fetch applications for the selected team.');
+
     // This sends the team ID and optional status code to the service layer.
     return this.FetchTeamApplicationsService.fetchApplicationsByTeam(
       dto.teamId ?? '',

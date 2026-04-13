@@ -1,10 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { FetchAllUsersResponseDto } from './dto/fetch-all-users-response.dto.js';
 
 @Injectable()
 export class FetchAllUsersService {
+  private readonly logger = new Logger(FetchAllUsersService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -19,6 +21,8 @@ export class FetchAllUsersService {
    * using the user's data and the role map.
    */
   async getAllUsers(): Promise<FetchAllUsersResponseDto[]> {
+    this.logger.log('The user list fetch process has started.');
+
     /**
      * Fetch all users from the database, ordered by creation date in descending order.
      * Select only the user's ID, role ID, first name, last name, email, phone number, login status, activity status, block status, and creation date.
@@ -39,6 +43,8 @@ export class FetchAllUsersService {
       },
     });
 
+    this.logger.log(`The users were fetched successfully. Total records found: ${users.length}`);
+
     // Fetch all the roles from the database, corresponding to the user's role IDs.
     // Select only the role's ID and code.
     const roleIds = [...new Set(users.map((user) => user.role_id))];
@@ -54,8 +60,14 @@ export class FetchAllUsersService {
       },
     });
 
+    this.logger.log(
+      `The role details were fetched successfully. Total roles found: ${roles.length}`,
+    );
+
     //Create a Map to map a role ID to its corresponding role code.
     const roleMap = new Map(roles.map((role) => [role.role_id, role.role_code]));
+
+    this.logger.log('The user response is being prepared.');
 
     // Map each user to a FetchAllUsersResponseDto object, using the user's data and the role map.
     return users.map((user) => ({

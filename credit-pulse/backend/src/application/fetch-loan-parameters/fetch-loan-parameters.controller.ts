@@ -3,6 +3,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Logger,
   Post,
   Req,
   UnauthorizedException,
@@ -30,6 +31,8 @@ type AuthenticatedRequest = Request & {
 @Controller('application')
 @UseGuards(AuthGuard)
 export class FetchLoanParametersController {
+  private readonly logger = new Logger(FetchLoanParametersController.name);
+
   constructor(private readonly fetchLoanParametersService: FetchLoanParametersService) {}
 
   // This API gets repayment schedule, ratios, and eligibility details together.
@@ -39,13 +42,20 @@ export class FetchLoanParametersController {
     @Body() dto: FetchLoanParametersRequestDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<FetchLoanParametersResponseDto> {
+    this.logger.log('A request was received to fetch loan parameter details.');
+
     // This gets the logged-in user ID from the token.
     const userId = req.user?.sub;
 
     // This checks whether the user ID is available in the token.
     if (!userId) {
+      this.logger.warn(
+        'The loan parameter request could not continue because the authenticated user was not found in the token.',
+      );
       throw new UnauthorizedException('Authenticated user not found in token.');
     }
+
+    this.logger.log(`The loan parameter request is being processed for user ID: ${userId}.`);
 
     // This sends the request to the service layer to fetch all loan parameter details.
     return this.fetchLoanParametersService.fetchLoanParameters(dto, userId);

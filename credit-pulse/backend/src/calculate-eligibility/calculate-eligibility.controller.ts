@@ -1,4 +1,12 @@
-import { Body, Controller, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Logger,
+  Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 
 import { Request } from 'express';
 
@@ -17,6 +25,8 @@ type AuthenticatedRequest = Request & {
 @Controller('calculate-eligibility')
 @UseGuards(AuthGuard)
 export class CalculateEligibilityController {
+  private readonly logger = new Logger(CalculateEligibilityController.name);
+
   constructor(private readonly calculateEligibilityService: CalculateEligibilityService) {}
 
   @Post()
@@ -38,12 +48,19 @@ export class CalculateEligibilityController {
     @Body() dto: CalculateEligibilityRequestDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<CalculateEligibilityResponseDto> {
+    this.logger.log('A request was received to calculate eligibility.');
+
     const userId = req.user?.sub;
 
     // If the user ID is not present, throw an UnauthorizedException
     if (!userId) {
+      this.logger.warn(
+        'The eligibility request could not continue because the user was not authenticated.',
+      );
       throw new UnauthorizedException('User not authenticated');
     }
+
+    this.logger.log(`The eligibility request is being processed for user ID: ${userId}.`);
 
     // Call the calculateEligibility function of the CalculateEligibilityService with the request body and user ID
     return this.calculateEligibilityService.calculateEligibility(dto, userId);

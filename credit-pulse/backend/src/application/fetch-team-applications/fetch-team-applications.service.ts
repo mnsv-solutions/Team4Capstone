@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { TeamDashboardDto } from './dto/fetch-team-applications-response.dto.js';
@@ -24,6 +24,8 @@ type TeamDashboardRow = {
 // This service handles the logic for fetching applications assigned to a team.
 @Injectable()
 export class FetchTeamApplicationsService {
+  private readonly logger = new Logger(FetchTeamApplicationsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   // This method gets all applications assigned to a team, with an optional status filter.
@@ -31,6 +33,8 @@ export class FetchTeamApplicationsService {
     teamId: string,
     statusCode?: string | null,
   ): Promise<TeamDashboardDto[]> {
+    this.logger.log(`The team application fetch process has started for team ID: ${teamId}`);
+
     // This raw query fetches dashboard details for all applications assigned to the given team.
     const rows = await this.prisma.$queryRaw<TeamDashboardRow[]>`
       SELECT
@@ -98,6 +102,10 @@ export class FetchTeamApplicationsService {
         AND (${statusCode ?? null}::text IS NULL OR aps.status_code = ${statusCode ?? null})
       ORDER BY la.created_at DESC
     `;
+
+    this.logger.log(
+      `The team applications were fetched successfully. Total records found: ${rows.length}`,
+    );
 
     // This converts the query result into the response format expected by the DTO.
     return rows.map((row) => ({
