@@ -774,7 +774,7 @@ export class ApplicationService {
           firstName: customer.first_name,
           lastName: customer.last_name,
           dateOfBirth: customer.dob,
-          sin: customer.sin,
+          sin: customer.sin.replace(/\D/g, '').slice(-4),
           consent: true,
         },
         userId,
