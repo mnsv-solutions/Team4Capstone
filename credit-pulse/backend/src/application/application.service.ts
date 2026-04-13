@@ -700,6 +700,7 @@ export class ApplicationService {
         application_number: applicationNumber,
         status_id: statusId,
         created_by: userId,
+        loan_type_id: createApplicationDto?.loanTypeId || null,
         tenure_months: createApplicationDto?.tenureMonths
           ? Number(createApplicationDto.tenureMonths)
           : null,
@@ -1158,6 +1159,7 @@ export class ApplicationService {
     const loanApp = await this.prisma.loan_application.findUnique({
       where: { application_number: dto.applicationNumber },
       include: {
+        loan_types: true,
         sub_loan: {
           include: {
             customer: {
@@ -1221,6 +1223,11 @@ export class ApplicationService {
       approvedLoanAmount: loanApp.approved_loan_amount?.toString() ?? undefined,
       approvedInterestRate: loanApp.approved_interest_rate?.toString() ?? undefined,
       approvedTenureMonths: loanApp.approved_tenure_months ?? undefined,
+
+      productId: loanApp.loan_types?.loan_type_id ?? undefined,
+      productCode: loanApp.loan_types?.loan_type_code ?? undefined,
+      productName: loanApp.loan_types?.loan_type_name ?? undefined,
+
       employmentStatus: employmentDetail?.employment_type?.employment_type_name || '',
       employerName: employmentDetail?.employer_name || '',
       jobTitle: employmentDetail?.job_title || '',

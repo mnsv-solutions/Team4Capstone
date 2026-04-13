@@ -1,11 +1,11 @@
 export class BankAccountResponseDto {
-  bankName: string;
-  institutionNumber: string;
-  transitNumber: string;
-  accountNumber: string;
-  accountType: string;
+  bankName?: string;
+  institutionNumber?: string;
+  transitNumber?: string;
+  accountNumber?: string;
+  accountType?: string;
   swiftBic?: string;
-  isRepaymentAccount: boolean;
+  isRepaymentAccount?: boolean;
 }
 
 export class GetFinancialDetailsResponseDto {
@@ -16,13 +16,17 @@ export class GetFinancialDetailsResponseDto {
   approvedInterestRate?: string;
   approvedTenureMonths?: number;
 
-  employmentStatus: string;
-  employerName: string;
-  jobTitle: string;
-  workExperience: string;
-  monthlyIncome: string;
-  otherIncomeSources: string;
-  existingLoans: string;
-  totalMonthlyLoanPayments: string;
-  bankAccounts: BankAccountResponseDto[];
+  productId?: string;
+  productCode?: string;
+  productName?: string;
+
+  employmentStatus?: string;
+  employerName?: string;
+  jobTitle?: string;
+  workExperience?: string;
+  monthlyIncome?: string;
+  otherIncomeSources?: string;
+  existingLoans?: string;
+  totalMonthlyLoanPayments?: string;
+  bankAccounts?: BankAccountResponseDto[];
 }

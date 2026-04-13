@@ -20,7 +20,6 @@ import {
   Paperclip,
   CheckCircle2,
   XCircle,
-  Circle,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 import { COMMUNICATION_PROPERTIES } from "./communication-properties";

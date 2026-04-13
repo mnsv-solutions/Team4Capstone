@@ -557,7 +557,11 @@ export default function LoanApplicationPage() {
       setSubmitted(false);
       setForm(initialForm);
       setCurrentStep(0);
-      window.scrollTo({ top: 0, behavior: "smooth" });
+
+      setTimeout(() => {
+        router.push("/dashboard");
+      }, 900);
+
     } catch (error) {
       let message = "Failed to submit loan application.";
 
