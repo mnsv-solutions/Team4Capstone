@@ -91,34 +91,61 @@ export class ApplicationStageService {
     actorUserId: string,
     pushStageRequestDto: PushStageRequestDto,
   ): Promise<PushStageResponseDto> {
+    this.logger.log('The application stage update process has started.');
+
     // This makes sure the user ID is available from the token.
     if (!actorUserId) {
+      this.logger.warn(
+        'The stage update request could not continue because the authenticated user was not found in the token.',
+      );
       throw new UnauthorizedException('Authenticated user not found in token.');
     }
 
+    this.logger.log(
+      `The stage update request is being prepared for application number: ${pushStageRequestDto.applicationNumber}`,
+    );
+
     // This gets the logged-in user's role and other basic details.
     const actor = await this.getActorContext(actorUserId);
+
+    this.logger.log(`The authenticated user was verified with role: ${actor.roleCode}`);
 
     // This loads the stage rules for the selected action type.
     const stageConfig = STAGE_CONFIG[pushStageRequestDto.actionType];
 
     // This checks whether the given action type is supported.
     if (!stageConfig) {
+      this.logger.warn(
+        `The requested action type is not supported: ${pushStageRequestDto.actionType}`,
+      );
       throw new BadRequestException('Unsupported stage action type.');
     }
 
     // This checks whether the current user role is allowed to perform this action.
     if (!stageConfig.allowedRoles.includes(actor.roleCode)) {
+      this.logger.warn(
+        `The user role ${actor.roleCode} is not allowed to perform action ${pushStageRequestDto.actionType}.`,
+      );
       throw new ForbiddenException(
         `Users with role ${actor.roleCode} cannot perform action ${pushStageRequestDto.actionType}.`,
       );
     }
 
+    this.logger.log(
+      `The action ${pushStageRequestDto.actionType} is allowed for role ${actor.roleCode}.`,
+    );
+
     // This validates the extra fields required for some specific stage actions.
     this.validatePayloadForStage(pushStageRequestDto);
 
+    this.logger.log(
+      'The request payload was validated successfully for the selected stage action.',
+    );
+
     // This transaction updates both the application record and its stage history together.
     return this.prisma.$transaction(async (tx) => {
+      this.logger.log('The application stage update transaction has started.');
+
       // This finds the application using the application number.
       const application = await tx.loan_application.findFirst({
         where: {
@@ -140,11 +167,21 @@ export class ApplicationStageService {
 
       // This stops the process if the application does not exist.
       if (!application) {
+        this.logger.warn(
+          `No active application was found for application number: ${pushStageRequestDto.applicationNumber}`,
+        );
         throw new NotFoundException('Application not found.');
       }
 
+      this.logger.log(
+        `The application was found with current status: ${application.application_status.status_code}`,
+      );
+
       // This checks whether the action is allowed from the application's current status.
       if (!stageConfig.fromStatuses.includes(application.application_status.status_code)) {
+        this.logger.warn(
+          `The action ${pushStageRequestDto.actionType} is not allowed from status ${application.application_status.status_code}.`,
+        );
         throw new BadRequestException(
           `Action ${pushStageRequestDto.actionType} is not allowed when application is in ${application.application_status.status_code} status.`,
         );
@@ -164,14 +201,21 @@ export class ApplicationStageService {
 
       // This throws an error if the target status is missing in the database.
       if (!toStatus) {
+        this.logger.warn(`The target status could not be found: ${stageConfig.toStatus}`);
         throw new NotFoundException(`Target status ${stageConfig.toStatus} not found.`);
       }
+
+      this.logger.log(`The target status was resolved successfully as: ${toStatus.status_code}`);
 
       let decisionTypeId: string | null = null;
       let decisionTypeCode: string | null = null;
 
       // This loads the matching decision type when the action needs one.
       if (stageConfig.decisionCode) {
+        this.logger.log(
+          `The decision type is being resolved for code: ${stageConfig.decisionCode}`,
+        );
+
         const decisionType = await tx.decision_types.findFirst({
           where: {
             decision_code: stageConfig.decisionCode,
@@ -185,11 +229,16 @@ export class ApplicationStageService {
 
         // This throws an error if the required decision type is not found.
         if (!decisionType) {
+          this.logger.warn(
+            `The decision type could not be found for code: ${stageConfig.decisionCode}`,
+          );
           throw new NotFoundException(`Decision type ${stageConfig.decisionCode} not found.`);
         }
 
         decisionTypeId = decisionType.decision_type_id;
         decisionTypeCode = decisionType.decision_code;
+
+        this.logger.log(`The decision type was resolved successfully as: ${decisionTypeCode}`);
       }
 
       // This makes sure the disbursed amount does not go above the approved loan amount.
@@ -199,6 +248,9 @@ export class ApplicationStageService {
         pushStageRequestDto.disbursedAmount &&
         Number(pushStageRequestDto.disbursedAmount) > Number(application.approved_loan_amount)
       ) {
+        this.logger.warn(
+          'The stage update could not continue because the disbursed amount is greater than the approved loan amount.',
+        );
         throw new BadRequestException(
           'Disbursed amount cannot be greater than approved loan amount.',
         );
@@ -213,17 +265,23 @@ export class ApplicationStageService {
 
       // This saves approval details when the underwriter approves the application.
       if (pushStageRequestDto.actionType === 'UNDERWRITER_APPROVED') {
+        this.logger.log('The approved loan details are being prepared for the application update.');
+
         updatePayload.approved_loan_amount = pushStageRequestDto.approvedLoanAmount;
         updatePayload.approved_interest_rate = pushStageRequestDto.approvedInterestRate;
         updatePayload.approved_tenure_months = pushStageRequestDto.approvedTenureMonths;
         updatePayload.approved_emi = pushStageRequestDto.approvedEmi;
       }
 
+      this.logger.log('The application record is being updated with the new stage details.');
+
       // This updates the current application record with the new status and values.
       await tx.loan_application.update({
         where: { application_id: application.application_id },
         data: updatePayload,
       });
+
+      this.logger.log('The application record was updated successfully.');
 
       // This creates a history record for the stage action that was performed.
       const historyRecord = await tx.application_action_history.create({
@@ -267,6 +325,8 @@ export class ApplicationStageService {
         },
       });
 
+      this.logger.log('The application stage history record was created successfully.');
+
       this.logger.log(
         `Application of type ${pushStageRequestDto.actionType} pushed successfully for application with ID: ${application.application_id}`,
       );
@@ -301,6 +361,8 @@ export class ApplicationStageService {
   async fetchStageHistory(
     fetchStageHistoryRequestDto: FetchStageHistoryRequestDto,
   ): Promise<FetchStageHistoryResponseDto> {
+    this.logger.log('The application stage history fetch process has started.');
+
     // This finds the application first using the application number.
     const application = await this.prisma.loan_application.findFirst({
       where: {
@@ -315,8 +377,15 @@ export class ApplicationStageService {
 
     // This throws an error if the application does not exist.
     if (!application) {
+      this.logger.warn(
+        `No active application was found for application number: ${fetchStageHistoryRequestDto.applicationNumber}`,
+      );
       throw new NotFoundException('Application not found.');
     }
+
+    this.logger.log(
+      `The application was found for application number: ${application.application_number}`,
+    );
 
     // This loads all active stage history records for the application.
     const historyRows = await this.prisma.application_action_history.findMany({
@@ -345,6 +414,10 @@ export class ApplicationStageService {
         },
       },
     });
+
+    this.logger.log(
+      `The application stage history was fetched successfully. Total records found: ${historyRows.length}`,
+    );
 
     // This returns the stage history in the required response format.
     return {
@@ -378,6 +451,8 @@ export class ApplicationStageService {
 
   // This method gets the logged-in user's ID and role from the database.
   private async getActorContext(actorUserId: string): Promise<ActorContext> {
+    this.logger.log(`The authenticated user context is being loaded for user ID: ${actorUserId}`);
+
     // This finds the active and unblocked user.
     const user = await this.prisma.users.findFirst({
       where: {
@@ -393,6 +468,7 @@ export class ApplicationStageService {
 
     // This stops the action if the user is not allowed.
     if (!user) {
+      this.logger.warn('The authenticated user is not allowed to perform this action.');
       throw new UnauthorizedException('Authenticated user is not allowed to perform this action.');
     }
 
@@ -409,8 +485,13 @@ export class ApplicationStageService {
 
     // This throws an error if the role is missing.
     if (!role) {
+      this.logger.warn('The role could not be found for the authenticated user.');
       throw new UnauthorizedException('Role not found for authenticated user.');
     }
+
+    this.logger.log(
+      `The authenticated user context was loaded successfully with role: ${role.role_code}`,
+    );
 
     // This returns the user ID and role code together.
     return {
@@ -421,6 +502,10 @@ export class ApplicationStageService {
 
   // This method checks whether the required fields are present for specific actions.
   private validatePayloadForStage(pushStageRequestDto: PushStageRequestDto): void {
+    this.logger.log(
+      `The payload validation has started for action type: ${pushStageRequestDto.actionType}`,
+    );
+
     // This makes sure approval details are provided for approval action.
     if (pushStageRequestDto.actionType === 'UNDERWRITER_APPROVED') {
       if (
@@ -429,6 +514,9 @@ export class ApplicationStageService {
         pushStageRequestDto.approvedTenureMonths === undefined ||
         pushStageRequestDto.approvedEmi === undefined
       ) {
+        this.logger.warn(
+          'The payload validation failed because approval details were missing for UNDERWRITER_APPROVED action.',
+        );
         throw new BadRequestException(
           'Approved loan amount, approved interest rate, approved tenure months, and approved EMI are required for UNDERWRITER_APPROVED action.',
         );
@@ -440,8 +528,13 @@ export class ApplicationStageService {
       pushStageRequestDto.actionType === 'DISBURSAL_COMPLETED' &&
       pushStageRequestDto.disbursedAmount === undefined
     ) {
+      this.logger.warn(
+        'The payload validation failed because the disbursed amount was missing for DISBURSAL_COMPLETED action.',
+      );
       throw new BadRequestException('Disbursed amount is required for DISBURSAL_COMPLETED action.');
     }
+
+    this.logger.log('The payload validation was completed successfully.');
   }
 
   // This method converts a value into a number and returns null when the value is empty.

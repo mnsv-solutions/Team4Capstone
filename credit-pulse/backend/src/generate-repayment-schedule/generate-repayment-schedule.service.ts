@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { GenerateRepaymentScheduleRequestDto } from './dto/generate-repayment-schedule-request.dto.js';
@@ -17,6 +17,8 @@ import { GenerateRepaymentScheduleResponseDto } from './dto/generate-repayment-s
  */
 @Injectable()
 export class GenerateRepaymentScheduleService {
+  private readonly logger = new Logger(GenerateRepaymentScheduleService.name);
+
   // Gives access to Prisma queries inside this service
   constructor(private readonly prisma: PrismaService) {}
 
@@ -35,6 +37,8 @@ export class GenerateRepaymentScheduleService {
     dto: GenerateRepaymentScheduleRequestDto,
     userId: string,
   ): Promise<GenerateRepaymentScheduleResponseDto> {
+    this.logger.log('The repayment schedule generation process has started.');
+
     // Finds the active loan application using the application number
     const application = await this.prisma.loan_application.findFirst({
       where: {
@@ -49,8 +53,15 @@ export class GenerateRepaymentScheduleService {
 
     // Stops the flow if the application does not exist
     if (!application) {
+      this.logger.warn(
+        `No active loan application was found for application number: ${dto.applicationNumber}`,
+      );
       throw new NotFoundException('Loan application not found');
     }
+
+    this.logger.log(
+      `The loan application was found for application number: ${dto.applicationNumber}`,
+    );
 
     // Checks whether any payment has already been recorded for this application
     const paymentCount = await this.prisma.loan_payment.count({
@@ -62,10 +73,15 @@ export class GenerateRepaymentScheduleService {
 
     // Prevents schedule regeneration once payment history already exists
     if (paymentCount > 0) {
+      this.logger.warn(
+        'The repayment schedule could not be regenerated because payment records already exist.',
+      );
       throw new BadRequestException(
         'Repayment schedule cannot be regenerated because payment records already exist for this application.',
       );
     }
+
+    this.logger.log('No payment records were found, so the repayment schedule can be generated.');
 
     // Builds all repayment schedule rows based on input values
     const scheduleRows = this.buildRepaymentSchedule(
@@ -77,11 +93,17 @@ export class GenerateRepaymentScheduleService {
       userId,
     );
 
+    this.logger.log(
+      `The repayment schedule rows were prepared successfully. Total installments: ${scheduleRows.length}`,
+    );
+
     // Takes EMI from the first generated installment row
     const emi = this.toNumber(scheduleRows[0]?.installment_amount);
 
     // Replaces the old schedule and updates approved EMI in one transaction
     await this.prisma.$transaction(async (tx) => {
+      this.logger.log('The repayment schedule update transaction has started.');
+
       // Clears any earlier generated schedule for the application
       await tx.repayment_schedule.deleteMany({
         where: {
@@ -89,10 +111,14 @@ export class GenerateRepaymentScheduleService {
         },
       });
 
+      this.logger.log('Any earlier repayment schedule rows were cleared successfully.');
+
       // Inserts the newly generated repayment schedule rows
       await tx.repayment_schedule.createMany({
         data: scheduleRows,
       });
+
+      this.logger.log('The new repayment schedule rows were saved successfully.');
 
       // Saves the approved EMI back to the loan application
       await tx.loan_application.update({
@@ -104,7 +130,11 @@ export class GenerateRepaymentScheduleService {
           updated_by: userId,
         },
       });
+
+      this.logger.log('The approved EMI was updated successfully in the loan application.');
     });
+
+    this.logger.log('The repayment schedule generation process was completed successfully.');
 
     return {
       message: 'Repayment Schedule calculated successfully',

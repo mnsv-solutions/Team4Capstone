@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CalculateRatiosRequestDto } from './dto/calculate-ratios-request.dto.js';
@@ -6,6 +6,8 @@ import { CalculateRatiosResponseDto } from './dto/calculate-ratios-response.dto.
 
 @Injectable()
 export class CalculateRatiosService {
+  private readonly logger = new Logger(CalculateRatiosService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -27,6 +29,8 @@ export class CalculateRatiosService {
     dto: CalculateRatiosRequestDto,
     userId: string,
   ): Promise<CalculateRatiosResponseDto> {
+    this.logger.log('The ratio calculation process has started.');
+
     // Fetch the application
     const application = await this.prisma.loan_application.findFirst({
       where: {
@@ -42,8 +46,15 @@ export class CalculateRatiosService {
     });
 
     if (!application) {
+      this.logger.warn(
+        `No active loan application was found for application number: ${dto.applicationNumber}`,
+      );
       throw new NotFoundException('Loan application not found');
     }
+
+    this.logger.log(
+      `The loan application was found for application number: ${dto.applicationNumber}`,
+    );
 
     // Fetch the primary applicant
     const primaryApplicant = await this.prisma.sub_loan.findFirst({
@@ -58,8 +69,11 @@ export class CalculateRatiosService {
     });
 
     if (!primaryApplicant) {
+      this.logger.warn('The primary applicant could not be found for the selected application.');
       throw new NotFoundException('Primary applicant not found for this application');
     }
+
+    this.logger.log('The primary applicant was found successfully.');
 
     // Fetch the employment details
     const employment = await this.prisma.customer_employment_details.findUnique({
@@ -71,6 +85,8 @@ export class CalculateRatiosService {
       },
     });
 
+    this.logger.log('The employment details were fetched successfully.');
+
     // Fetch the liabilities
     const liabilities = await this.prisma.customer_liabilities.findMany({
       where: {
@@ -81,6 +97,10 @@ export class CalculateRatiosService {
         monthly_payment: true,
       },
     });
+
+    this.logger.log(
+      `The liability details were fetched successfully. Total records found: ${liabilities.length}`,
+    );
 
     // Fetch the latest CIBIL report
     const latestCibilReport = await this.prisma.cibil_reports.findFirst({
@@ -102,12 +122,19 @@ export class CalculateRatiosService {
       },
     });
 
+    this.logger.log('The latest CIBIL report was fetched successfully.');
+
     // Calculate the monthly income
     const monthlyIncome = this.toNumber(employment?.monthly_income);
 
     if (monthlyIncome <= 0) {
+      this.logger.warn(
+        'The ratio calculation could not continue because monthly income is missing.',
+      );
       throw new BadRequestException('Monthly income is missing for the selected applicant');
     }
+
+    this.logger.log('The monthly income was prepared successfully.');
 
     // Calculate the total monthly debt payments
     const totalMonthlyDebtPayments = this.round(
@@ -115,10 +142,16 @@ export class CalculateRatiosService {
       2,
     );
 
+    this.logger.log('The total monthly debt payments were calculated successfully.');
+
     // Calculate the proposed EMI
     let proposedEmi = this.toNumber(application.approved_emi);
 
     if (proposedEmi <= 0) {
+      this.logger.log(
+        'Approved EMI was not available, so the first repayment schedule is being checked.',
+      );
+
       // Fetch the first repayment schedule
       const firstSchedule = await this.prisma.repayment_schedule.findFirst({
         where: {
@@ -137,10 +170,15 @@ export class CalculateRatiosService {
     }
 
     if (proposedEmi <= 0) {
+      this.logger.warn(
+        'The ratio calculation could not continue because proposed EMI is not available.',
+      );
       throw new BadRequestException(
         'Approved EMI is not available. Generate payment schedule first.',
       );
     }
+
+    this.logger.log('The proposed EMI was prepared successfully.');
 
     // Calculate the requested loan amount
     const requestedLoanAmount = this.toNumber(application.requested_amount);
@@ -162,6 +200,8 @@ export class CalculateRatiosService {
 
     // Calculate the loan-to-income ratio
     const loanToIncome = annualIncome > 0 ? this.round(requestedLoanAmount / annualIncome, 4) : 0;
+
+    this.logger.log('All financial ratios were calculated successfully.');
 
     // Update or create a new application ratio summary record in the database
     await this.prisma.application_ratio_summary.upsert({
@@ -224,6 +264,8 @@ export class CalculateRatiosService {
         },
       },
     });
+
+    this.logger.log('The application ratio summary was saved successfully.');
 
     // Return the calculated ratios
     return {

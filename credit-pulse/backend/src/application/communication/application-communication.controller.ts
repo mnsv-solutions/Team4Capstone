@@ -1,4 +1,12 @@
-import { Body, Controller, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Logger,
+  Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 
 import { Request } from 'express';
 
@@ -21,6 +29,8 @@ type AuthenticatedRequest = Request & {
 @Controller()
 @UseGuards(AuthGuard)
 export class ApplicationCommunicationController {
+  private readonly logger = new Logger(ApplicationCommunicationController.name);
+
   /**
    * Handles the communication logic for an application.
    * This controller is protected by the AuthGuard, so only authenticated users can access it.
@@ -42,13 +52,20 @@ export class ApplicationCommunicationController {
     @Body() dto: SendApplicationCommunicationDto,
     @Req() req: AuthenticatedRequest,
   ) {
+    this.logger.log('A request was received to create application communication.');
+
     // Reads the logged-in user id from the JWT payload
     const userId = req.user?.sub;
 
     // Stops the request if the user is not properly authenticated
     if (!userId) {
+      this.logger.warn(
+        'The communication request could not continue because the user was not authenticated.',
+      );
       throw new UnauthorizedException('User not authenticated');
     }
+
+    this.logger.log(`The communication request is being processed for user ID: ${userId}.`);
 
     // Passes the request data and user id to the service layer
     return this.applicationCommunicationService.createCommunication(dto, userId);
@@ -69,13 +86,20 @@ export class ApplicationCommunicationController {
     @Body() dto: GetApplicationCommunicationHistoryDto,
     @Req() req: AuthenticatedRequest,
   ) {
+    this.logger.log('A request was received to fetch application communication history.');
+
     // Reads the logged-in user id from the JWT payload
     const userId = req.user?.sub;
 
     // Stops the request if the user is not properly authenticated
     if (!userId) {
+      this.logger.warn(
+        'The communication history request could not continue because the user was not authenticated.',
+      );
       throw new UnauthorizedException('User not authenticated');
     }
+
+    this.logger.log(`The communication history request is being processed for user ID: ${userId}.`);
 
     // Returns the communication history from the service
     return this.applicationCommunicationService.getCommunicationHistory(dto, userId);

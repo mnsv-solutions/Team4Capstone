@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 
@@ -58,6 +59,8 @@ type ProductRow = {
 // Service class for handling product-related operations
 @Injectable()
 export class ProductsService {
+  private readonly logger = new Logger(ProductsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
@@ -74,6 +77,8 @@ export class ProductsService {
    * It selects the product ID, code, name, minimum amount, maximum amount, minimum tenure months, maximum tenure months, minimum interest rate, maximum interest rate, processing fee percentage, status, creation date, and update date.
    */
   async fetchAllProducts(): Promise<FetchAllProductsResponseDto> {
+    this.logger.log('The product list fetch process has started.');
+
     const products = await this.prisma.$queryRaw<ProductRow[]>`
       SELECT
         lt.loan_type_id AS "productId",
@@ -94,6 +99,10 @@ export class ProductsService {
         ON lpc.loan_type_id = lt.loan_type_id
       ORDER BY lt.created_at DESC
     `;
+
+    this.logger.log(
+      `The product list was fetched successfully. Total records found: ${products.length}`,
+    );
 
     return {
       message: 'Products fetched successfully.',
@@ -117,6 +126,8 @@ export class ProductsService {
   async createProduct(
     createProductRequestDto: CreateProductRequestDto,
   ): Promise<CreateProductResponseDto> {
+    this.logger.log('The product creation process has started.');
+
     // Take all product fields from the request body
     const {
       productCode,
@@ -142,6 +153,8 @@ export class ProductsService {
       processingFeePercent,
     });
 
+    this.logger.log('The product ranges were validated successfully.');
+
     // Find the user who is trying to create the product
     const createdByUser = await this.prisma.users.findFirst({
       where: {
@@ -156,8 +169,13 @@ export class ProductsService {
 
     // Stop if that user does not exist or is inactive
     if (!createdByUser) {
+      this.logger.warn(
+        'The product creation request could not continue because the creator user was not found.',
+      );
       throw new NotFoundException('Created by user not found.');
     }
+
+    this.logger.log('The creator user was found successfully.');
 
     // Get the user's role so only admins can create products
     const creatorRole = await this.prisma.roles.findFirst({
@@ -172,8 +190,13 @@ export class ProductsService {
 
     // Reject the request if the user is not an active admin
     if (!creatorRole || creatorRole.role_code !== 'ADMIN') {
+      this.logger.warn(
+        'The product creation request was blocked because the creator is not an active admin user.',
+      );
       throw new BadRequestException('Created by must belong to an active admin user.');
     }
+
+    this.logger.log('The creator role was verified successfully.');
 
     // Check whether this product code is already being used
     const existingProductCode = await this.prisma.loan_types.findFirst({
@@ -187,6 +210,9 @@ export class ProductsService {
 
     // Do not allow duplicate product codes
     if (existingProductCode) {
+      this.logger.warn(
+        `The product creation request was blocked because product code ${productCode} already exists.`,
+      );
       throw new ConflictException('Product code already exists.');
     }
 
@@ -202,11 +228,18 @@ export class ProductsService {
 
     // Do not allow duplicate product names
     if (existingProductName) {
+      this.logger.warn(
+        `The product creation request was blocked because product name ${productName} already exists.`,
+      );
       throw new ConflictException('Product name already exists.');
     }
 
+    this.logger.log('The product code and product name are available.');
+
     // Save product master data and config data together in one transaction
     const createdProduct = await this.prisma.$transaction(async (tx) => {
+      this.logger.log('The product creation transaction has started.');
+
       // Create the main product record
       const loanType = await tx.loan_types.create({
         data: {
@@ -217,6 +250,8 @@ export class ProductsService {
           is_active: true,
         },
       });
+
+      this.logger.log('The main product record was created successfully.');
 
       // Create the related product configuration record
       const productConfig = await tx.loan_product_config.create({
@@ -235,8 +270,12 @@ export class ProductsService {
         },
       });
 
+      this.logger.log('The product configuration record was created successfully.');
+
       return { loanType, productConfig };
     });
+
+    this.logger.log('The product creation process was completed successfully.');
 
     // Return the newly created product in response format
     return {
@@ -289,6 +328,8 @@ export class ProductsService {
   async updateProduct(
     updateProductRequestDto: UpdateProductRequestDto,
   ): Promise<UpdateProductResponseDto> {
+    this.logger.log('The product update process has started.');
+
     // Pulls all updated product values from the request
     const {
       productId,
@@ -315,6 +356,8 @@ export class ProductsService {
       processingFeePercent,
     });
 
+    this.logger.log('The updated product ranges were validated successfully.');
+
     // Checks whether the updater exists and is active
     const updatedByUser = await this.prisma.users.findFirst({
       where: {
@@ -329,8 +372,13 @@ export class ProductsService {
 
     // Stops the request if the updater is not found
     if (!updatedByUser) {
+      this.logger.warn(
+        'The product update request could not continue because the updater user was not found.',
+      );
       throw new NotFoundException('Updated by user not found.');
     }
+
+    this.logger.log('The updater user was found successfully.');
 
     // Fetches the updater's role for permission check
     const updaterRole = await this.prisma.roles.findFirst({
@@ -345,8 +393,13 @@ export class ProductsService {
 
     // Only active admin users are allowed to update products
     if (!updaterRole || updaterRole.role_code !== 'ADMIN') {
+      this.logger.warn(
+        'The product update request was blocked because the updater is not an active admin user.',
+      );
       throw new BadRequestException('Updated by must belong to an active admin user.');
     }
+
+    this.logger.log('The updater role was verified successfully.');
 
     // Finds the existing product and its related config
     const existingProduct = await this.prisma.loan_types.findFirst({
@@ -360,13 +413,19 @@ export class ProductsService {
 
     // Stops the request if the product does not exist
     if (!existingProduct) {
+      this.logger.warn(
+        `The product update request could not continue because product ID ${productId} was not found.`,
+      );
       throw new NotFoundException('Product not found.');
     }
 
     // Stops the request if config data is missing for the product
     if (!existingProduct.loan_product_config) {
+      this.logger.warn(`The product configuration was not found for product ID ${productId}.`);
       throw new NotFoundException('Product configuration not found.');
     }
+
+    this.logger.log('The existing product and configuration were found successfully.');
 
     // Checks whether another product already uses this code
     const duplicateCode = await this.prisma.loan_types.findFirst({
@@ -383,6 +442,9 @@ export class ProductsService {
 
     // Prevents duplicate product codes during update
     if (duplicateCode) {
+      this.logger.warn(
+        `The product update request was blocked because product code ${productCode} already exists.`,
+      );
       throw new ConflictException('Product code already exists.');
     }
 
@@ -401,8 +463,13 @@ export class ProductsService {
 
     // Prevents duplicate product names during update
     if (duplicateName) {
+      this.logger.warn(
+        `The product update request was blocked because product name ${productName} already exists.`,
+      );
       throw new ConflictException('Product name already exists.');
     }
+
+    this.logger.log('The updated product code and product name are available.');
 
     // Keeps one common timestamp for all update operations
     const now = new Date();
@@ -410,6 +477,8 @@ export class ProductsService {
 
     // Updates both the main product and its config together
     const updatedProduct = await this.prisma.$transaction(async (tx) => {
+      this.logger.log('The product update transaction has started.');
+
       // Updates the main product details
       const loanType = await tx.loan_types.update({
         where: {
@@ -422,6 +491,8 @@ export class ProductsService {
           updated_at: now,
         },
       });
+
+      this.logger.log('The main product record was updated successfully.');
 
       // Updates the related product configuration
       const productConfig = await tx.loan_product_config.update({
@@ -441,8 +512,12 @@ export class ProductsService {
         },
       });
 
+      this.logger.log('The product configuration record was updated successfully.');
+
       return { loanType, productConfig };
     });
+
+    this.logger.log('The product update process was completed successfully.');
 
     // Returns the updated product details in response format
     return {
@@ -485,6 +560,8 @@ export class ProductsService {
   async updateProductStatus(
     updateProductStatusRequestDto: UpdateProductStatusRequestDto,
   ): Promise<UpdateProductStatusResponseDto> {
+    this.logger.log('The product status update process has started.');
+
     const { productId, status } = updateProductStatusRequestDto;
     const isActive = status === 'active';
 
@@ -501,6 +578,9 @@ export class ProductsService {
     });
 
     if (!existingProduct) {
+      this.logger.warn(
+        `The product status update request could not continue because product ID ${productId} was not found.`,
+      );
       throw new NotFoundException('Product not found.');
     }
 
@@ -515,8 +595,13 @@ export class ProductsService {
     });
 
     if (!existingProductConfig) {
+      this.logger.warn(`The product configuration was not found for product ID ${productId}.`);
       throw new NotFoundException('Product configuration not found.');
     }
+
+    this.logger.log(
+      'The product and product configuration were found successfully for status update.',
+    );
 
     // Update the product and product configuration records
     const now = new Date();
@@ -540,6 +625,8 @@ export class ProductsService {
         },
       }),
     ]);
+
+    this.logger.log(`The product status was updated successfully to ${status}.`);
 
     return {
       message: 'Product status updated successfully.',
@@ -578,6 +665,9 @@ export class ProductsService {
   }): void {
     // Check if minimum amount is greater than 0
     if (Number(input.minAmount) <= 0) {
+      this.logger.warn(
+        'Product validation failed because the minimum amount is not greater than 0.',
+      );
       throw new BadRequestException(
         'The minimum amount must be greater than 0. ' +
           'This is to ensure that the loan amount is not zero or negative.',
@@ -586,6 +676,9 @@ export class ProductsService {
 
     // Check if maximum amount is greater than 0
     if (Number(input.maxAmount) <= 0) {
+      this.logger.warn(
+        'Product validation failed because the maximum amount is not greater than 0.',
+      );
       throw new BadRequestException(
         'The maximum amount must be greater than 0. ' +
           'This is to ensure that the loan amount is not zero or negative.',
@@ -594,6 +687,9 @@ export class ProductsService {
 
     // Check if maximum amount is greater than or equal to minimum amount
     if (Number(input.minAmount) > Number(input.maxAmount)) {
+      this.logger.warn(
+        'Product validation failed because the maximum amount is smaller than the minimum amount.',
+      );
       throw new BadRequestException(
         'The maximum amount must be greater than or equal to the minimum amount. ' +
           'This is to ensure that the loan amount range is valid.',
@@ -602,6 +698,9 @@ export class ProductsService {
 
     // Check if maximum tenure months is greater than or equal to minimum tenure months
     if (input.minTenureMonths > input.maxTenureMonths) {
+      this.logger.warn(
+        'Product validation failed because the maximum tenure is smaller than the minimum tenure.',
+      );
       throw new BadRequestException(
         'The maximum tenure months must be greater than or equal to the minimum tenure months. ' +
           'This is to ensure that the tenure range is valid.',
@@ -610,6 +709,9 @@ export class ProductsService {
 
     // Check if maximum interest rate is greater than or equal to minimum interest rate
     if (Number(input.minInterestRate) > Number(input.maxInterestRate)) {
+      this.logger.warn(
+        'Product validation failed because the maximum interest rate is smaller than the minimum interest rate.',
+      );
       throw new BadRequestException(
         'The maximum interest rate must be greater than or equal to the minimum interest rate. ' +
           'This is to ensure that the interest rate range is valid.',
@@ -618,6 +720,7 @@ export class ProductsService {
 
     // Check if interest rates are not negative
     if (Number(input.minInterestRate) < 0 || Number(input.maxInterestRate) < 0) {
+      this.logger.warn('Product validation failed because the interest rate cannot be negative.');
       throw new BadRequestException(
         'Interest rates cannot be negative. ' +
           'This is to ensure that the interest rates are valid.',
@@ -626,10 +729,15 @@ export class ProductsService {
 
     // Check if processing fee percent is not negative
     if (input.processingFeePercent !== undefined && Number(input.processingFeePercent) < 0) {
+      this.logger.warn(
+        'Product validation failed because the processing fee percent cannot be negative.',
+      );
       throw new BadRequestException(
         'Processing fee percent cannot be negative. ' +
           'This is to ensure that the processing fee percent is valid.',
       );
     }
+
+    this.logger.log('The product input ranges were validated successfully.');
   }
 }

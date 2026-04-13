@@ -3,6 +3,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Logger,
   Post,
   Req,
   UnauthorizedException,
@@ -31,6 +32,8 @@ type AuthenticatedRequest = Request & {
 // Controller for handling application stages
 @Controller('application')
 export class ApplicationStageController {
+  private readonly logger = new Logger(ApplicationStageController.name);
+
   constructor(private readonly applicationStageService: ApplicationStageService) {}
 
   @UseGuards(AuthGuard)
@@ -46,13 +49,20 @@ export class ApplicationStageController {
     @Req() request: AuthenticatedRequest,
     @Body() pushStageRequestDto: PushStageRequestDto,
   ): Promise<PushStageResponseDto> {
+    this.logger.log('A request was received to push a new application stage.');
+
     // Get the actor user ID from the request
     const actorUserId = request.user?.sub;
 
     // Check if the actor user ID is present
     if (!actorUserId) {
+      this.logger.warn(
+        'The stage push request could not continue because the authenticated user was not found in the token.',
+      );
       throw new UnauthorizedException('Authenticated user not found in token.');
     }
+
+    this.logger.log(`The stage push request is being processed for user ID: ${actorUserId}.`);
 
     // Call the push stage service
     return this.applicationStageService.pushStage(actorUserId, pushStageRequestDto);
@@ -69,6 +79,8 @@ export class ApplicationStageController {
   async fetchStageHistory(
     @Body() fetchStageHistoryRequestDto: FetchStageHistoryRequestDto,
   ): Promise<FetchStageHistoryResponseDto> {
+    this.logger.log('A request was received to fetch application stage history.');
+
     // Calls the service function to fetch the stage history
     return this.applicationStageService.fetchStageHistory(fetchStageHistoryRequestDto);
   }

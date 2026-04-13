@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service.js';
 import { DashboardDto } from './dto/dashboard.dto.js';
@@ -30,10 +30,14 @@ type DashboardActorContext = {
 // This service handles the main logic for loading dashboard applications.
 @Injectable()
 export class DashboardService {
+  private readonly logger = new Logger(DashboardService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   // This method gets dashboard applications based on the logged-in user's role.
   async getApplicationsForDashboard(userId: string, roleId: string): Promise<DashboardDto[]> {
+    this.logger.log('The dashboard application fetch process has started.');
+
     // This gets the user details and role information needed for dashboard filtering.
     const actor = await this.getActorContext(userId, roleId);
 
@@ -41,18 +45,25 @@ export class DashboardService {
 
     // This loads applications created by the user for customer and sourcing officer roles.
     if (actor.roleCode === 'CUSTOMER' || actor.roleCode === 'SOURCING_OFFICER') {
+      this.logger.log(`Dashboard applications are being loaded for role: ${actor.roleCode}`);
       rows = await this.fetchCreatedApplications(actor.userId);
 
       // This loads applications assigned to the user for underwriter and disbursal officer roles.
     } else if (actor.roleCode === 'UNDERWRITER' || actor.roleCode === 'DISBURSAL_OFFICER') {
+      this.logger.log(`Dashboard applications are being loaded for role: ${actor.roleCode}`);
       rows = await this.fetchAssignedApplications(actor.userId);
 
       // This blocks unsupported roles from using this dashboard API.
     } else {
+      this.logger.warn(`Dashboard applications are not supported for role ${actor.roleCode}.`);
       throw new ForbiddenException(
         `Dashboard applications are not supported for role ${actor.roleCode}.`,
       );
     }
+
+    this.logger.log(
+      `Dashboard applications were loaded successfully. Total records found: ${rows.length}`,
+    );
 
     // This converts the query result into the dashboard response format.
     return rows.map((row) => ({
@@ -74,6 +85,8 @@ export class DashboardService {
 
   // This method finds the logged-in user's details and active role information.
   private async getActorContext(userId: string, roleId: string): Promise<DashboardActorContext> {
+    this.logger.log(`The dashboard user context is being loaded for user ID: ${userId}`);
+
     // This checks whether the user exists and is active.
     const user = await this.prisma.users.findFirst({
       where: {
@@ -89,6 +102,7 @@ export class DashboardService {
 
     // This throws an error if the user is not found.
     if (!user) {
+      this.logger.warn('The authenticated user could not be found for the dashboard request.');
       throw new NotFoundException('Authenticated user not found.');
     }
 
@@ -105,6 +119,7 @@ export class DashboardService {
 
     // This throws an error if the role is not found.
     if (!role) {
+      this.logger.warn('The active role could not be found for the authenticated user.');
       throw new NotFoundException('Active role not found for authenticated user.');
     }
 
@@ -122,6 +137,10 @@ export class DashboardService {
       },
     });
 
+    this.logger.log(
+      `The dashboard user context was loaded successfully with role: ${role.role_code}`,
+    );
+
     // This returns the user ID, role code, and team ID together.
     return {
       userId: user.user_id,
@@ -132,6 +151,8 @@ export class DashboardService {
 
   // This method gets applications that were created by the logged-in user.
   private fetchCreatedApplications(userId: string): Promise<DashboardApplicationRow[]> {
+    this.logger.log(`Created applications are being fetched for user ID: ${userId}`);
+
     return this.prisma.$queryRaw<DashboardApplicationRow[]>`
       SELECT
           la.application_id AS "applicationId",
@@ -190,6 +211,8 @@ export class DashboardService {
 
   // This method gets applications that are currently assigned to the logged-in user.
   private fetchAssignedApplications(userId: string): Promise<DashboardApplicationRow[]> {
+    this.logger.log(`Assigned applications are being fetched for user ID: ${userId}`);
+
     return this.prisma.$queryRaw<DashboardApplicationRow[]>`
       SELECT
           la.application_id AS "applicationId",

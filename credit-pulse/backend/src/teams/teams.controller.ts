@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Patch, Post, UseGuards } from '@nestjs/common';
 
 import { AuthGuard } from '../auth/auth.guard.js';
 import { CheckIsAdmin } from '../auth/check-is-admin.js';
@@ -20,6 +20,8 @@ import { TeamsService } from './teams.service.js';
  */
 @Controller('teams')
 export class TeamsController {
+  private readonly logger = new Logger(TeamsController.name);
+
   constructor(private readonly TeamsService: TeamsService) {}
 
   @UseGuards(AuthGuard, CheckIsAdmin)
@@ -30,6 +32,8 @@ export class TeamsController {
    * @return A promise that resolves to a FetchAllTeamsResponseDto object.
    */
   async fetchAllTeams(): Promise<FetchAllTeamsResponseDto> {
+    this.logger.log('A request was received to fetch all teams.');
+
     // Call the fetchAllTeams function in the TeamsService
     // to retrieve all teams from the database.
     return await this.TeamsService.fetchAllTeams();
@@ -47,6 +51,8 @@ export class TeamsController {
     @Body()
     fetchTeamUsersRequestDto: FetchTeamUsersRequestDto,
   ): Promise<FetchTeamUsersListResponseDto> {
+    this.logger.log('A request was received to fetch users for the selected team.');
+
     // Call the fetchTeamUsers function in the TeamsService
     // to retrieve all users belonging to the given team.
     return this.TeamsService.fetchTeamUsers(fetchTeamUsersRequestDto);
@@ -57,6 +63,8 @@ export class TeamsController {
   async addUserToTeam(
     @Body() addUserToTeamRequestDto: AddUserToTeamRequestDto,
   ): Promise<AddUserToTeamResponseDto> {
+    this.logger.log('A request was received to add a user to a team.');
+
     return this.TeamsService.addUserToTeam(addUserToTeamRequestDto);
   }
 
@@ -65,6 +73,8 @@ export class TeamsController {
   async removeUserFromTeam(
     @Body() removeUserFromTeamRequestDto: RemoveUserFromTeamRequestDto,
   ): Promise<RemoveUserFromTeamResponseDto> {
+    this.logger.log('A request was received to remove a user from a team.');
+
     return this.TeamsService.removeUserFromTeam(removeUserFromTeamRequestDto);
   }
 }

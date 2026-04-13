@@ -1,4 +1,12 @@
-import { Body, Controller, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Logger,
+  Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 
 import { Request } from 'express';
 
@@ -30,6 +38,8 @@ type AuthenticatedRequest = Request & {
 @Controller('credit-score')
 @UseGuards(AuthGuard)
 export class CreditScoreCheckController {
+  private readonly logger = new Logger(CreditScoreCheckController.name);
+
   constructor(private readonly creditScoreCheckService: CreditScoreCheckService) {}
 
   /**
@@ -61,13 +71,20 @@ export class CreditScoreCheckController {
     @Body() dto: CreditScoreCheckRequestDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<CreditScoreCheckResponseDto> {
+    this.logger.log('A request was received to check the credit score.');
+
     // Get the user ID from the request object
     const userId = req.user?.sub;
 
     // If the user ID is not present, throw an UnauthorizedException
     if (!userId) {
+      this.logger.warn(
+        'The credit score check request could not continue because the user was not authenticated.',
+      );
       throw new UnauthorizedException('User not authenticated');
     }
+
+    this.logger.log(`The credit score check request is being processed for user ID: ${userId}.`);
 
     // Delegate to the service with the validated request body and user ID
     return this.creditScoreCheckService.checkCreditScore(dto, userId);

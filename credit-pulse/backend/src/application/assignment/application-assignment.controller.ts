@@ -3,6 +3,7 @@ import {
   Controller,
   HttpCode,
   HttpStatus,
+  Logger,
   Post,
   Req,
   UnauthorizedException,
@@ -30,6 +31,8 @@ type AuthenticatedRequest = Request & {
 @Controller('application')
 @UseGuards(AuthGuard)
 export class AssignApplicationController {
+  private readonly logger = new Logger(AssignApplicationController.name);
+
   constructor(private readonly applicationAssignmentService: AssignApplicationService) {}
 
   // This API assigns an application to a team or user.
@@ -39,13 +42,22 @@ export class AssignApplicationController {
     @Body() dto: AssignApplicationRequestDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<AssignApplicationResponseDto> {
+    this.logger.log('A request was received to assign an application.');
+
     // This gets the logged-in user ID from the token.
     const userId = req.user?.sub;
 
     // This checks whether the user ID is available in the token.
     if (!userId) {
+      this.logger.warn(
+        'The application assignment request could not continue because the authenticated user was not found in the token.',
+      );
       throw new UnauthorizedException('Authenticated user not found in token.');
     }
+
+    this.logger.log(
+      `The application assignment request is being processed for user ID: ${userId}.`,
+    );
 
     // This sends the request to the service layer to complete the assignment.
     return this.applicationAssignmentService.assign(dto, userId);

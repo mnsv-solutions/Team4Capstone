@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { FetchCreditScoreRequestDto } from './dto/fetch-credit-score-request.dto.js';
@@ -7,10 +7,14 @@ import { FetchCreditScoreResponseDto } from './dto/fetch-credit-score-response.d
 // This service handles the logic for fetching credit score details.
 @Injectable()
 export class FetchCreditScoreService {
+  private readonly logger = new Logger(FetchCreditScoreService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   // This method finds the latest credit score record for the given application.
   async fetchCreditScore(dto: FetchCreditScoreRequestDto): Promise<FetchCreditScoreResponseDto> {
+    this.logger.log('The credit score fetch process has started.');
+
     // This finds the application using the application number.
     const application = await this.prisma.loan_application.findFirst({
       where: {
@@ -24,8 +28,13 @@ export class FetchCreditScoreService {
 
     // This throws an error if the application does not exist.
     if (!application) {
+      this.logger.warn(
+        `No active application was found for application number: ${dto.applicationNumber}`,
+      );
       throw new NotFoundException('Application not found.');
     }
+
+    this.logger.log(`The application was found for application number: ${dto.applicationNumber}`);
 
     // This gets the latest credit check record linked to the application.
     const latestCreditCheck = await this.prisma.application_credit_check.findFirst({
@@ -43,13 +52,27 @@ export class FetchCreditScoreService {
 
     // This throws an error if no credit check record is found.
     if (!latestCreditCheck) {
+      this.logger.warn(
+        `No credit check record was found for application number: ${dto.applicationNumber}`,
+      );
       throw new NotFoundException('Credit check record not found for this application.');
     }
 
+    this.logger.log(
+      `The latest credit check record was found for application number: ${dto.applicationNumber}`,
+    );
+
     // This checks whether the raw credit response is available.
     if (latestCreditCheck.raw_response == null) {
+      this.logger.warn(
+        `The raw credit response is not available for application number: ${dto.applicationNumber}`,
+      );
       throw new BadRequestException('Raw CIBIL response is not available for this application.');
     }
+
+    this.logger.log(
+      `The raw credit response is available for application number: ${dto.applicationNumber}`,
+    );
 
     // This converts the raw response into a cleaner summary format.
     return this.mapRawResponseToSummary(latestCreditCheck.raw_response);
@@ -57,6 +80,8 @@ export class FetchCreditScoreService {
 
   // This method maps the raw CIBIL response into the response DTO format.
   private mapRawResponseToSummary(rawResponse: unknown): FetchCreditScoreResponseDto {
+    this.logger.log('The raw credit response is being mapped into the summary format.');
+
     const data = this.asObject(rawResponse);
 
     return {
@@ -89,6 +114,7 @@ export class FetchCreditScoreService {
   // This method makes sure the raw response is a valid object.
   private asObject(value: unknown): Record<string, unknown> {
     if (!value || typeof value !== 'object' || Array.isArray(value)) {
+      this.logger.warn('The raw credit response format is invalid.');
       throw new BadRequestException('Raw CIBIL response format is invalid.');
     }
 
@@ -100,6 +126,9 @@ export class FetchCreditScoreService {
     const parsedValue = Number(value);
 
     if (value === null || value === undefined || Number.isNaN(parsedValue)) {
+      this.logger.warn(
+        `The raw credit response is missing or has an invalid value for ${fieldName}.`,
+      );
       throw new BadRequestException(`Invalid or missing value in raw_response for ${fieldName}.`);
     }
 
@@ -109,6 +138,9 @@ export class FetchCreditScoreService {
   // This method reads a required text field from the raw response.
   private readRequiredString(value: unknown, fieldName: string): string {
     if (typeof value !== 'string' || !value.trim()) {
+      this.logger.warn(
+        `The raw credit response is missing or has an invalid value for ${fieldName}.`,
+      );
       throw new BadRequestException(`Invalid or missing value in raw_response for ${fieldName}.`);
     }
 

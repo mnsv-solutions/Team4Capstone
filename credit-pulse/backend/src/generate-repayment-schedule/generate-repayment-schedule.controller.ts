@@ -1,4 +1,12 @@
-import { Body, Controller, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Logger,
+  Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 
 import { Request } from 'express';
 
@@ -32,6 +40,8 @@ type AuthenticatedRequest = Request & {
 @Controller('repayment-schedule')
 @UseGuards(AuthGuard)
 export class GenerateRepaymentScheduleController {
+  private readonly logger = new Logger(GenerateRepaymentScheduleController.name);
+
   constructor(private readonly repaymentScheduleService: GenerateRepaymentScheduleService) {}
 
   @Post('generate')
@@ -56,12 +66,19 @@ export class GenerateRepaymentScheduleController {
     @Body() dto: GenerateRepaymentScheduleRequestDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<GenerateRepaymentScheduleResponseDto> {
+    this.logger.log('A request was received to generate the repayment schedule.');
+
     const userId = req.user?.sub;
 
     // Check if the user is authenticated
     if (!userId) {
+      this.logger.warn(
+        'The repayment schedule request could not continue because the user was not authenticated.',
+      );
       throw new UnauthorizedException('User not authenticated');
     }
+
+    this.logger.log(`The repayment schedule request is being processed for user ID: ${userId}.`);
 
     // Delegate to the service with the validated request body and user ID
     return this.repaymentScheduleService.generateSchedule(dto, userId);

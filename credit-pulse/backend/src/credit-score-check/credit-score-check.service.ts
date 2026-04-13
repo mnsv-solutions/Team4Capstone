@@ -93,10 +93,17 @@ export class CreditScoreCheckService {
     dto: CreditScoreCheckRequestDto,
     checkedBy: string,
   ): Promise<CreditScoreCheckResponseDto> {
+    this.logger.log('The credit score check process has started.');
+
     // Checks if the applicant has given consent to perform the credit score check
     if (!dto.consent) {
+      this.logger.warn(
+        'The credit score check could not continue because consent was not provided.',
+      );
       throw new BadRequestException('Consent is required to perform credit score check');
     }
+
+    this.logger.log('Consent was received for the credit score check request.');
 
     // Finds the active loan application using the application number
     const application = await this.prisma.loan_application.findFirst({
@@ -113,12 +120,19 @@ export class CreditScoreCheckService {
 
     // Throws an error when no matching application exists
     if (!application) {
+      this.logger.warn(
+        `No active application was found for application number: ${dto.applicationNumber}`,
+      );
       throw new NotFoundException('Application not found');
     }
+
+    this.logger.log(`The application was found for application number: ${dto.applicationNumber}`);
 
     // Cleans up name values before matching against bureau data
     const normalizedFirstName = dto.firstName.trim();
     const normalizedLastName = dto.lastName.trim();
+
+    this.logger.log('The applicant details were normalized for bureau matching.');
 
     // Looks for a matching CIBIL report using application and applicant details
     const cibilReport = (await this.prisma.cibil_reports.findFirst({
@@ -154,6 +168,8 @@ export class CreditScoreCheckService {
       },
     })) as CibilReportWithRelations | null;
 
+    this.logger.log('The bureau report lookup was completed.');
+
     // Marks earlier latest credit checks as no longer latest
     await this.prisma.application_credit_check.updateMany({
       where: {
@@ -165,8 +181,12 @@ export class CreditScoreCheckService {
       },
     });
 
+    this.logger.log('Any previous latest credit check records were cleared.');
+
     // Saves a not found result when no matching CIBIL report is available
     if (!cibilReport) {
+      this.logger.warn('No matching bureau report was found for the provided applicant details.');
+
       const notFoundCheck = await this.prisma.application_credit_check.create({
         data: {
           application_id: application.application_id,
@@ -179,11 +199,17 @@ export class CreditScoreCheckService {
         },
       });
 
+      this.logger.log('A not found credit check record was created successfully.');
+
       return notFoundCheck as CreditScoreCheckResponseDto;
     }
 
+    this.logger.log('A matching bureau report was found successfully.');
+
     // Builds the JSON payload that will be stored as raw bureau response
     const rawResponse = this.buildRawResponse(cibilReport);
+
+    this.logger.log('The raw bureau response was prepared successfully.');
 
     // Fetches the application status to apply after a successful credit check
     const status = await this.prisma.application_status.findFirst({
@@ -198,11 +224,18 @@ export class CreditScoreCheckService {
 
     // Throws an error if the expected status is missing in the master data
     if (!status) {
+      this.logger.warn(
+        'The target application status for completed credit check could not be found.',
+      );
       throw new NotFoundException('Application status CREDIT_CHECK_COMPLETED not found');
     }
 
+    this.logger.log('The target application status was found successfully.');
+
     // Creates the credit check record and updates the application in one transaction
     const createdCheck = await this.prisma.$transaction(async (tx) => {
+      this.logger.log('The credit score check transaction has started.');
+
       // Stores the successful bureau result
       const creditCheck = await tx.application_credit_check.create({
         data: {
@@ -222,6 +255,8 @@ export class CreditScoreCheckService {
         },
       });
 
+      this.logger.log('The credit check record was created successfully.');
+
       // Moves the application to the completed credit check status
       await tx.loan_application.update({
         where: {
@@ -232,6 +267,8 @@ export class CreditScoreCheckService {
           updated_by: checkedBy,
         },
       });
+
+      this.logger.log('The application status was updated after the credit check.');
 
       return creditCheck;
     });
@@ -253,6 +290,8 @@ export class CreditScoreCheckService {
    * @returns A Prisma.InputJsonObject representing the converted JSON structure
    */
   private buildRawResponse(cibilReport: CibilReportWithRelations): Prisma.InputJsonObject {
+    this.logger.log('The bureau response is being converted into the stored JSON format.');
+
     // Short references for nested report sections
     const applicant = cibilReport.cibil_applicants;
     const riskIndicators = cibilReport.cibil_risk_indicators;

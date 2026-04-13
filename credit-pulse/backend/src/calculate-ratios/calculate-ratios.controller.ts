@@ -1,4 +1,12 @@
-import { Body, Controller, Post, Req, UnauthorizedException, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Logger,
+  Post,
+  Req,
+  UnauthorizedException,
+  UseGuards,
+} from '@nestjs/common';
 
 import { Request } from 'express';
 
@@ -20,6 +28,8 @@ type AuthenticatedRequest = Request & {
 @Controller('calculate-ratios')
 @UseGuards(AuthGuard)
 export class CalculateRatiosController {
+  private readonly logger = new Logger(CalculateRatiosController.name);
+
   constructor(private readonly calculateRatiosService: CalculateRatiosService) {}
 
   @Post('/')
@@ -46,13 +56,20 @@ export class CalculateRatiosController {
     @Body() dto: CalculateRatiosRequestDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<CalculateRatiosResponseDto> {
+    this.logger.log('A request was received to calculate financial ratios.');
+
     // Get the user ID from the request object
     const userId = req.user?.sub;
 
     // If the user ID is not present, throw an UnauthorizedException
     if (!userId) {
+      this.logger.warn(
+        'The ratio calculation request could not continue because the user was not authenticated.',
+      );
       throw new UnauthorizedException('User not authenticated');
     }
+
+    this.logger.log(`The ratio calculation request is being processed for user ID: ${userId}.`);
 
     // Call the calculateRatios function of the CalculateRatiosService with the request body and user ID
     return this.calculateRatiosService.calculateRatios(dto, userId);

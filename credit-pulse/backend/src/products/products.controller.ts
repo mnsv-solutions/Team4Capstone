@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Logger, Patch, Post, UseGuards } from '@nestjs/common';
 
 import { AuthGuard } from '../auth/auth.guard.js';
 import { CheckIsAdmin } from '../auth/check-is-admin.js';
@@ -14,6 +14,8 @@ import { ProductsService } from './products.service.js';
 // Controller for handling product-related requests
 @Controller('products')
 export class ProductsController {
+  private readonly logger = new Logger(ProductsController.name);
+
   constructor(private readonly productsService: ProductsService) {}
 
   @UseGuards(AuthGuard)
@@ -31,6 +33,8 @@ export class ProductsController {
    * @returns A promise that resolves to a FetchAllProductsResponseDto object.
    */
   async fetchAllProducts(): Promise<FetchAllProductsResponseDto> {
+    this.logger.log('A request was received to fetch all products.');
+
     // Call the fetchAllProducts method of the ProductsService class to retrieve all product records from the database.
     // This will return a promise that resolves to a FetchAllProductsResponseDto object,
     // which contains a success message and an array of product records.
@@ -55,6 +59,7 @@ export class ProductsController {
   async addNewProduct(
     @Body() createProductRequestDto: CreateProductRequestDto,
   ): Promise<CreateProductResponseDto> {
+    this.logger.log('A request was received to add a new product.');
     return this.productsService.createProduct(createProductRequestDto);
   }
 
@@ -72,6 +77,8 @@ export class ProductsController {
   async updateProduct(
     @Body() updateProductRequestDto: UpdateProductRequestDto,
   ): Promise<UpdateProductResponseDto> {
+    this.logger.log('A request was received to update a product.');
+
     // Call the updateProduct method of the ProductsService class to update the product record in the database.
     return this.productsService.updateProduct(updateProductRequestDto);
   }
@@ -90,6 +97,8 @@ export class ProductsController {
   async updateProductStatus(
     @Body() updateProductStatusRequestDto: UpdateProductStatusRequestDto,
   ): Promise<UpdateProductStatusResponseDto> {
+    this.logger.log('A request was received to update the product status.');
+
     // Updates a product's status (active, inactive) in the database.
     return this.productsService.updateProductStatus(updateProductStatusRequestDto);
   }

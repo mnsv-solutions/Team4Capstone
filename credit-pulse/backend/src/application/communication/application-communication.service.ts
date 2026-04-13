@@ -32,6 +32,8 @@ export class ApplicationCommunicationService {
    * @throws ForbiddenException - If the sender user is not a valid active internal user.
    */
   async createCommunication(dto: SendApplicationCommunicationDto, userId: string) {
+    this.logger.log('The communication creation process has started.');
+
     // Finds the active application using the application number
     const application = await this.prisma.loan_application.findFirst({
       where: {
@@ -46,8 +48,13 @@ export class ApplicationCommunicationService {
 
     // Stops the flow if the application does not exist
     if (!application) {
+      this.logger.warn(
+        `No active application was found for application number: ${dto.applicationNumber}`,
+      );
       throw new NotFoundException('Application not found.');
     }
+
+    this.logger.log(`The application was found for application number: ${dto.applicationNumber}`);
 
     // Confirms the logged-in sender is a valid active internal user
     const senderUser = await this.prisma.users.findFirst({
@@ -62,21 +69,35 @@ export class ApplicationCommunicationService {
 
     // Blocks the request if the sender record is missing
     if (!senderUser) {
+      this.logger.warn(
+        'The communication request could not continue because the authenticated sender was not found.',
+      );
       throw new ForbiddenException('Authenticated sender not found.');
     }
 
+    this.logger.log(`The sender was verified successfully for user ID: ${userId}`);
+
     // Makes sure message text is present after trimming spaces
     if (!dto.messageText?.trim()) {
+      this.logger.warn(
+        'The communication request could not continue because the message text was empty.',
+      );
       throw new BadRequestException('messageText is required.');
     }
 
     // Internal logged-in users are not allowed to send as customer
     if (dto.senderType === 'CUSTOMER') {
+      this.logger.warn(
+        'The communication request was blocked because an internal user cannot send as CUSTOMER.',
+      );
       throw new ForbiddenException('Logged-in internal user cannot send as CUSTOMER.');
     }
 
     // Internal messages cannot be addressed to the customer
     if (dto.isInternal && dto.recipientType === 'CUSTOMER') {
+      this.logger.warn(
+        'The communication request was blocked because an internal message cannot be sent to a customer.',
+      );
       throw new BadRequestException('Internal message cannot be sent to CUSTOMER.');
     }
 
@@ -94,6 +115,10 @@ export class ApplicationCommunicationService {
 
     // Automatically picks the primary customer when customer recipient id is not passed
     if (dto.recipientType === 'CUSTOMER' && !resolvedRecipientUserId) {
+      this.logger.log(
+        'No customer recipient was provided, so the primary customer is being resolved automatically.',
+      );
+
       const primaryCustomer = await this.prisma.sub_loan.findFirst({
         where: {
           application_id: application.application_id,
@@ -107,14 +132,21 @@ export class ApplicationCommunicationService {
 
       // Fails if the application has no active primary customer
       if (!primaryCustomer) {
+        this.logger.warn(
+          'The communication request could not continue because no active primary customer was found.',
+        );
         throw new BadRequestException('Primary customer not found for this application.');
       }
 
       resolvedRecipientUserId = primaryCustomer.customer_id;
+
+      this.logger.log('The primary customer was resolved successfully.');
     }
 
     // Verifies that the selected customer belongs to this application
     if (dto.recipientType === 'CUSTOMER' && resolvedRecipientUserId) {
+      this.logger.log('The customer recipient is being verified against the application.');
+
       const recipientCustomer = await this.prisma.sub_loan.findFirst({
         where: {
           application_id: application.application_id,
@@ -128,12 +160,21 @@ export class ApplicationCommunicationService {
 
       // Prevents sending to a customer not linked with this application
       if (!recipientCustomer) {
+        this.logger.warn(
+          'The communication request was blocked because the recipient customer is not linked to this application.',
+        );
         throw new BadRequestException('Recipient customer is not linked to this application.');
       }
+
+      this.logger.log('The customer recipient was verified successfully.');
     }
 
     // Verifies that the internal recipient user exists and is active
     if (dto.recipientType !== 'CUSTOMER' && resolvedRecipientUserId) {
+      this.logger.log(
+        `The internal recipient is being verified for user ID: ${resolvedRecipientUserId}`,
+      );
+
       const recipientUser = await this.prisma.users.findFirst({
         where: {
           user_id: resolvedRecipientUserId,
@@ -146,9 +187,18 @@ export class ApplicationCommunicationService {
 
       // Stops the request if the internal recipient is invalid
       if (!recipientUser) {
+        this.logger.warn(
+          'The communication request could not continue because the recipient internal user was not found.',
+        );
         throw new BadRequestException('Recipient internal user not found.');
       }
+
+      this.logger.log(
+        `The internal recipient was verified successfully for user ID: ${resolvedRecipientUserId}`,
+      );
     }
+
+    this.logger.log('The communication record is being saved.');
 
     // Saves the communication and attachments together in one transaction
     await this.prisma.$transaction(async (tx) => {
@@ -174,8 +224,14 @@ export class ApplicationCommunicationService {
         },
       });
 
+      this.logger.log('The main communication record was created successfully.');
+
       // Creates attachment rows only when files are included
       if (dto.attachments?.length) {
+        this.logger.log(
+          `Attachment records are being created. Total attachments: ${dto.attachments.length}`,
+        );
+
         await tx.application_message_attachment.createMany({
           data: dto.attachments.map((attachment) => ({
             message_id: communication.message_id,
@@ -191,6 +247,8 @@ export class ApplicationCommunicationService {
             is_deleted: false,
           })),
         });
+
+        this.logger.log('The attachment records were created successfully.');
       }
     });
 
@@ -217,6 +275,8 @@ export class ApplicationCommunicationService {
    * @throws ForbiddenException - If the authenticated user is missing or inactive.
    */
   async getCommunicationHistory(dto: GetApplicationCommunicationHistoryDto, userId: string) {
+    this.logger.log('The communication history fetch process has started.');
+
     // Finds the active application for which history is requested
     const application = await this.prisma.loan_application.findFirst({
       where: {
@@ -231,8 +291,13 @@ export class ApplicationCommunicationService {
 
     // Stops the flow if the application is not found
     if (!application) {
+      this.logger.warn(
+        `No active application was found for application number: ${dto.applicationNumber}`,
+      );
       throw new NotFoundException('Application not found.');
     }
+
+    this.logger.log(`The application was found for application number: ${dto.applicationNumber}`);
 
     // Confirms the logged-in user exists and is active
     const senderUser = await this.prisma.users.findFirst({
@@ -247,8 +312,15 @@ export class ApplicationCommunicationService {
 
     // Blocks access if the authenticated user is missing
     if (!senderUser) {
+      this.logger.warn(
+        'The communication history request could not continue because the authenticated user was not found.',
+      );
       throw new ForbiddenException('Authenticated user not found.');
     }
+
+    this.logger.log(`The authenticated user was verified successfully for user ID: ${userId}`);
+
+    this.logger.log('The communication history is being fetched from the database.');
 
     // Fetches communication history with active, non-deleted attachments
     const communications = await this.prisma.application_communication_history.findMany({
@@ -272,6 +344,10 @@ export class ApplicationCommunicationService {
         created_at: 'asc',
       },
     });
+
+    this.logger.log(
+      `The communication history was fetched successfully. Total records found: ${communications.length}`,
+    );
 
     // Returns the communication history in API-friendly response format
     return {
@@ -323,8 +399,15 @@ export class ApplicationCommunicationService {
   private queueNotifications(applicationNumber: string, dto: SendApplicationCommunicationDto) {
     // Nothing to queue when both notification options are off
     if (!dto.sendEmail && !dto.sendSms) {
+      this.logger.log(
+        'No notification was queued because both email and SMS options are turned off.',
+      );
       return;
     }
+
+    this.logger.log(
+      `A notification request is being prepared for application number: ${applicationNumber}`,
+    );
 
     // Placeholder log until actual email and SMS queue integration is added
     console.log('Queue notification for communication', {
