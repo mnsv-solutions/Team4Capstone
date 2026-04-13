@@ -1540,7 +1540,7 @@ export default function ApplicationDetailsPage() {
       setRoleLoading(true);
 
       const response = await axios.get<FetchUserRoleApiResponse>(
-        "/api/auth/fetch-user-role",
+        "/auth/fetch-user-role",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1605,7 +1605,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.post<ApplicationStatusResponseDto>(
-        "/api/application-status",
+        "/application-status",
         {
           applicationNumber: details.applicationNumber.trim(),
           dob: details.dob,
@@ -1638,7 +1638,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.get<FetchAllProductsResponseDto>(
-        "/api/product/fetch-all-products",
+        "/product/fetch-all-products",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1801,7 +1801,7 @@ export default function ApplicationDetailsPage() {
       setLoanParametersError("");
 
       const response = await axios.post<FetchLoanParametersResponseDto>(
-        "/api/application/fetch-loan-parameters",
+        "/application/fetch-loan-parameters",
         payload,
         {
           headers: {
@@ -1886,7 +1886,7 @@ export default function ApplicationDetailsPage() {
         }));
 
       await axios.post(
-        "/api/application/document-verify",
+        "/application/document-verify",
         {
           applicationNumber: details.applicationNumber.trim(),
           documents: verifiedDocs,
@@ -2420,7 +2420,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.post<FetchStageHistoryResponse>(
-        "/api/application/fetch-stage-history",
+        "/application/fetch-stage-history",
         {
           applicationNumber: details.applicationNumber.trim(),
         },
@@ -2505,7 +2505,7 @@ export default function ApplicationDetailsPage() {
     if (!token) return;
 
     await axios.post(
-      "/api/push-communication",
+      "/push-communication",
       {
         applicationNumber: details.applicationNumber.trim(),
         senderType: senderTypeFromLogin,
@@ -2527,7 +2527,7 @@ export default function ApplicationDetailsPage() {
   async function pushApplicationStage(payload: PushStageRequestDto) {
     if (!token) return;
 
-    await axios.post("/api/application/push-stage", payload, {
+    await axios.post("/application/push-stage", payload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -2543,7 +2543,7 @@ export default function ApplicationDetailsPage() {
       remarks: "Assigned to Disbursal Team",
     };
 
-    await axios.post("/api/application/assign", payload, {
+    await axios.post("/application/assign", payload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -4039,13 +4039,5 @@ export default function ApplicationDetailsPage() {
         </div>
       </section>
     </main>
-  );
-}
-
-export default function ApplicationDetailsPage() {
-  return (
-    <Suspense fallback={<div>Loading app details...</div>}>
-      <ApplicationDetailsContent />
-    </Suspense>
   );
 }

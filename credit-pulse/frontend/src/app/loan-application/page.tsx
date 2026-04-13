@@ -175,7 +175,7 @@ export default function LoanApplicationPage() {
         setProductsLoading(true);
         setProductsError("");
 
-        const response = await axios.get("/api/products/all", {
+        const response = await axios.get("/products/all", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
