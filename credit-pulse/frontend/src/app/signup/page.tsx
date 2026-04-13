@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import React, { useMemo, useState } from "react";
+import axios from "axios";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -88,17 +89,16 @@ export default function SignUpPage() {
         password: normalizedForm.password,
       };
 
-      const response = await fetch("http://localhost:3001/auth/signup", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
+      await axios.post(process.env.NEXT_PUBLIC_API_URL + "/auth/signup", payload);
 
-      const data = await response.json().catch(() => null);
+      setSuccessMsg("Account created successfully. Redirecting to Sign In...");
 
-      if (!response.ok) {
+      setTimeout(() => {
+        router.push("/signin");
+      }, 1200);
+    } catch (error) {
+      if (axios.isAxiosError(error) && error.response) {
+        const data = error.response.data;
         const backendMessage =
           data?.message ||
           data?.error ||
@@ -109,18 +109,11 @@ export default function SignUpPage() {
             ? backendMessage.join(" ")
             : String(backendMessage)
         );
-        return;
+      } else {
+        setSubmitError(
+          "Unable to connect to the server. Please try again later."
+        );
       }
-
-      setSuccessMsg("Account created successfully. Redirecting to Sign In...");
-
-      setTimeout(() => {
-        router.push("/signin");
-      }, 1200);
-    } catch {
-      setSubmitError(
-        "Unable to connect to the server. Please try again later."
-      );
     } finally {
       setIsSubmitting(false);
     }
