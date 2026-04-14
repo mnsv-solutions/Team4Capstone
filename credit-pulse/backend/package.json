@@ -10,6 +10,7 @@
     "format": "prettier --write \"{src,test,config}/**/*.ts\" \"config/**/*.yaml\"",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
     "prisma:generate": "npx prisma generate",
+    "prisma:generate:prod": "NODE_ENV=prod npx prisma generate",
     "prisma:migrate": "npx prisma migrate deploy",
     "prisma:seed": "npx prisma db seed",
     "prisma:migrate:reset": "npx prisma migrate reset",

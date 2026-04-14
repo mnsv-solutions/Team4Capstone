@@ -289,7 +289,7 @@ export class CreditScoreCheckService {
     }
 
     if (value instanceof Prisma.Decimal) {
-      return value.toString();
+      return String(value as any);
     }
 
     return '0';

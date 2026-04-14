@@ -92,10 +92,10 @@ export default function DashboardPage() {
         };
 
         const [applicationsResponse, roleResponse] = await Promise.all([
-          axios.get("/api/dashboard/applications", {
+          axios.get(process.env.NEXT_PUBLIC_API_URL + "/dashboard/applications", {
             headers: authHeaders,
           }),
-          axios.get<UserRoleResponse>("/api/auth/fetch-user-role", {
+          axios.get<UserRoleResponse>(process.env.NEXT_PUBLIC_API_URL + "/auth/fetch-user-role", {
             headers: authHeaders,
           }),
         ]);
@@ -126,7 +126,7 @@ export default function DashboardPage() {
         }
 
         const pullResponse = await axios.post(
-          "/api/applications/fetch-by-team",
+          process.env.NEXT_PUBLIC_API_URL + "/applications/fetch-by-team",
           { teamId },
           {
             headers: authHeaders,
@@ -338,7 +338,7 @@ export default function DashboardPage() {
   }
 
   async function reloadApplications(authToken: string) {
-    const response = await axios.get("/api/dashboard/applications", {
+    const response = await axios.get(process.env.NEXT_PUBLIC_API_URL + "/dashboard/applications", {
       headers: {
         Authorization: `Bearer ${authToken}`,
       },
@@ -349,7 +349,7 @@ export default function DashboardPage() {
 
   async function reloadPullApplications(teamId: string, authToken: string) {
     const pullResponse = await axios.post(
-      "/api/applications/fetch-by-team",
+      process.env.NEXT_PUBLIC_API_URL + "/applications/fetch-by-team",
       { teamId },
       {
         headers: {
@@ -399,7 +399,7 @@ export default function DashboardPage() {
       setPullErrorMsg("");
 
       await axios.post(
-        "/api/application/assign",
+        process.env.NEXT_PUBLIC_API_URL + "/application/assign",
         {
           applicationNumber: item.applicationNumber,
           assignedUserId: currentUserId,
@@ -443,7 +443,7 @@ export default function DashboardPage() {
       setPullErrorMsg("");
 
       await axios.post(
-        "/api/application/assign",
+        process.env.NEXT_PUBLIC_API_URL + "/application/assign",
         {
           applicationNumber: item.applicationNumber,
           assignedTeamId: currentTeamId,

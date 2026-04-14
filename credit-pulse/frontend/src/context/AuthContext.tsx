@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkAdminAccess = useCallback(
     async (accessToken: string): Promise<boolean> => {
       try {
-        const response = await axios.get("/api/auth/fetch-user-role", {
+        const response = await axios.get("/auth/fetch-user-role", {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },

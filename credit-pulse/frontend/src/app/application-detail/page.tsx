@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -1322,7 +1322,7 @@ function downloadRepaymentScheduleCsv(
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
-export default function ApplicationDetailsPage() {
+function ApplicationDetailsPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const applicationNumberFromUrl = searchParams.get("applicationNumber") || "";
@@ -1540,7 +1540,7 @@ export default function ApplicationDetailsPage() {
       setRoleLoading(true);
 
       const response = await axios.get<FetchUserRoleApiResponse>(
-        "/api/auth/fetch-user-role",
+        process.env.NEXT_PUBLIC_API_URL + "/auth/fetch-user-role",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1605,7 +1605,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.post<ApplicationStatusResponseDto>(
-        "/api/application-status",
+        process.env.NEXT_PUBLIC_API_URL + "/application-status",
         {
           applicationNumber: details.applicationNumber.trim(),
           dob: details.dob,
@@ -1638,7 +1638,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.get<FetchAllProductsResponseDto>(
-        "/api/product/fetch-all-products",
+        process.env.NEXT_PUBLIC_API_URL + "/products/all",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1663,7 +1663,7 @@ export default function ApplicationDetailsPage() {
       setDocumentSuccess("");
 
       const response = await axios.get<DocumentDetailsApiResponse>(
-        "/api/application/document-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/document-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -1716,7 +1716,7 @@ export default function ApplicationDetailsPage() {
       }));
 
       const response = await axios.post<FetchCreditDetailsApiResponse>(
-        "/api/application/fetch-credit-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/fetch-credit-details",
         {
           applicationNumber: details.applicationNumber.trim(),
         },
@@ -1801,7 +1801,7 @@ export default function ApplicationDetailsPage() {
       setLoanParametersError("");
 
       const response = await axios.post<FetchLoanParametersResponseDto>(
-        "/api/application/fetch-loan-parameters",
+        process.env.NEXT_PUBLIC_API_URL + "/application/fetch-loan-parameters",
         payload,
         {
           headers: {
@@ -1886,7 +1886,7 @@ export default function ApplicationDetailsPage() {
         }));
 
       await axios.post(
-        "/api/application/document-verify",
+        process.env.NEXT_PUBLIC_API_URL + "/application/document-verify",
         {
           applicationNumber: details.applicationNumber.trim(),
           documents: verifiedDocs,
@@ -1923,7 +1923,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.get<PersonalDetailsApiResponse>(
-        "/api/application/personal-information",
+        process.env.NEXT_PUBLIC_API_URL + "/application/personal-information",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -1961,7 +1961,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.get<ContactDetailsApiResponse>(
-        "/api/application/contact-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/contact-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -2009,7 +2009,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.get<EducationDetailsApiResponse>(
-        "/api/application/education-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/education-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -2042,7 +2042,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.get<FinancialDetailsApiResponse>(
-        "/api/application/financial-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/financial-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -2319,7 +2319,7 @@ export default function ApplicationDetailsPage() {
 
   async function fetchSingleCommunicationHistory(isInternal: boolean) {
     const response = await axios.post<CommunicationFetchResponse>(
-      "/api/fetch-communication-history",
+      process.env.NEXT_PUBLIC_API_URL + "/fetch-communication-history",
       {
         applicationNumber: details.applicationNumber.trim(),
         isInternal,
@@ -2420,7 +2420,7 @@ export default function ApplicationDetailsPage() {
 
     try {
       const response = await axios.post<FetchStageHistoryResponse>(
-        "/api/application/fetch-stage-history",
+        process.env.NEXT_PUBLIC_API_URL + "/application/fetch-stage-history",
         {
           applicationNumber: details.applicationNumber.trim(),
         },
@@ -2505,7 +2505,7 @@ export default function ApplicationDetailsPage() {
     if (!token) return;
 
     await axios.post(
-      "/api/push-communication",
+      process.env.NEXT_PUBLIC_API_URL + "/push-communication",
       {
         applicationNumber: details.applicationNumber.trim(),
         senderType: senderTypeFromLogin,
@@ -2527,7 +2527,7 @@ export default function ApplicationDetailsPage() {
   async function pushApplicationStage(payload: PushStageRequestDto) {
     if (!token) return;
 
-    await axios.post("/api/application/push-stage", payload, {
+    await axios.post(process.env.NEXT_PUBLIC_API_URL + "/application/push-stage", payload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -2543,7 +2543,7 @@ export default function ApplicationDetailsPage() {
       remarks: "Assigned to Disbursal Team",
     };
 
-    await axios.post("/api/application/assign", payload, {
+    await axios.post(process.env.NEXT_PUBLIC_API_URL + "/application/assign", payload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -2831,7 +2831,7 @@ export default function ApplicationDetailsPage() {
         payload.recipientUserId = communicationForm.recipientUserId.trim();
       }
 
-      await axios.post("/api/push-communication", payload, {
+      await axios.post(process.env.NEXT_PUBLIC_API_URL + "/push-communication", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -4039,5 +4039,13 @@ export default function ApplicationDetailsPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function ApplicationDetailsPage() {
+  return (
+    <Suspense fallback={<div>Loading application details...</div>}>
+      <ApplicationDetailsPageContent />
+    </Suspense>
   );
 }
