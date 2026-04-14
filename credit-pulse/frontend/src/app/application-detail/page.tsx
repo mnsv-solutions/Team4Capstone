@@ -2741,6 +2741,10 @@ function ApplicationDetailsPageContent() {
     } finally {
       setDecisionLoading(false);
     }
+
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 2000);
   }
 
   async function handleSaveDisbursalDecision() {
@@ -2848,6 +2852,10 @@ function ApplicationDetailsPageContent() {
     } finally {
       setDecisionLoading(false);
     }
+
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 2000);
   }
 
   useEffect(() => {
@@ -4220,11 +4228,11 @@ function ApplicationDetailsPageContent() {
             </div>
           )}
 
-          <div className="cp-loan-footer">
+          {/* <div className="cp-loan-footer">
             <div className="cp-loan-note d-flex align-items-center gap-2">
               <MapPin size={16} />
             </div>
-          </div>
+          </div> */}
         </div>
       </section>
     </main>
