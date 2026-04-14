@@ -1409,8 +1409,6 @@ export default function LoanApplicationPage() {
                   <option value="">Select employment status</option>
                   <option value="Employed">Employed</option>
                   <option value="Self-employed">Self-employed</option>
-                  <option value="Student">Student</option>
-                  <option value="Retired">Retired</option>
                 </select>
                 {renderInputError("employmentStatus")}
               </div>
