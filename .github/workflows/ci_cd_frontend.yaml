@@ -4,14 +4,11 @@ on:
   workflow_dispatch:
   pull_request:
     branches:
-      - main
+      - prod
     paths:
       - "credit-pulse/frontend/**"
       - "package.json"
       - "package-lock.json"
-  push:
-    branches:
-      - victor/ci-cd-pipelines # testing purpose
 
 permissions:
   id-token: write
