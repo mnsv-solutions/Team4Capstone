@@ -1,6 +1,6 @@
 import { MODULE_METADATA } from '@nestjs/common/constants';
 
-import { PrismaService } from '../prisma/prisma.service.js';
+import { PrismaModule } from '../prisma/prisma.module.js';
 import { UsersController } from './users.controller.js';
 import { UsersModule } from './users.module.js';
 import { UsersService } from './users.service.js';
@@ -9,7 +9,13 @@ describe('UsersModule', () => {
   it('should define providers metadata', () => {
     const providers = Reflect.getMetadata(MODULE_METADATA.PROVIDERS, UsersModule);
 
-    expect(providers).toEqual(expect.arrayContaining([UsersService, PrismaService]));
+    expect(providers).toEqual(expect.arrayContaining([UsersService]));
+  });
+
+  it('should define imports metadata', () => {
+    const imports = Reflect.getMetadata(MODULE_METADATA.IMPORTS, UsersModule);
+
+    expect(imports).toEqual(expect.arrayContaining([PrismaModule]));
   });
 
   it('should define exports metadata', () => {

@@ -41,9 +41,6 @@ build/Release
 node_modules/
 jspm_packages/
 
-# Package Lock file
-package-lock.json
-
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 
@@ -140,3 +137,6 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# Database PEM file
+global-bundle.pem

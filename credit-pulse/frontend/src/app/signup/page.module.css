@@ -1,0 +1,364 @@
+/* This stylesheet controls the Sign Up page split layout, onboarding panel, form, and theme overrides. */
+.page {
+  display: flex;
+  justify-content: center;
+}
+
+/* Main sign-up shell that holds the visual panel and the form panel. */
+.card {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+  overflow: hidden;
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.14), transparent 30%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.96));
+  box-shadow: 0 24px 56px rgba(2, 6, 23, 0.24);
+}
+
+/* Left-side panel used to introduce the onboarding experience. */
+.visualPanel {
+  padding: 28px;
+  border-right: 1px solid rgba(148, 163, 184, 0.16);
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.12), transparent 34%),
+    rgba(255, 255, 255, 0.04);
+}
+
+.visualBox {
+  min-height: 100%;
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.78), rgba(15, 23, 42, 0.66)),
+    rgba(255, 255, 255, 0.02);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.12);
+  color: #bfdbfe;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  width: fit-content;
+}
+
+.visualTitle,
+.title {
+  color: #f8fbff;
+  font-weight: 800;
+}
+
+.visualTitle {
+  margin: 18px 0 12px;
+  font-size: clamp(2rem, 3vw, 3rem);
+  line-height: 1.06;
+}
+
+.visualText,
+.subtitle,
+.hint,
+.muted {
+  color: rgba(226, 232, 240, 0.8);
+  line-height: 1.7;
+}
+
+.visualPoints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 10px 0 4px;
+}
+
+.visualPoint,
+.formEyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: #dbeafe;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.visualImageWrap {
+  margin: 24px 0 8px;
+  border-radius: 28px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background:
+    radial-gradient(circle at top right, rgba(96, 165, 250, 0.16), transparent 34%),
+    rgba(15, 23, 42, 0.42);
+  padding: 18px;
+  box-shadow: 0 18px 38px rgba(2, 6, 23, 0.18);
+}
+
+.visualImage {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.visualBadge {
+  margin-top: 18px;
+  width: fit-content;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  background: rgba(99, 102, 241, 0.18);
+  color: #c7d2fe;
+  font-weight: 700;
+}
+
+.formPanel {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: clamp(2rem, 3vw, 2.6rem);
+}
+
+.formHeader {
+  margin-bottom: 22px;
+}
+
+.formEyebrow {
+  margin-bottom: 14px;
+  color: #c7d2fe;
+  background: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.18);
+  font-size: 0.82rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.subtitle {
+  margin-bottom: 0;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: rgba(204, 204, 204, 0.7);
+}
+
+.dividerText {
+  font-weight: 800;
+  opacity: 0.9;
+}
+
+/* Form container used for grouped fields, alerts, and submit actions. */
+.form {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.42), rgba(15, 23, 42, 0.18)),
+    rgba(255, 255, 255, 0.02);
+}
+
+.formGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.hint,
+.footerText {
+  margin: 4px 0 0;
+}
+
+.footerText {
+  text-align: center;
+}
+
+.form :global(.invalid-feedback) {
+  display: block;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.formPanel :global(.alert) {
+  margin-bottom: 16px;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.formPanel :global(.alert-danger) {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+}
+
+.formPanel :global(.alert-success) {
+  background: rgba(34, 197, 94, 0.16);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  color: #ffffff;
+}
+
+.link {
+  color: #a5b4fc;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+/* Light theme overrides keep the sign-up page readable on bright backgrounds. */
+:global(html[data-theme="light"]) .card {
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.98));
+  box-shadow: 0 20px 44px rgba(148, 163, 184, 0.16);
+}
+
+:global(html[data-theme="light"]) .visualPanel {
+  background: rgba(15, 23, 42, 0.03);
+  border-right-color: rgba(148, 163, 184, 0.22);
+}
+
+:global(html[data-theme="light"]) .visualBox {
+  border-color: rgba(148, 163, 184, 0.28);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(241, 245, 249, 0.86)),
+    rgba(255, 255, 255, 0.72);
+}
+
+:global(html[data-theme="light"]) .eyebrow {
+  color: #2563eb;
+}
+
+:global(html[data-theme="light"]) .visualTitle,
+:global(html[data-theme="light"]) .title {
+  color: #111827;
+}
+
+:global(html[data-theme="light"]) .visualText,
+:global(html[data-theme="light"]) .subtitle,
+:global(html[data-theme="light"]) .hint,
+:global(html[data-theme="light"]) .muted {
+  color: rgba(17, 24, 39, 0.72);
+}
+
+:global(html[data-theme="light"]) .visualPoint,
+:global(html[data-theme="light"]) .formEyebrow {
+  background: rgba(37, 99, 235, 0.08);
+  border-color: rgba(37, 99, 235, 0.14);
+  color: #1d4ed8;
+}
+
+:global(html[data-theme="light"]) .visualImageWrap {
+  background:
+    radial-gradient(circle at top right, rgba(59, 130, 246, 0.1), transparent 34%),
+    rgba(255, 255, 255, 0.78);
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+:global(html[data-theme="light"]) .visualBadge {
+  background: rgba(99, 102, 241, 0.12);
+  color: #4338ca;
+}
+
+:global(html[data-theme="light"]) .form {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.86)),
+    rgba(255, 255, 255, 0.72);
+  border-color: rgba(148, 163, 184, 0.22);
+}
+
+:global(html[data-theme="light"]) .link {
+  color: #4338ca;
+}
+
+:global(html[data-theme="light"]) .form :global(.invalid-feedback) {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.22);
+  color: #b91c1c;
+}
+
+:global(html[data-theme="light"]) .formPanel :global(.alert-danger) {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.22);
+  color: #b91c1c;
+}
+
+:global(html[data-theme="light"]) .formPanel :global(.alert-success) {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.22);
+  color: #166534;
+}
+
+@media (max-width: 991px) {
+  .card {
+    grid-template-columns: 1fr;
+  }
+
+  .visualPanel {
+    border-right: none;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  }
+
+  :global(html[data-theme="light"]) .visualPanel {
+    border-bottom-color: rgba(148, 163, 184, 0.22);
+  }
+}
+
+@media (max-width: 767px) {
+  .visualPanel,
+  .formPanel {
+    padding: 20px;
+  }
+
+  .visualBox {
+    padding: 22px;
+  }
+
+  .form {
+    padding: 18px;
+  }
+
+  .formGrid {
+    grid-template-columns: 1fr;
+  }
+}

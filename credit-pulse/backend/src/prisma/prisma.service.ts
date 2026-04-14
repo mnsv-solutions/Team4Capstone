@@ -3,7 +3,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import { Pool } from 'pg';
+import * as path from 'path';
 
 //Importing the auto-generated database client based on the schema.
 import { PrismaClient } from '../../generated/prisma/client.js';
@@ -25,11 +25,8 @@ export class PrismaService extends PrismaClient {
     // Get the connection string for the database from the configuration service.
     const url = PrismaService.getDatabaseUrl(configService);
 
-    // Create a connection pool to the database using the connection string.
-    const pool = new Pool({ connectionString: url });
-
     // Create a new PrismaPg adapter for the database, passing in the connection pool.
-    const adapter = new PrismaPg(pool);
+    const adapter = new PrismaPg({ connectionString: url });
 
     // Initialize the PrismaService with the adapter.
     super({ adapter });
@@ -73,6 +70,12 @@ export class PrismaService extends PrismaClient {
     // Check if all the required database configuration values are present.
     if (!host || !port || !user || !password || !database || !schema) {
       throw new Error('Missing database configuration');
+    }
+
+    const sslEnabled = configService.get<boolean>('db.postgres.ssl', false);
+    if (sslEnabled) {
+      const certPath = path.join(process.cwd(), 'global-bundle.pem');
+      return `postgresql://${user}:${password}@${host}:${port}/${database}?schema=${schema}&sslmode=verify-full&sslrootcert=${certPath}`;
     }
 
     // Construct the database URL using the extracted configuration.

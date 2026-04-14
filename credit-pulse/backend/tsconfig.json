@@ -1,5 +1,7 @@
 {
+  // Backend TypeScript compiler settings for the NestJS API project.
   "compilerOptions": {
+    // Uses the modern Node ESM-compatible module system throughout the backend.
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "resolvePackageJsonExports": true,
@@ -13,7 +15,10 @@
     "target": "ES2023",
     "sourceMap": true,
     "outDir": "./dist",
+    // Resolves local imports from the backend project root.
     "baseUrl": "./",
+    // Exposes Node and Jest globals like describe/it/expect to editor TypeScript checks.
+    "types": ["node", "jest"],
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": true,
@@ -22,6 +27,7 @@
     "strictBindCallApply": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts", "src/**/*.d.ts", "jest.config.mjs", "test/**/*.ts"],
+  // Includes application source files, tests, and Prisma-related tooling.
+  "include": ["src/**/*.ts", "src/**/*.d.ts", "jest.config.mjs", "test/**/*.ts", "prisma/seed.ts", "prisma.config.ts"],
   "exclude": ["node_modules", "dist"]
 }

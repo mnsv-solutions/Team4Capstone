@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { sanitizeMobile, validateSignUp } from "../signupValidation";
+import { sanitizePhone, validateSignUp } from "../signupValidation";
 
 describe("signupValidation", () => {
   it("returns required errors for empty form", () => {
@@ -14,7 +14,7 @@ describe("signupValidation", () => {
     expect(errors.firstName).toBeTruthy();
     expect(errors.lastName).toBeTruthy();
     expect(errors.email).toBeTruthy();
-    expect(errors.mobile).toBeTruthy();
+    expect(errors.phone).toBeTruthy();
     expect(errors.password).toBeTruthy();
   });
 
@@ -31,6 +31,6 @@ describe("signupValidation", () => {
   });
 
   it("sanitizeMobile removes non-digits", () => {
-    expect(sanitizeMobile("(123)-456-7890")).toBe("1234567890");
+    expect(sanitizePhone("(123)-456-7890")).toBe("1234567890");
   });
 });

@@ -87,7 +87,7 @@ With docker running, you can build the image from one of the provided Dockerfile
 # For development environment:
 docker build -f Dockerfile.dev -t credit-pulse-dev .
 
-# For production environment:
+# For production environment (uses a multi-stage build containing both frontend & backend):
 docker build -f Dockerfile.prod -t credit-pulse-prod .
 ```
 
@@ -132,6 +132,15 @@ Access these URLs in your browser and you should be able to see the applications
 - Always run the linter and formatter before committing code to maintain code quality and consistency.
   - Linting: `npm run lint:backend`
   - Formatting: `npm run format:backend`
+  - *Automated CI checks using GitHub Actions validates linting and formatting on every Pull Request.*
+- To manage the database using Prisma from the root folder, use:
+  - Generate Client: `npm run prisma:generate`
+  - Deploy Migrations: `npm run prisma:migrate`
+  - Seed DB: `npm run prisma:seed`
+  - Reset DB: `npm run prisma:migrate:reset`
+  - Validate Schema: `npm run prisma:validate`
+  - Format Schema: `npm run prisma:format`
+  - *All Prisma commands have a `:prod` suffix that runs the same operation using `NODE_ENV=prod`, e.g., `npm run prisma:migrate:prod` or `npm run prisma:migrate:reset:prod`.*
 
 ## Team
 

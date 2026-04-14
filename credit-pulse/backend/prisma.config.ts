@@ -12,6 +12,7 @@ type DbConfig = {
       password?: string;
       database?: string;
       schema?: string;
+      ssl?: boolean;
     };
   };
 };
@@ -26,6 +27,12 @@ function buildUrl(pg: NonNullable<DbConfig['db']>['postgres']): string {
   const user = encodeURIComponent(pg.username);
   const password = encodeURIComponent(pg.password ?? '');
   const schema = pg.schema ?? 'public';
+
+  const sslEnabled = pg.ssl ?? false;
+  if (sslEnabled) {
+    const certPath = "./global-bundle.pem"
+    return `postgresql://${user}:${password}@${pg.host}:${pg.port}/${pg.database}?schema=${schema}&sslmode=verify-full&sslrootcert=${certPath}`;
+  }
   return `postgresql://${user}:${password}@${pg.host}:${pg.port}/${pg.database}?schema=${schema}`;
 }
 
@@ -36,6 +43,9 @@ const url = buildUrl(config.db?.postgres);
 
 export default defineConfig({
   schema: 'prisma/schema.prisma',
-  migrations: { path: 'prisma/migrations' },
+  migrations: {
+    path: 'prisma/migrations',
+    seed: 'tsx prisma/seed.ts',
+  },
   datasource: { url },
 });

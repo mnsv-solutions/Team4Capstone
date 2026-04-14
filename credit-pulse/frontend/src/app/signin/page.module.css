@@ -1,0 +1,187 @@
+/* This stylesheet controls the Sign In page card, form layout, alerts, and theme overrides. */
+.page {
+  display: flex;
+  justify-content: center;
+}
+
+.wrapper {
+  width: 100%;
+  max-width: 32rem;
+}
+
+/* Main sign-in card surface used in both dark and light themes. */
+.card {
+  padding: 28px;
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  background:
+    radial-gradient(circle at top left, rgba(96, 165, 250, 0.14), transparent 28%),
+    linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(30, 41, 59, 0.96));
+  box-shadow: 0 24px 52px rgba(2, 6, 23, 0.24);
+}
+
+.header {
+  margin-bottom: 22px;
+}
+
+/* Small label used to introduce the page purpose above the main title. */
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(96, 165, 250, 0.12);
+  color: #bfdbfe;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.title {
+  margin: 16px 0 10px;
+  color: #f8fbff;
+  font-size: clamp(2rem, 4vw, 2.8rem);
+  font-weight: 800;
+}
+
+.subtitle,
+.muted {
+  color: rgba(226, 232, 240, 0.78);
+}
+
+.form {
+  display: grid;
+  gap: 16px;
+}
+
+.passwordRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.link {
+  color: #a5b4fc;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.link:hover {
+  text-decoration: underline;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0;
+}
+
+.dividerLine {
+  flex: 1;
+  height: 1px;
+  background: rgba(204, 204, 204, 0.7);
+}
+
+.dividerText {
+  font-weight: 800;
+  opacity: 0.9;
+}
+
+.footerText {
+  text-align: center;
+  margin: 6px 0 0;
+}
+
+/* Field-level validation feedback styling for sign-in errors. */
+.form :global(.invalid-feedback) {
+  display: block;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+  font-size: 0.98rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.card :global(.alert) {
+  margin-bottom: 16px;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.55;
+}
+
+.card :global(.alert-danger) {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ffffff;
+}
+
+.card :global(.alert-success) {
+  background: rgba(34, 197, 94, 0.16);
+  border: 1px solid rgba(34, 197, 94, 0.28);
+  color: #ffffff;
+}
+
+/* Light theme overrides keep the sign-in page readable on bright backgrounds. */
+:global(html[data-theme="light"]) .card {
+  background:
+    radial-gradient(circle at top left, rgba(59, 130, 246, 0.12), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(241, 245, 249, 0.98));
+  box-shadow: 0 20px 44px rgba(148, 163, 184, 0.16);
+}
+
+:global(html[data-theme="light"]) .title {
+  color: #111827;
+}
+
+:global(html[data-theme="light"]) .subtitle,
+:global(html[data-theme="light"]) .muted {
+  color: rgba(17, 24, 39, 0.72);
+}
+
+:global(html[data-theme="light"]) .eyebrow {
+  color: #2563eb;
+}
+
+:global(html[data-theme="light"]) .link {
+  color: #4338ca;
+}
+
+:global(html[data-theme="light"]) .form :global(.invalid-feedback) {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.22);
+  color: #b91c1c;
+}
+
+:global(html[data-theme="light"]) .card :global(.alert-danger) {
+  background: rgba(239, 68, 68, 0.08);
+  border-color: rgba(239, 68, 68, 0.22);
+  color: #b91c1c;
+}
+
+:global(html[data-theme="light"]) .card :global(.alert-success) {
+  background: rgba(34, 197, 94, 0.1);
+  border-color: rgba(34, 197, 94, 0.22);
+  color: #166534;
+}
+
+@media (max-width: 575px) {
+  .card {
+    padding: 20px;
+    border-radius: 20px;
+  }
+
+  .passwordRow {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

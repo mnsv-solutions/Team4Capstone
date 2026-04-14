@@ -1,0 +1,115 @@
+name: CI/CD - Backend
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: 
+    - prod
+    paths:
+      - credit-pulse/backend/**
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  TASK_DEFINITION_JSON: "task-definition.json"
+
+concurrency:
+  group: credit-pulse-backend
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    environment: prod
+    outputs:
+      image: ${{ steps.image-tag.outputs.image }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v6
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHubActions-Build
+      
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Create AWS Credentials File
+        run: |
+          cat <<EOF > aws-credentials
+          [default]
+          aws_access_key_id = ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_access_key = ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          EOF
+        
+      - name: Create Configuration File
+        working-directory: credit-pulse/backend/config
+        run: |
+          echo "${{ secrets.APP_CONFIG_YAML }}" > config.prod.yaml
+      
+      - name: Download AWS RDS Global Bundle Certificate
+        working-directory: credit-pulse/backend
+        run: |
+          curl -o global-bundle.pem https://truststore.pki.rds.amazonaws.com/global/global-bundle.pem
+          
+      - name: Build and Push Docker Image
+        id: build-image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
+          file: Dockerfile.prod
+          secret-files: |
+            aws=./aws-credentials
+
+      - name: Export Image Tag to Output
+        id: image-tag
+        run: echo "image=${{ steps.login-ecr.outputs.registry }}/${{ vars.ECR_REPOSITORY }}:${{ github.sha }}" >> $GITHUB_OUTPUT
+
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    environment: prod
+    needs: build
+    steps:
+      - name: Create Task Definition JSON
+        id: create-json-api
+        uses: jsdaniell/create-json@v1
+        with:
+          name: ${{ env.TASK_DEFINITION_JSON }}
+          json: ${{ secrets.ECS_TASK_DEFINITION }}
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v6
+        with:
+          aws-region: ${{ vars.AWS_REGION }}
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          role-session-name: GitHubActions-Deploy
+      
+      - name: Render ECS Task Definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.TASK_DEFINITION_JSON }}
+          container-name: credit-pulse-backend
+          image: ${{ needs.build.outputs.image }}
+
+      - name: Deploy Amazon ECS task definition for API
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: credit-pulse-svc
+          cluster: credit-pulse
+          wait-for-service-stability: true
+      

@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Logger, Post } from '@nestjs/common';
 
 import { ApplicationStatusService } from './application-status.service.js';
 import { ApplicationStatusDto } from './dto/application-status.dto.js';
@@ -10,6 +10,8 @@ import { ApplicationStatusDto } from './dto/application-status.dto.js';
  */
 @Controller('application-status')
 export class ApplicationStatusController {
+  private readonly logger = new Logger(ApplicationStatusController.name);
+
   /**
    * The constructor of the Application Status Controller.
    *
@@ -26,6 +28,7 @@ export class ApplicationStatusController {
    */
   @Post()
   async getStatus(@Body() dto: ApplicationStatusDto) {
+    this.logger.log('A request was received to check the application status.');
     return this.service.getApplicationStatus(dto);
   }
 }

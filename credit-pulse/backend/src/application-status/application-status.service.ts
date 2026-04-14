@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 import crypto from 'node:crypto';
 
@@ -13,6 +13,8 @@ type AuditMeta = {
 
 @Injectable()
 export class ApplicationStatusService {
+  private readonly logger = new Logger(ApplicationStatusService.name);
+
   // Injecting PrismaService for database access
   constructor(private readonly prisma: PrismaService) {}
 
@@ -28,8 +30,14 @@ export class ApplicationStatusService {
    * @returns An object containing the success status, application number, status code, and status name.
    */
   async getApplicationStatus(dto: ApplicationStatusDto, meta: AuditMeta = {}) {
+    this.logger.log('The application status check has started.');
+
     // Trim application number to avoid accidental spaces
     const applicationNumber = dto.applicationNumber.trim();
+
+    this.logger.log(
+      `The application record is being looked up for application number: ${applicationNumber}`,
+    );
 
     // Hash the date of birth before storing in audit table
     const dobHash = crypto.createHash('sha256').update(dto.dob).digest('hex');
@@ -47,6 +55,10 @@ export class ApplicationStatusService {
 
     // If the application is not found, create an audit log with 'NOT_FOUND' reason code
     if (!application) {
+      this.logger.warn(
+        `No active application record was found for application number: ${applicationNumber}`,
+      );
+
       await this.prisma.application_status_audit.create({
         data: {
           application_number: applicationNumber,
@@ -58,11 +70,23 @@ export class ApplicationStatusService {
         },
       });
 
+      this.logger.warn(
+        `An audit entry was created with reason code NOT_FOUND for application number: ${applicationNumber}`,
+      );
+
       throw new NotFoundException({ success: false, reasonCode: 'NOT_FOUND' });
     }
 
+    this.logger.log(
+      `The application record was found for application number: ${applicationNumber}`,
+    );
+
     // If the application status is not active, create an audit log with 'INACTIVE_STATUS' reason code
     if (!application.application_status?.is_active) {
+      this.logger.warn(
+        `The application was found, but its status is not active for application number: ${applicationNumber}`,
+      );
+
       await this.prisma.application_status_audit.create({
         data: {
           application_number: applicationNumber,
@@ -74,8 +98,16 @@ export class ApplicationStatusService {
         },
       });
 
+      this.logger.warn(
+        `An audit entry was created with reason code INACTIVE_STATUS for application number: ${applicationNumber}`,
+      );
+
       throw new BadRequestException({ success: false, reasonCode: 'INACTIVE_STATUS' });
     }
+
+    this.logger.log(
+      `The application status is active for application number: ${applicationNumber}`,
+    );
 
     // Find the primary applicant (applicant type 0) by application ID
     const primaryLink = await this.prisma.sub_loan.findFirst({
@@ -91,6 +123,10 @@ export class ApplicationStatusService {
 
     // If the primary applicant is not found or is not active, create an audit log with 'PRIMARY_NOT_FOUND' reason code
     if (!primaryLink?.customer || !primaryLink.customer.is_active) {
+      this.logger.warn(
+        `The primary applicant details could not be verified for application number: ${applicationNumber}`,
+      );
+
       await this.prisma.application_status_audit.create({
         data: {
           application_number: applicationNumber,
@@ -102,8 +138,16 @@ export class ApplicationStatusService {
         },
       });
 
+      this.logger.warn(
+        `An audit entry was created with reason code PRIMARY_NOT_FOUND for application number: ${applicationNumber}`,
+      );
+
       throw new BadRequestException({ success: false, reasonCode: 'PRIMARY_NOT_FOUND' });
     }
+
+    this.logger.log(
+      `The primary applicant details were verified for application number: ${applicationNumber}`,
+    );
 
     // Check if the date of birth matches the primary applicant's date of birth
     const dobInput = new Date(dto.dob);
@@ -116,6 +160,10 @@ export class ApplicationStatusService {
 
     // If the date of birth does not match, create an audit log with 'DOB_MISMATCH' reason code
     if (!sameDob) {
+      this.logger.warn(
+        `The provided date of birth did not match the stored record for application number: ${applicationNumber}`,
+      );
+
       await this.prisma.application_status_audit.create({
         data: {
           application_number: applicationNumber,
@@ -127,8 +175,16 @@ export class ApplicationStatusService {
         },
       });
 
+      this.logger.warn(
+        `An audit entry was created with reason code DOB_MISMATCH for application number: ${applicationNumber}`,
+      );
+
       throw new BadRequestException({ success: false, reasonCode: 'DOB_MISMATCH' });
     }
+
+    this.logger.log(
+      `The provided details matched successfully for application number: ${applicationNumber}`,
+    );
 
     // If all checks pass, create an audit log with 'SUCCESS' reason code and return the application status
     await this.prisma.application_status_audit.create({
@@ -141,6 +197,10 @@ export class ApplicationStatusService {
         user_agent: meta.userAgent ?? null,
       },
     });
+
+    this.logger.log(
+      `The application status was returned successfully for application number: ${applicationNumber}`,
+    );
 
     // Return application status details to user
     return {
