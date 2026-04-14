@@ -1,11 +1,16 @@
 import { jest } from '@jest/globals';
 
+import { ConfigService } from '@nestjs/config';
+import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 
 import { AuthController } from './auth.controller.js';
+import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
-import { SignInRequestDto, SignInResponseDto } from './dto/signIn.dto.js';
-import { SignUpRequestDto, SignUpResponseDto } from './dto/signup.dto.js';
+import { SignInRequestDto } from './dto/sign-in-request.dto.js';
+import { SignInResponseDto } from './dto/sign-in-response.dto.js';
+import { SignUpRequestDto } from './dto/sign-up-request.dto.js';
+import { SignUpResponseDto } from './dto/sign-up-response.dto.js';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -19,7 +24,12 @@ describe('AuthController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: AuthService, useValue: authService }],
+      providers: [
+        { provide: AuthService, useValue: authService },
+        { provide: AuthGuard, useValue: { canActivate: jest.fn().mockReturnValue(true) } },
+        { provide: JwtService, useValue: { verifyAsync: jest.fn() } },
+        { provide: ConfigService, useValue: { get: jest.fn() } },
+      ],
     }).compile();
 
     controller = module.get<AuthController>(AuthController);
@@ -36,11 +46,14 @@ describe('AuthController', () => {
         password: 'password123',
       };
       const expectedResponse: SignInResponseDto = { accessToken: 'jwt-token' };
+      const request = { headers: {}, ip: '127.0.0.1' };
 
       authService.signIn.mockResolvedValue(expectedResponse);
 
-      await expect(controller.signIn(requestDto)).resolves.toEqual(expectedResponse);
-      expect(authService.signIn).toHaveBeenCalledWith(requestDto);
+      await expect(controller.signIn(requestDto, request as never)).resolves.toEqual(
+        expectedResponse,
+      );
+      expect(authService.signIn).toHaveBeenCalledWith(requestDto, request);
       expect(authService.signIn).toHaveBeenCalledTimes(1);
     });
   });

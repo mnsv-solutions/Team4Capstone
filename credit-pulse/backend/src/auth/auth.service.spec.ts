@@ -7,15 +7,22 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import * as bcrypt from 'bcrypt';
 
+import { PrismaService } from '../prisma/prisma.service.js';
 import { UsersService } from '../users/users.service.js';
 import { AuthService } from './auth.service.js';
-import { SignInRequestDto } from './dto/signIn.dto.js';
-import { SignUpRequestDto } from './dto/signup.dto.js';
+import { SignInRequestDto } from './dto/sign-in-request.dto.js';
+import { SignUpRequestDto } from './dto/sign-up-request.dto.js';
 
 describe('AuthService', () => {
   let service: AuthService;
   let usersService: { user: jest.Mock; createUser: jest.Mock };
   let jwtService: { signAsync: jest.Mock };
+  let prismaService: {
+    users: { update: jest.Mock; findUnique: jest.Mock; findFirst: jest.Mock };
+    roles: { findFirst: jest.Mock };
+    team_members: { findFirst: jest.Mock };
+    user_auth_audit_log: { create: jest.Mock };
+  };
 
   beforeEach(async () => {
     usersService = {
@@ -27,6 +34,23 @@ describe('AuthService', () => {
       signAsync: jest.fn(),
     };
 
+    prismaService = {
+      users: {
+        update: jest.fn(),
+        findUnique: jest.fn(),
+        findFirst: jest.fn(),
+      },
+      roles: {
+        findFirst: jest.fn(),
+      },
+      team_members: {
+        findFirst: jest.fn(),
+      },
+      user_auth_audit_log: {
+        create: jest.fn(),
+      },
+    };
+
     const configService = new ConfigService();
 
     const module: TestingModule = await Test.createTestingModule({
@@ -35,6 +59,7 @@ describe('AuthService', () => {
         { provide: UsersService, useValue: usersService },
         { provide: JwtService, useValue: jwtService },
         { provide: ConfigService, useValue: configService },
+        { provide: PrismaService, useValue: prismaService },
       ],
     }).compile();
 
@@ -52,15 +77,16 @@ describe('AuthService', () => {
       loginId: 'user@example.com',
       password: 'password123',
     };
+    const request = { headers: {}, ip: '127.0.0.1' };
 
     it('should throw unauthorized when user does not exist', async () => {
       usersService.user.mockResolvedValue(null);
 
-      await expect(service.signIn(signInRequest)).rejects.toThrow(
+      await expect(service.signIn(signInRequest, request as never)).rejects.toThrow(
         new UnauthorizedException('Invalid credentials'),
       );
       expect(usersService.user).toHaveBeenCalledWith({
-        OR: [{ email: signInRequest.loginId }, { phone: signInRequest.loginId }],
+        OR: [{ email: signInRequest.loginId }, { phone: '' }],
       });
     });
 
@@ -71,9 +97,13 @@ describe('AuthService', () => {
         email: 'user@example.com',
         role_id: '2',
         password_hash: passwordHash,
+        is_active: true,
+        is_blocked: false,
+        failed_login_attempts: 0,
+        locked_until: null,
       });
 
-      await expect(service.signIn(signInRequest)).rejects.toThrow(
+      await expect(service.signIn(signInRequest, request as never)).rejects.toThrow(
         new UnauthorizedException('Invalid credentials'),
       );
       expect(jwtService.signAsync).not.toHaveBeenCalled();
@@ -86,10 +116,14 @@ describe('AuthService', () => {
         email: 'user@example.com',
         role_id: '2',
         password_hash: passwordHash,
+        is_active: true,
+        is_blocked: false,
+        failed_login_attempts: 0,
+        locked_until: null,
       });
       jwtService.signAsync.mockResolvedValue('access-token');
 
-      await expect(service.signIn(signInRequest)).resolves.toEqual({
+      await expect(service.signIn(signInRequest, request as never)).resolves.toEqual({
         accessToken: 'access-token',
       });
       expect(jwtService.signAsync).toHaveBeenCalledWith({
@@ -120,6 +154,7 @@ describe('AuthService', () => {
 
     it('should create user and return response when user does not exist', async () => {
       usersService.user.mockResolvedValue(null);
+      prismaService.roles.findFirst.mockResolvedValue({ role_id: '2' });
       usersService.createUser.mockResolvedValue({
         user_id: 'new-user-id',
         email: 'jane@example.com',
@@ -139,9 +174,11 @@ describe('AuthService', () => {
         email: signUpRequest.email,
         phone: signUpRequest.phone,
         password_hash: expect.any(String),
-        role: {
-          connect: { role_id: '2' },
-        },
+        role_id: '2',
+        is_logged_in: false,
+        failed_login_attempts: 0,
+        is_blocked: false,
+        locked_until: null,
       });
     });
   });

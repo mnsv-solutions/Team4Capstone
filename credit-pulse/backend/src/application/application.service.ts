@@ -1,3 +1,4 @@
+// This service owns core application creation, retrieval, document, and financial workflows.
 import {
   BadRequestException,
   Injectable,
@@ -107,6 +108,7 @@ export class ApplicationService {
     createApplicationDto: CreateApplicationRequestDto,
     currentUser: JwtPayload,
   ): Promise<CreateApplicationResponseDto> {
+    // Creates the complete loan application and all related customer records in one transaction.
     try {
       return await this.prisma.$transaction(async (tx) => {
         if (
@@ -695,12 +697,32 @@ export class ApplicationService {
   ) {
     const applicationNumber = await this.generateUniqueApplicationNumber(tx);
 
+    let selectedProductMaxInterestRate: Prisma.Decimal | null = null;
+
+    if (createApplicationDto?.loanTypeId) {
+      const productConfig = await tx.loan_product_config.findUnique({
+        where: {
+          loan_type_id: createApplicationDto.loanTypeId,
+        },
+        select: {
+          max_interest_rate: true,
+        },
+      });
+
+      if (!productConfig) {
+        throw new BadRequestException('Selected loan product configuration could not be found.');
+      }
+
+      selectedProductMaxInterestRate = productConfig.max_interest_rate;
+    }
+
     const loanApplication = await tx.loan_application.create({
       data: {
         application_number: applicationNumber,
         status_id: statusId,
         created_by: userId,
         loan_type_id: createApplicationDto?.loanTypeId || null,
+        interest_rate: selectedProductMaxInterestRate,
         tenure_months: createApplicationDto?.tenureMonths
           ? Number(createApplicationDto.tenureMonths)
           : null,
@@ -1307,6 +1329,7 @@ export class ApplicationService {
   }
 
   async verifyDocument(dto: VerifyDocumentRequestDto): Promise<VerifyDocumentResponseDto> {
+    // Saves the latest verification status for each matched uploaded document.
     const loanApp = await this.prisma.loan_application.findUnique({
       where: { application_number: dto.applicationNumber },
       include: {
@@ -1344,7 +1367,7 @@ export class ApplicationService {
       return { message: 'No documents provided for verification.' };
     }
 
-    const docsToVerifyIds: string[] = [];
+    const verificationUpdates: Array<{ customerDocumentId: string; isVerified: boolean }> = [];
 
     for (const docDto of dto.documents) {
       const match = customer.documents.find((doc) => {
@@ -1369,23 +1392,26 @@ export class ApplicationService {
       });
 
       if (match) {
-        docsToVerifyIds.push(match.customer_document_id);
+        verificationUpdates.push({
+          customerDocumentId: match.customer_document_id,
+          isVerified: docDto.verificationStatus === 'VERIFIED',
+        });
       }
     }
 
-    if (docsToVerifyIds.length > 0) {
-      await this.prisma.customer_document_details.updateMany({
-        where: {
-          customer_document_id: {
-            in: docsToVerifyIds,
-          },
-        },
-        data: {
-          is_verified: true,
-        },
-      });
+    if (verificationUpdates.length > 0) {
+      await this.prisma.$transaction(
+        verificationUpdates.map((item) =>
+          this.prisma.customer_document_details.update({
+            where: { customer_document_id: item.customerDocumentId },
+            data: { is_verified: item.isVerified },
+          }),
+        ),
+      );
     }
 
-    return { message: `${docsToVerifyIds.length} document(s) verified successfully.` };
+    return {
+      message: `${verificationUpdates.length} document verification record(s) updated successfully.`,
+    };
   }
 }

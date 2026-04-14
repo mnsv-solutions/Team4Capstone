@@ -1,5 +1,6 @@
 "use client";
 
+// This page handles the multi-step customer loan application experience.
 import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import { useRouter } from "next/navigation";
@@ -22,6 +23,7 @@ import {
   sanitizeAddressText,
   sanitizeLettersSpaces,
   sanitizeAlphaNumericBasic,
+  normalizeLoanApplicationForm,
   validateLoanStep,
   createEmptyBankAccount,
   type Address,
@@ -40,6 +42,7 @@ type LoanProduct = {
   productId: string;
   productCode: string;
   productName: string;
+  description?: string | null;
   minAmount: string;
   maxAmount: string;
   minTenureMonths: number;
@@ -74,6 +77,7 @@ const initialAddress: Address = {
 };
 
 const initialForm: ExtendedLoanApplicationForm = {
+  // Starts the form with safe blank values for every step.
   firstName: "",
   lastName: "",
   dob: "",
@@ -117,6 +121,28 @@ const initialForm: ExtendedLoanApplicationForm = {
   creditReportConsent: false,
   declarationAccepted: false,
 };
+
+const addressErrorKeyMap: Record<
+  "residentialAddress" | "mailingAddress",
+  Partial<Record<keyof Address, string>>
+> = {
+  residentialAddress: {
+    line1: "residentialLine1",
+    line2: undefined,
+    city: "residentialCity",
+    state: "residentialState",
+    postalCode: "residentialPostalCode",
+    country: "residentialCountry",
+  },
+  mailingAddress: {
+    line1: "mailingLine1",
+    line2: undefined,
+    city: "mailingCity",
+    state: "mailingState",
+    postalCode: "mailingPostalCode",
+    country: "mailingCountry",
+  },
+} as const;
 
 export default function LoanApplicationPage() {
   const router = useRouter();
@@ -246,6 +272,7 @@ export default function LoanApplicationPage() {
     key: keyof Address,
     value: string
   ) {
+    // Updates nested address values and clears only the matching address error.
     setForm((prev) => ({
       ...prev,
       [section]: {
@@ -253,6 +280,15 @@ export default function LoanApplicationPage() {
         [key]: value,
       },
     }));
+
+    const mappedErrorKey = addressErrorKeyMap[section][key];
+    if (mappedErrorKey && errors[mappedErrorKey]) {
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[mappedErrorKey];
+        return next;
+      });
+    }
   }
 
   function setBankField(
@@ -339,44 +375,63 @@ export default function LoanApplicationPage() {
       return next;
     });
   }
-    function handleNext() {
-    setSuccessMsg("");
-    setApiError("");
 
-    const stepErrors = validateLoanStep(form as LoanApplicationForm, currentStep);
+  function getValidatedFormState() {
+    const normalizedForm = normalizeLoanApplicationForm(
+      form as LoanApplicationForm
+    ) as ExtendedLoanApplicationForm;
+    const stepErrors = validateLoanStep(normalizedForm, currentStep);
 
     if (currentStep === 3) {
-      if (!form.loanTypeId) {
-        stepErrors.loanTypeId = "Loan type is required.";
+      if (!normalizedForm.loanTypeId) {
+        stepErrors.loanTypeId = "Loan product is required.";
+      } else if (!selectedLoanProduct) {
+        stepErrors.loanTypeId =
+          "Selected loan product is not available right now.";
       }
 
       if (selectedLoanProduct) {
-        const loanAmountNumber = Number(form.loanAmount);
+        const loanAmountNumber = Number(normalizedForm.loanAmount);
         const minAmount = Number(selectedLoanProduct.minAmount);
         const maxAmount = Number(selectedLoanProduct.maxAmount);
 
-        if (!form.loanAmount.trim()) {
+        if (!normalizedForm.loanAmount.trim()) {
           stepErrors.loanAmount = "Requested loan amount is required.";
         } else if (Number.isNaN(loanAmountNumber)) {
-          stepErrors.loanAmount = "Requested loan amount must be a valid number.";
-        } else if (loanAmountNumber < minAmount || loanAmountNumber > maxAmount) {
+          stepErrors.loanAmount =
+            "Requested loan amount must be a valid number.";
+        } else if (
+          loanAmountNumber < minAmount ||
+          loanAmountNumber > maxAmount
+        ) {
           stepErrors.loanAmount = `Requested loan amount must be between ${selectedLoanProduct.minAmount} and ${selectedLoanProduct.maxAmount}.`;
         }
 
-        const tenureNumber = Number(form.tenureMonths);
+        const tenureNumber = Number(normalizedForm.tenureMonths);
         const minTenure = selectedLoanProduct.minTenureMonths;
         const maxTenure = selectedLoanProduct.maxTenureMonths;
 
-        if (!form.tenureMonths.trim()) {
+        if (!normalizedForm.tenureMonths.trim()) {
           stepErrors.tenureMonths = "Requested loan tenure is required.";
         } else if (Number.isNaN(tenureNumber)) {
-          stepErrors.tenureMonths = "Requested loan tenure must be a valid number.";
+          stepErrors.tenureMonths =
+            "Requested loan tenure must be a valid number.";
         } else if (tenureNumber < minTenure || tenureNumber > maxTenure) {
           stepErrors.tenureMonths = `Requested loan tenure must be between ${minTenure} and ${maxTenure} months.`;
         }
       }
     }
 
+    return { normalizedForm, stepErrors };
+  }
+
+  function handleNext() {
+    setSuccessMsg("");
+    setApiError("");
+
+    const { normalizedForm, stepErrors } = getValidatedFormState();
+
+    setForm(normalizedForm);
     setErrors(stepErrors);
 
     if (Object.keys(stepErrors).length > 0) return;
@@ -472,42 +527,9 @@ export default function LoanApplicationPage() {
     setSuccessMsg("");
     setApiError("");
 
-    const finalErrors = validateLoanStep(form as LoanApplicationForm, currentStep);
+    const { normalizedForm, stepErrors: finalErrors } = getValidatedFormState();
 
-    if (currentStep === 3) {
-      if (!form.loanTypeId) {
-        finalErrors.loanTypeId = "Loan type is required.";
-      }
-
-      if (selectedLoanProduct) {
-        const loanAmountNumber = Number(form.loanAmount);
-        const minAmount = Number(selectedLoanProduct.minAmount);
-        const maxAmount = Number(selectedLoanProduct.maxAmount);
-
-        if (!form.loanAmount.trim()) {
-          finalErrors.loanAmount = "Requested loan amount is required.";
-        } else if (Number.isNaN(loanAmountNumber)) {
-          finalErrors.loanAmount =
-            "Requested loan amount must be a valid number.";
-        } else if (loanAmountNumber < minAmount || loanAmountNumber > maxAmount) {
-          finalErrors.loanAmount = `Requested loan amount must be between ${selectedLoanProduct.minAmount} and ${selectedLoanProduct.maxAmount}.`;
-        }
-
-        const tenureNumber = Number(form.tenureMonths);
-        const minTenure = selectedLoanProduct.minTenureMonths;
-        const maxTenure = selectedLoanProduct.maxTenureMonths;
-
-        if (!form.tenureMonths.trim()) {
-          finalErrors.tenureMonths = "Requested loan tenure is required.";
-        } else if (Number.isNaN(tenureNumber)) {
-          finalErrors.tenureMonths =
-            "Requested loan tenure must be a valid number.";
-        } else if (tenureNumber < minTenure || tenureNumber > maxTenure) {
-          finalErrors.tenureMonths = `Requested loan tenure must be between ${minTenure} and ${maxTenure} months.`;
-        }
-      }
-    }
-
+    setForm(normalizedForm);
     setErrors(finalErrors);
 
     if (Object.keys(finalErrors).length > 0) return;
@@ -520,7 +542,7 @@ export default function LoanApplicationPage() {
     try {
       setIsSubmitting(true);
 
-      const payload = buildLoanApplicationPayload(form);
+      const payload = buildLoanApplicationPayload(normalizedForm);
 
       const createResponse = await axios.post(process.env.NEXT_PUBLIC_API_URL + "/application/create", payload, {
         headers: {
@@ -534,14 +556,17 @@ export default function LoanApplicationPage() {
       const multipartData = new FormData();
       multipartData.append("application_id", applicationId);
 
-      if (form.governmentIdProof) {
-        multipartData.append("governmentIdProof", form.governmentIdProof);
+      if (normalizedForm.governmentIdProof) {
+        multipartData.append(
+          "governmentIdProof",
+          normalizedForm.governmentIdProof
+        );
       }
-      if (form.incomeProof) {
-        multipartData.append("incomeProof", form.incomeProof);
+      if (normalizedForm.incomeProof) {
+        multipartData.append("incomeProof", normalizedForm.incomeProof);
       }
-      if (form.bankStatement) {
-        multipartData.append("bankStatement", form.bankStatement);
+      if (normalizedForm.bankStatement) {
+        multipartData.append("bankStatement", normalizedForm.bankStatement);
       }
 
       await axios.post(process.env.NEXT_PUBLIC_API_URL + "/application/files", multipartData, {
@@ -645,7 +670,7 @@ export default function LoanApplicationPage() {
 
   function renderInputError(key: string) {
     return errors[key] ? (
-      <div className="invalid-feedback d-block">{errors[key]}</div>
+      <div className="invalid-feedback d-block cp-form-error">{errors[key]}</div>
     ) : null;
   }
 
@@ -697,13 +722,14 @@ export default function LoanApplicationPage() {
       </main>
     );
   }
-    return (
+  return (
     <main className="cp-loan-page">
       <section className="cp-loan-card">
         <div className="cp-loan-top">
+          <span className="cp-loan-kicker">New application</span>
           <h1 className="cp-loan-title">Loan Application</h1>
           <p className="cp-loan-description">
-            Complete all steps to submit your loan application
+            Complete each section carefully and we will guide you through the required details, documents, and final checks.
           </p>
         </div>
 
@@ -749,7 +775,7 @@ export default function LoanApplicationPage() {
 
         {successMsg && (
           <div
-            className="alert alert-success mt-4"
+            className="alert alert-success mt-4 cp-loan-alert cp-loan-alert-success"
             role="status"
             aria-live="polite"
           >
@@ -758,7 +784,7 @@ export default function LoanApplicationPage() {
         )}
 
         {apiError && (
-          <div className="alert alert-danger mt-4" role="alert">
+          <div className="alert alert-danger mt-4 cp-loan-alert cp-loan-alert-error" role="alert">
             {apiError}
           </div>
         )}
@@ -823,8 +849,6 @@ export default function LoanApplicationPage() {
                   <option value="">Select gender</option>
                   <option value="Female">Female</option>
                   <option value="Male">Male</option>
-                  <option value="Non-binary">Non-binary</option>
-                  <option value="Prefer not to say">Prefer not to say</option>
                 </select>
                 {renderInputError("gender")}
               </div>
@@ -1337,7 +1361,7 @@ export default function LoanApplicationPage() {
                       onChange={(e) =>
                         setField(
                           "institutionName",
-                          sanitizeAlphaNumericBasic(e.target.value).slice(0, 80)
+                          sanitizeLettersSpaces(e.target.value).slice(0, 80)
                         )
                       }
                       placeholder="Enter institution name"
@@ -1385,38 +1409,40 @@ export default function LoanApplicationPage() {
                   <option value="">Select employment status</option>
                   <option value="Employed">Employed</option>
                   <option value="Self-employed">Self-employed</option>
-                  <option value="Unemployed">Unemployed</option>
-                  <option value="Student">Student</option>
-                  <option value="Retired">Retired</option>
                 </select>
                 {renderInputError("employmentStatus")}
               </div>
 
-              {form.employmentStatus === "Employed" && (
+              {(form.employmentStatus === "Employed" ||
+                form.employmentStatus === "Self-employed") && (
                 <>
-                  <div className="col-12 col-md-4">
-                    <label className="form-label fw-semibold">Employer Name *</label>
-                    <input
-                      type="text"
-                      className={`form-control ${
-                        errors.employerName ? "is-invalid" : ""
-                      }`}
-                      value={form.employerName}
-                      onChange={(e) =>
-                        setField(
-                          "employerName",
-                          sanitizeAlphaNumericBasic(e.target.value).slice(0, 80)
-                        )
-                      }
-                      placeholder="Enter employer name"
-                      maxLength={80}
-                    />
-                    {renderInputError("employerName")}
-                  </div>
+                  {form.employmentStatus === "Employed" && (
+                    <div className="col-12 col-md-4">
+                      <label className="form-label fw-semibold">Employer Name *</label>
+                      <input
+                        type="text"
+                        className={`form-control ${
+                          errors.employerName ? "is-invalid" : ""
+                        }`}
+                        value={form.employerName}
+                        onChange={(e) =>
+                          setField(
+                            "employerName",
+                            sanitizeAlphaNumericBasic(e.target.value).slice(0, 80)
+                          )
+                        }
+                        placeholder="Enter employer name"
+                        maxLength={80}
+                      />
+                      {renderInputError("employerName")}
+                    </div>
+                  )}
 
                   <div className="col-12 col-md-4">
                     <label className="form-label fw-semibold">
-                      Job Title / Occupation *
+                      {form.employmentStatus === "Self-employed"
+                        ? "Business / Occupation *"
+                        : "Job Title / Occupation *"}
                     </label>
                     <input
                       type="text"
@@ -1430,7 +1456,11 @@ export default function LoanApplicationPage() {
                           sanitizeLettersSpaces(e.target.value).slice(0, 60)
                         )
                       }
-                      placeholder="Enter job title / occupation"
+                      placeholder={
+                        form.employmentStatus === "Self-employed"
+                          ? "Enter business or occupation"
+                          : "Enter job title / occupation"
+                      }
                       maxLength={60}
                     />
                     {renderInputError("jobTitle")}
@@ -1555,7 +1585,7 @@ export default function LoanApplicationPage() {
                 </select>
                 {renderInputError("loanTypeId")}
                 {productsError && (
-                  <div className="invalid-feedback d-block">{productsError}</div>
+                  <div className="invalid-feedback d-block cp-form-error">{productsError}</div>
                 )}
               </div>
 
@@ -1580,9 +1610,14 @@ export default function LoanApplicationPage() {
                 />
                 {renderInputError("loanAmount")}
                 {selectedLoanProduct && (
-                  <div className="form-text">
+                  <div className="form-text cp-loan-helper-text">
                     Allowed range: {selectedLoanProduct.minAmount} to{" "}
                     {selectedLoanProduct.maxAmount}
+                  </div>
+                )}
+                {selectedLoanProduct?.description && (
+                  <div className="form-text cp-loan-helper-text">
+                    {selectedLoanProduct.description}
                   </div>
                 )}
               </div>
@@ -1612,7 +1647,7 @@ export default function LoanApplicationPage() {
                 />
                 {renderInputError("tenureMonths")}
                 {selectedLoanProduct && (
-                  <div className="form-text">
+                  <div className="form-text cp-loan-helper-text">
                     Allowed range: {selectedLoanProduct.minTenureMonths} to{" "}
                     {selectedLoanProduct.maxTenureMonths} months
                   </div>
@@ -1637,13 +1672,13 @@ export default function LoanApplicationPage() {
                 </div>
 
                 {errors.bankAccounts && (
-                  <div className="alert alert-danger py-2 cp-loan-alert-inline">
+                  <div className="alert alert-danger py-2 cp-loan-alert cp-loan-alert-error cp-loan-alert-inline">
                     {errors.bankAccounts}
                   </div>
                 )}
 
                 {errors.repaymentAccount && (
-                  <div className="alert alert-danger py-2 cp-loan-alert-inline">
+                  <div className="alert alert-danger py-2 cp-loan-alert cp-loan-alert-error cp-loan-alert-inline">
                     {errors.repaymentAccount}
                   </div>
                 )}
@@ -1949,7 +1984,7 @@ export default function LoanApplicationPage() {
           </div>
 
           {submitted && !successMsg && Object.keys(errors).length > 0 && (
-            <div className="alert alert-danger mt-3" role="alert">
+            <div className="alert alert-danger mt-3 cp-loan-alert cp-loan-alert-error" role="alert">
               Please fix the highlighted fields before continuing.
             </div>
           )}

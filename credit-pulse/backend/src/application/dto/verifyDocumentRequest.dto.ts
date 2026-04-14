@@ -1,5 +1,5 @@
 import { Type } from 'class-transformer';
-import { IsArray, IsNotEmpty, IsString, Matches, ValidateNested } from 'class-validator';
+import { IsArray, IsIn, IsNotEmpty, IsString, Matches, ValidateNested } from 'class-validator';
 
 export class DocumentVerifyItemDto {
   @IsString()
@@ -9,6 +9,10 @@ export class DocumentVerifyItemDto {
   @IsString()
   @IsNotEmpty()
   fileName: string;
+
+  @IsString()
+  @IsIn(['VERIFIED', 'NOT_VERIFIED'])
+  verificationStatus: 'VERIFIED' | 'NOT_VERIFIED';
 }
 
 export class VerifyDocumentRequestDto {

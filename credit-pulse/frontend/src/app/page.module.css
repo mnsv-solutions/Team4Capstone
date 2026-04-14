@@ -1,3 +1,4 @@
+/* This stylesheet controls the homepage hero, status form, highlights, process cards, and CTA sections. */
 .page {
   display: flex;
   flex-direction: column;
@@ -5,6 +6,7 @@
   width: 100%;
 }
 
+/* Shared surface styling for the homepage section panels. */
 .hero,
 .section,
 .ctaSection,
@@ -28,6 +30,7 @@
   min-width: 0;
 }
 
+/* Reusable eyebrow labels used in the hero and supporting cards. */
 .eyebrow,
 .cardEyebrow {
   display: inline-flex;
@@ -72,6 +75,7 @@
   line-height: 1.8;
 }
 
+/* Button rows that wrap nicely on smaller screens. */
 .heroActions,
 .ctaActions {
   display: flex;
@@ -326,6 +330,10 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.processGrid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
 .infoCard,
 .processCard,
 .testimonialCard {
@@ -465,8 +473,11 @@
 
   .highlightGrid,
   .infoGrid,
-  .processGrid,
   .testimonialGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .processGrid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -542,9 +553,10 @@
     justify-content: center;
   }
 
-  .heroText,
-  .sectionHeader p,
-  .sectionHeaderCentered p,
+/* Shared body copy styling across the homepage content cards. */
+.heroText,
+.sectionHeader p,
+.sectionHeaderCentered p,
   .ctaSection p,
   .statusIntro,
   .helperText,

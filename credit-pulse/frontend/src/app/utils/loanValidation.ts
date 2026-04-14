@@ -189,6 +189,28 @@ export function isAdult(dateString: string) {
   return age >= 18;
 }
 
+const EMPLOYMENT_STATUSES = new Set([
+  "Employed",
+  "Self-employed",
+  "Student",
+  "Retired",
+]);
+
+const GENDERS = new Set(["Female", "Male"]);
+
+const EDUCATION_LEVELS = new Set([
+  "Illiterate",
+  "High School",
+  "Diploma",
+  "Bachelor",
+  "Master",
+  "Doctorate",
+]);
+
+function hasRepeatedDigits(value: string) {
+  return /^(\d)\1+$/.test(value);
+}
+
 function hasOnlyLettersSpaces(value: string) {
   return /^[A-Za-z][A-Za-z\s'-]*$/.test(value);
 }
@@ -249,6 +271,20 @@ function hasValidMoneyLength(value: string, maxDigits = 9) {
   return /^\d+$/.test(value) && value.length <= maxDigits;
 }
 
+function isValidAddressLine(value: string, min = 5, max = 100) {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (trimmed.length < min || trimmed.length > max) return false;
+  return /[A-Za-z0-9]/.test(trimmed);
+}
+
+function isValidAlphaNumericSentence(value: string, min = 2, max = 100) {
+  const trimmed = value.trim();
+  if (!trimmed) return false;
+  if (trimmed.length < min || trimmed.length > max) return false;
+  return /^[A-Za-z0-9][A-Za-z0-9\s./&-]*$/.test(trimmed);
+}
+
 export function validateFile(file: File | null, label: string) {
   if (!file) return `${label} is required.`;
 
@@ -276,251 +312,284 @@ export function validateLoanStep(
   form: LoanApplicationForm,
   stepIndex: number
 ): FormErrors {
+  const normalizedForm = normalizeLoanApplicationForm(form);
+  const data = normalizedForm;
   const nextErrors: FormErrors = {};
 
   if (stepIndex === 0) {
-    if (!form.firstName.trim()) {
+    if (!data.firstName.trim()) {
       nextErrors.firstName = "First name is required.";
-    } else if (!isValidName(form.firstName)) {
+    } else if (!isValidName(data.firstName)) {
       nextErrors.firstName = "First name must be 2 to 50 letters only.";
     }
 
-    if (!form.lastName.trim()) {
+    if (!data.lastName.trim()) {
       nextErrors.lastName = "Last name is required.";
-    } else if (!isValidName(form.lastName)) {
+    } else if (!isValidName(data.lastName)) {
       nextErrors.lastName = "Last name must be 2 to 50 letters only.";
     }
 
-    if (!form.dob) {
+    if (!data.dob) {
       nextErrors.dob = "Date of birth is required.";
-    } else if (!isAdult(form.dob)) {
+    } else if (!isAdult(data.dob)) {
       nextErrors.dob =
         "Date of birth must be in the past and applicant must be at least 18 years old.";
     }
 
-    if (!form.gender) {
+    if (!data.gender) {
       nextErrors.gender = "Gender is required.";
+    } else if (!GENDERS.has(data.gender)) {
+      nextErrors.gender = "Select a valid gender.";
     }
 
-    if (!form.maritalStatus) {
+    if (!data.maritalStatus) {
       nextErrors.maritalStatus = "Marital status is required.";
     }
 
-    if (!form.nationality.trim()) {
+    if (!data.nationality.trim()) {
       nextErrors.nationality = "Nationality is required.";
-    } else if (!isValidName(form.nationality, 2, 40)) {
+    } else if (!isValidName(data.nationality, 2, 40)) {
       nextErrors.nationality = "Nationality must contain letters only.";
     }
 
-    if (!form.governmentIdType) {
+    if (!data.governmentIdType) {
       nextErrors.governmentIdType = "Government ID type is required.";
     }
 
-    if (!form.governmentIdNumber.trim()) {
+    if (!data.governmentIdNumber.trim()) {
       nextErrors.governmentIdNumber = "Government ID number is required.";
     } else if (
-      !isValidGovernmentId(form.governmentIdNumber, form.governmentIdType)
+      !isValidGovernmentId(data.governmentIdNumber, data.governmentIdType)
     ) {
       nextErrors.governmentIdNumber =
         "Government ID number must be 5 to 20 letters, numbers, or hyphens.";
     }
 
-    if (!form.sinTaxId.trim()) {
+    if (!data.sinTaxId.trim()) {
       nextErrors.sinTaxId = "SIN is required.";
-    } else if (!/^\d{9}$/.test(form.sinTaxId)) {
+    } else if (!/^\d{9}$/.test(data.sinTaxId)) {
       nextErrors.sinTaxId = "SIN must be exactly 9 digits.";
+    } else if (hasRepeatedDigits(data.sinTaxId)) {
+      nextErrors.sinTaxId = "Enter a valid SIN.";
     }
   }
 
   if (stepIndex === 1) {
-    if (!form.email.trim()) {
+    if (!data.email.trim()) {
       nextErrors.email = "Email address is required.";
-    } else if (!isValidEmail(form.email)) {
+    } else if (!isValidEmail(data.email)) {
       nextErrors.email = "Enter a valid email address.";
     }
 
-    if (!form.mobile.trim()) {
+    if (!data.mobile.trim()) {
       nextErrors.mobile = "Mobile number is required.";
-    } else if (!isValidPhone10(form.mobile)) {
+    } else if (!isValidPhone10(data.mobile)) {
       nextErrors.mobile = "Mobile number must be exactly 10 digits.";
     }
 
-    if (form.alternatePhone.trim() && !isValidPhone10(form.alternatePhone)) {
+    if (data.alternatePhone.trim() && !isValidPhone10(data.alternatePhone)) {
       nextErrors.alternatePhone = "Alternate phone must be exactly 10 digits.";
+    } else if (data.alternatePhone && data.alternatePhone === data.mobile) {
+      nextErrors.alternatePhone =
+        "Alternate phone must be different from the mobile number.";
     }
 
-    if (!form.residentialAddress.line1.trim()) {
+    if (!data.residentialAddress.line1.trim()) {
       nextErrors.residentialLine1 = "Residential address line 1 is required.";
-    } else if (form.residentialAddress.line1.trim().length < 5) {
+    } else if (!isValidAddressLine(data.residentialAddress.line1)) {
       nextErrors.residentialLine1 =
-        "Residential address line 1 must be at least 5 characters.";
+        "Residential address line 1 must be 5 to 100 characters.";
     }
 
-    if (!form.residentialAddress.city.trim()) {
+    if (!data.residentialAddress.city.trim()) {
       nextErrors.residentialCity = "City is required.";
-    } else if (!isValidName(form.residentialAddress.city, 2, 50)) {
+    } else if (!isValidName(data.residentialAddress.city, 2, 50)) {
       nextErrors.residentialCity = "City must contain letters only.";
     }
 
-    if (!form.residentialAddress.state.trim()) {
+    if (!data.residentialAddress.state.trim()) {
       nextErrors.residentialState = "Province / State is required.";
-    } else if (!isValidName(form.residentialAddress.state, 2, 50)) {
+    } else if (!isValidName(data.residentialAddress.state, 2, 50)) {
       nextErrors.residentialState =
         "Province / State must contain letters only.";
     }
 
-    if (!form.residentialAddress.postalCode.trim()) {
+    if (!data.residentialAddress.postalCode.trim()) {
       nextErrors.residentialPostalCode = "Postal code is required.";
-    } else if (!isValidPostalCode(form.residentialAddress.postalCode)) {
+    } else if (!isValidPostalCode(data.residentialAddress.postalCode)) {
       nextErrors.residentialPostalCode = "Enter a valid postal code.";
     }
 
-    if (!form.residentialAddress.country.trim()) {
+    if (!data.residentialAddress.country.trim()) {
       nextErrors.residentialCountry = "Country is required.";
-    } else if (!isValidName(form.residentialAddress.country, 2, 50)) {
+    } else if (!isValidName(data.residentialAddress.country, 2, 50)) {
       nextErrors.residentialCountry = "Country must contain letters only.";
     }
 
-    if (!form.mailingSameAsResidential) {
-      if (!form.mailingAddress.line1.trim()) {
+    if (!data.mailingSameAsResidential) {
+      if (!data.mailingAddress.line1.trim()) {
         nextErrors.mailingLine1 = "Mailing address line 1 is required.";
-      } else if (form.mailingAddress.line1.trim().length < 5) {
+      } else if (!isValidAddressLine(data.mailingAddress.line1)) {
         nextErrors.mailingLine1 =
-          "Mailing address line 1 must be at least 5 characters.";
+          "Mailing address line 1 must be 5 to 100 characters.";
       }
 
-      if (!form.mailingAddress.city.trim()) {
+      if (!data.mailingAddress.city.trim()) {
         nextErrors.mailingCity = "City is required.";
-      } else if (!isValidName(form.mailingAddress.city, 2, 50)) {
+      } else if (!isValidName(data.mailingAddress.city, 2, 50)) {
         nextErrors.mailingCity = "City must contain letters only.";
       }
 
-      if (!form.mailingAddress.state.trim()) {
+      if (!data.mailingAddress.state.trim()) {
         nextErrors.mailingState = "Province / State is required.";
-      } else if (!isValidName(form.mailingAddress.state, 2, 50)) {
+      } else if (!isValidName(data.mailingAddress.state, 2, 50)) {
         nextErrors.mailingState = "Province / State must contain letters only.";
       }
 
-      if (!form.mailingAddress.postalCode.trim()) {
+      if (!data.mailingAddress.postalCode.trim()) {
         nextErrors.mailingPostalCode = "Postal code is required.";
-      } else if (!isValidPostalCode(form.mailingAddress.postalCode)) {
+      } else if (!isValidPostalCode(data.mailingAddress.postalCode)) {
         nextErrors.mailingPostalCode = "Enter a valid postal code.";
       }
 
-      if (!form.mailingAddress.country.trim()) {
+      if (!data.mailingAddress.country.trim()) {
         nextErrors.mailingCountry = "Country is required.";
-      } else if (!isValidName(form.mailingAddress.country, 2, 50)) {
+      } else if (!isValidName(data.mailingAddress.country, 2, 50)) {
         nextErrors.mailingCountry = "Country must contain letters only.";
       }
     }
   }
 
   if (stepIndex === 2) {
-    if (!form.highestEducation) {
+    if (!data.highestEducation) {
       nextErrors.highestEducation = "Highest education level is required.";
+    } else if (!EDUCATION_LEVELS.has(data.highestEducation)) {
+      nextErrors.highestEducation = "Select a valid education level.";
     }
 
-    if (form.highestEducation !== "Illiterate") {
-      if (!form.fieldOfStudy.trim()) {
+    if (data.highestEducation !== "Illiterate") {
+      if (!data.fieldOfStudy.trim()) {
         nextErrors.fieldOfStudy = "Field of study is required.";
-      } else if (form.fieldOfStudy.trim().length < 2) {
+      } else if (!isValidName(data.fieldOfStudy, 2, 60)) {
         nextErrors.fieldOfStudy =
-          "Field of study must be at least 2 characters.";
+          "Field of study must be 2 to 60 letters only.";
       }
 
-      if (!form.institutionName.trim()) {
+      if (!data.institutionName.trim()) {
         nextErrors.institutionName =
           "Institution / University name is required.";
-      } else if (form.institutionName.trim().length < 2) {
+      } else if (!isValidName(data.institutionName, 2, 80)) {
         nextErrors.institutionName =
-          "Institution / University name must be at least 2 characters.";
+          "Institution / University name must be 2 to 80 letters only.";
       }
 
-      if (!form.graduationYear.trim()) {
+      if (!data.graduationYear.trim()) {
         nextErrors.graduationYear = "Graduation year is required.";
-      } else if (!isValidYear(form.graduationYear)) {
+      } else if (!isValidYear(data.graduationYear)) {
         nextErrors.graduationYear = "Enter a valid graduation year.";
       }
     }
   }
 
   if (stepIndex === 3) {
-    if (!form.employmentStatus) {
+    if (!data.employmentStatus) {
       nextErrors.employmentStatus = "Employment status is required.";
+    } else if (!EMPLOYMENT_STATUSES.has(data.employmentStatus)) {
+      nextErrors.employmentStatus = "Select a valid employment status.";
     }
 
-    if (form.employmentStatus === "Employed") {
-      if (!form.employerName.trim()) {
+    if (
+      data.employmentStatus === "Employed" ||
+      data.employmentStatus === "Self-employed"
+    ) {
+      if (data.employmentStatus === "Employed" && !data.employerName.trim()) {
         nextErrors.employerName = "Employer name is required.";
-      } else if (form.employerName.trim().length < 2) {
+      } else if (
+        data.employmentStatus === "Employed" &&
+        !isValidAlphaNumericSentence(data.employerName, 2, 80)
+      ) {
         nextErrors.employerName =
-          "Employer name must be at least 2 characters.";
+          "Employer name must be 2 to 80 valid characters.";
       }
 
-      if (!form.jobTitle.trim()) {
+      if (!data.jobTitle.trim()) {
         nextErrors.jobTitle = "Job title / occupation is required.";
-      } else if (form.jobTitle.trim().length < 2) {
+      } else if (!isValidName(data.jobTitle, 2, 60)) {
         nextErrors.jobTitle =
-          "Job title / occupation must be at least 2 characters.";
+          "Job title / occupation must be 2 to 60 letters only.";
       }
 
-      if (!form.workExperience.trim()) {
+      if (!data.workExperience.trim()) {
         nextErrors.workExperience = "Work experience is required.";
-      } else if (!/^\d{1,2}$/.test(form.workExperience)) {
+      } else if (!/^\d{1,2}$/.test(data.workExperience)) {
         nextErrors.workExperience =
           "Work experience must be a valid number of years.";
+      } else if (Number(data.workExperience) > 60) {
+        nextErrors.workExperience =
+          "Work experience cannot be more than 60 years.";
       }
 
-      if (!form.monthlyIncome.trim()) {
+      if (!data.monthlyIncome.trim()) {
         nextErrors.monthlyIncome = "Monthly income is required.";
-      } else if (!isPositiveNumberString(form.monthlyIncome)) {
+      } else if (!isPositiveNumberString(data.monthlyIncome)) {
         nextErrors.monthlyIncome = "Monthly income must be a valid number.";
-      } else if (!hasValidMoneyLength(form.monthlyIncome, 9)) {
+      } else if (!hasValidMoneyLength(data.monthlyIncome, 9)) {
         nextErrors.monthlyIncome = "Monthly income cannot exceed 9 digits.";
       }
     }
 
-    if (!form.loanTypeId?.trim()) {
-      nextErrors.loanProductId = "Loan product is required.";
+    if (!data.loanTypeId?.trim()) {
+      nextErrors.loanTypeId = "Loan product is required.";
     }
 
-    if (!form.loanAmount.trim()) {
+    if (!data.loanAmount.trim()) {
       nextErrors.loanAmount = "Requested loan amount is required.";
-    } else if (!isPositiveNumberString(form.loanAmount)) {
+    } else if (!isPositiveNumberString(data.loanAmount)) {
       nextErrors.loanAmount = "Requested loan amount must be a valid number.";
-    } else if (!hasValidMoneyLength(form.loanAmount, 9)) {
+    } else if (!hasValidMoneyLength(data.loanAmount, 9)) {
       nextErrors.loanAmount = "Requested loan amount cannot exceed 9 digits.";
     }
 
-    if (!form.tenureMonths.trim()) {
+    if (!data.tenureMonths.trim()) {
       nextErrors.tenureMonths = "Requested loan tenure is required.";
-    } else if (!/^\d+$/.test(form.tenureMonths)) {
+    } else if (!/^\d+$/.test(data.tenureMonths)) {
       nextErrors.tenureMonths = "Requested loan tenure must be a number.";
+    } else if (Number(data.tenureMonths) > 480) {
+      nextErrors.tenureMonths =
+        "Requested loan tenure cannot be more than 480 months.";
     }
 
-    if (!form.existingLoans) {
+    if (!data.existingLoans) {
       nextErrors.existingLoans =
         "Please select whether you have existing loans.";
     }
 
-    if (form.existingLoans === "Yes") {
-      if (!form.totalMonthlyLoanPayments.trim()) {
+    if (data.existingLoans === "Yes") {
+      if (!data.totalMonthlyLoanPayments.trim()) {
         nextErrors.totalMonthlyLoanPayments =
           "Total monthly loan payments are required.";
-      } else if (!isPositiveNumberString(form.totalMonthlyLoanPayments)) {
+      } else if (!isPositiveNumberString(data.totalMonthlyLoanPayments)) {
         nextErrors.totalMonthlyLoanPayments =
           "Total monthly loan payments must be a valid number.";
-      } else if (!hasValidMoneyLength(form.totalMonthlyLoanPayments, 9)) {
+      } else if (!hasValidMoneyLength(data.totalMonthlyLoanPayments, 9)) {
         nextErrors.totalMonthlyLoanPayments =
           "Total monthly loan payments cannot exceed 9 digits.";
+      } else if (
+        data.monthlyIncome &&
+        Number(data.totalMonthlyLoanPayments) >= Number(data.monthlyIncome)
+      ) {
+        nextErrors.totalMonthlyLoanPayments =
+          "Total monthly loan payments must be less than monthly income.";
       }
     }
 
-    if (!form.bankAccounts.length) {
+    if (!data.bankAccounts.length) {
       nextErrors.bankAccounts = "At least one bank account is required.";
     }
 
-    form.bankAccounts.forEach((account, index) => {
+    const bankAccountSignatures = new Set<string>();
+
+    data.bankAccounts.forEach((account, index) => {
       const prefix = `bankAccounts.${index}`;
 
       if (!account.bankName.trim()) {
@@ -563,9 +632,28 @@ export function validateLoanStep(
         nextErrors[`${prefix}.swiftBic`] =
           "SWIFT / BIC must be 8 or 11 uppercase letters/numbers.";
       }
+
+      const signature = [
+        account.institutionNumber,
+        account.transitNumber,
+        account.accountNumber,
+      ].join("-");
+
+      if (
+        account.institutionNumber &&
+        account.transitNumber &&
+        account.accountNumber
+      ) {
+        if (bankAccountSignatures.has(signature)) {
+          nextErrors[`${prefix}.accountNumber`] =
+            "Duplicate bank account details are not allowed.";
+        }
+
+        bankAccountSignatures.add(signature);
+      }
     });
 
-    const repaymentAccountsCount = form.bankAccounts.filter(
+    const repaymentAccountsCount = data.bankAccounts.filter(
       (account) => account.isRepaymentAccount
     ).length;
 
@@ -581,32 +669,32 @@ export function validateLoanStep(
 
   if (stepIndex === 4) {
     const governmentIdProofError = validateFile(
-      form.governmentIdProof,
+      data.governmentIdProof,
       "Government ID proof"
     );
     if (governmentIdProofError) {
       nextErrors.governmentIdProof = governmentIdProofError;
     }
 
-    const incomeProofError = validateFile(form.incomeProof, "Income proof");
+    const incomeProofError = validateFile(data.incomeProof, "Income proof");
     if (incomeProofError) {
       nextErrors.incomeProof = incomeProofError;
     }
 
     const bankStatementError = validateFile(
-      form.bankStatement,
+      data.bankStatement,
       "Bank statement"
     );
     if (bankStatementError) {
       nextErrors.bankStatement = bankStatementError;
     }
 
-    if (!form.creditReportConsent) {
+    if (!data.creditReportConsent) {
       nextErrors.creditReportConsent =
         "You must provide credit report consent.";
     }
 
-    if (!form.declarationAccepted) {
+    if (!data.declarationAccepted) {
       nextErrors.declarationAccepted =
         "You must accept the declaration before submitting.";
     }
