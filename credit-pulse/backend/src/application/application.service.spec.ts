@@ -1,15 +1,14 @@
 import { jest } from '@jest/globals';
 
-import { Test, TestingModule } from '@nestjs/testing';
-
 import { ConfigService } from '@nestjs/config';
+import { Test, TestingModule } from '@nestjs/testing';
 
 import { AwsService } from '../aws/aws.service.js';
 import { CreditScoreCheckService } from '../credit-score-check/credit-score-check.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { ApplicationService } from './application.service.js';
 import { AssignApplicationService } from './assignment/application-assignment.service.js';
 import { ApplicationCommunicationService } from './communication/application-communication.service.js';
-import { ApplicationService } from './application.service.js';
 import { ApplicationStageService } from './stage/application-stage.service.js';
 
 describe('ApplicationService', () => {

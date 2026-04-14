@@ -9,9 +9,7 @@ import { AuthGuard } from './auth.guard.js';
 describe('AuthGuard', () => {
   let guard: AuthGuard;
   let jwtService: {
-    verifyAsync: jest.Mock<
-      (token: string, options: { secret: string }) => Promise<unknown>
-    >;
+    verifyAsync: jest.Mock<(token: string, options: { secret: string }) => Promise<unknown>>;
   };
   let configService: {
     get: jest.Mock<(key: string) => string>;

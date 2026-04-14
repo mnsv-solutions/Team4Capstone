@@ -4,8 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Test, TestingModule } from '@nestjs/testing';
 
-import { AuthGuard } from './auth.guard.js';
 import { AuthController } from './auth.controller.js';
+import { AuthGuard } from './auth.guard.js';
 import { AuthService } from './auth.service.js';
 import { SignInRequestDto } from './dto/sign-in-request.dto.js';
 import { SignInResponseDto } from './dto/sign-in-response.dto.js';

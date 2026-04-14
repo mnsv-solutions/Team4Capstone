@@ -198,7 +198,8 @@ export class ApplicationStageService {
         });
 
         const documents =
-          applicationDocuments?.sub_loan.flatMap((subLoan) => subLoan.customer?.documents ?? []) ?? [];
+          applicationDocuments?.sub_loan.flatMap((subLoan) => subLoan.customer?.documents ?? []) ??
+          [];
 
         const unverifiedDocumentCount = documents.filter(
           (document) => document.is_active && document.is_verified !== true,
