@@ -34,7 +34,7 @@ export default function SignInPage() {
     setErrors({});
 
     try {
-      const response = await axios.post("/api/auth/signin", {
+      const response = await axios.post(process.env.NEXT_PUBLIC_API_URL + "/auth/signin", {
         loginId,
         password,
       });

@@ -2,6 +2,8 @@ name: Lint and Format Validation - Backend
 
 on:
   pull_request:
+    paths:
+      - "credit-pulse/backend/**"
 
 jobs:
   lint:

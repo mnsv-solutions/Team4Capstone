@@ -1561,7 +1561,7 @@ function ApplicationDetailsPageContent() {
       setRoleLoading(true);
 
       const response = await axios.get<FetchUserRoleApiResponse>(
-        "/api/auth/fetch-user-role",
+        process.env.NEXT_PUBLIC_API_URL + "/auth/fetch-user-role",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1650,7 +1650,7 @@ function ApplicationDetailsPageContent() {
 
     try {
       const response = await axios.post<ApplicationStatusResponseDto>(
-        "/api/application-status",
+        process.env.NEXT_PUBLIC_API_URL + "/application-status",
         {
           applicationNumber: details.applicationNumber.trim(),
           dob: details.dob,
@@ -1684,7 +1684,7 @@ function ApplicationDetailsPageContent() {
     try {
       setProductLookupWarning("");
       const response = await axios.get<FetchAllProductsResponseDto>(
-        "/api/products/all",
+        process.env.NEXT_PUBLIC_API_URL + "/products/all",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1712,7 +1712,7 @@ function ApplicationDetailsPageContent() {
       setDocumentSuccess("");
 
       const response = await axios.get<DocumentDetailsApiResponse>(
-        "/api/application/document-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/document-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -1765,7 +1765,7 @@ function ApplicationDetailsPageContent() {
       }));
 
       const response = await axios.post<FetchCreditDetailsApiResponse>(
-        "/api/application/fetch-credit-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/fetch-credit-details",
         {
           applicationNumber: details.applicationNumber.trim(),
         },
@@ -1850,7 +1850,7 @@ function ApplicationDetailsPageContent() {
       setLoanParametersError("");
 
       const response = await axios.post<FetchLoanParametersResponseDto>(
-        "/api/application/fetch-loan-parameters",
+        process.env.NEXT_PUBLIC_API_URL + "/application/fetch-loan-parameters",
         payload,
         {
           headers: {
@@ -1950,7 +1950,7 @@ function ApplicationDetailsPageContent() {
         }));
 
       await axios.post(
-        "/api/application/document-verify",
+        process.env.NEXT_PUBLIC_API_URL + "/application/document-verify",
         {
           applicationNumber: details.applicationNumber.trim(),
           documents: verificationRows,
@@ -1988,7 +1988,7 @@ function ApplicationDetailsPageContent() {
 
     try {
       const response = await axios.get<PersonalDetailsApiResponse>(
-        "/api/application/personal-information",
+        process.env.NEXT_PUBLIC_API_URL + "/application/personal-information",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -2026,7 +2026,7 @@ function ApplicationDetailsPageContent() {
 
     try {
       const response = await axios.get<ContactDetailsApiResponse>(
-        "/api/application/contact-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/contact-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -2074,7 +2074,7 @@ function ApplicationDetailsPageContent() {
 
     try {
       const response = await axios.get<EducationDetailsApiResponse>(
-        "/api/application/education-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/education-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -2107,7 +2107,7 @@ function ApplicationDetailsPageContent() {
 
     try {
       const response = await axios.get<FinancialDetailsApiResponse>(
-        "/api/application/financial-details",
+        process.env.NEXT_PUBLIC_API_URL + "/application/financial-details",
         {
           params: {
             applicationNumber: details.applicationNumber.trim(),
@@ -2406,7 +2406,7 @@ function ApplicationDetailsPageContent() {
 
   async function fetchSingleCommunicationHistory(isInternal: boolean) {
     const response = await axios.post<CommunicationFetchResponse>(
-      "/api/fetch-communication-history",
+      process.env.NEXT_PUBLIC_API_URL + "/fetch-communication-history",
       {
         applicationNumber: details.applicationNumber.trim(),
         isInternal,
@@ -2507,7 +2507,7 @@ function ApplicationDetailsPageContent() {
 
     try {
       const response = await axios.post<FetchStageHistoryResponse>(
-        "/api/application/fetch-stage-history",
+        process.env.NEXT_PUBLIC_API_URL + "/application/fetch-stage-history",
         {
           applicationNumber: details.applicationNumber.trim(),
         },
@@ -2592,7 +2592,7 @@ function ApplicationDetailsPageContent() {
     if (!token) return;
 
     await axios.post(
-      "/api/push-communication",
+      process.env.NEXT_PUBLIC_API_URL + "/push-communication",
       {
         applicationNumber: details.applicationNumber.trim(),
         senderType: senderTypeFromLogin,
@@ -2614,7 +2614,7 @@ function ApplicationDetailsPageContent() {
   async function pushApplicationStage(payload: PushStageRequestDto) {
     if (!token) return;
 
-    await axios.post("/api/application/push-stage", payload, {
+    await axios.post(process.env.NEXT_PUBLIC_API_URL + "/application/push-stage", payload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -2630,7 +2630,7 @@ function ApplicationDetailsPageContent() {
       remarks: "Assigned to Disbursal Team",
     };
 
-    await axios.post("/api/application/assign", payload, {
+    await axios.post(process.env.NEXT_PUBLIC_API_URL + "/application/assign", payload, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -2741,6 +2741,10 @@ function ApplicationDetailsPageContent() {
     } finally {
       setDecisionLoading(false);
     }
+
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 2000);
   }
 
   async function handleSaveDisbursalDecision() {
@@ -2848,6 +2852,10 @@ function ApplicationDetailsPageContent() {
     } finally {
       setDecisionLoading(false);
     }
+
+    setTimeout(() => {
+      router.push("/dashboard");
+    }, 2000);
   }
 
   useEffect(() => {
@@ -2929,7 +2937,7 @@ function ApplicationDetailsPageContent() {
         payload.recipientUserId = communicationForm.recipientUserId.trim();
       }
 
-      await axios.post("/api/push-communication", payload, {
+      await axios.post(process.env.NEXT_PUBLIC_API_URL + "/push-communication", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -4220,11 +4228,11 @@ function ApplicationDetailsPageContent() {
             </div>
           )}
 
-          <div className="cp-loan-footer">
+          {/* <div className="cp-loan-footer">
             <div className="cp-loan-note d-flex align-items-center gap-2">
               <MapPin size={16} />
             </div>
-          </div>
+          </div> */}
         </div>
       </section>
     </main>

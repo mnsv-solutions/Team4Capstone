@@ -201,7 +201,7 @@ export default function LoanApplicationPage() {
         setProductsLoading(true);
         setProductsError("");
 
-        const response = await axios.get("/api/products/all", {
+        const response = await axios.get(process.env.NEXT_PUBLIC_API_URL + "/products/all", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -544,7 +544,7 @@ export default function LoanApplicationPage() {
 
       const payload = buildLoanApplicationPayload(normalizedForm);
 
-      const createResponse = await axios.post("/api/application/create", payload, {
+      const createResponse = await axios.post(process.env.NEXT_PUBLIC_API_URL + "/application/create", payload, {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -569,7 +569,7 @@ export default function LoanApplicationPage() {
         multipartData.append("bankStatement", normalizedForm.bankStatement);
       }
 
-      await axios.post("/api/application/files", multipartData, {
+      await axios.post(process.env.NEXT_PUBLIC_API_URL + "/application/files", multipartData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
@@ -1409,8 +1409,6 @@ export default function LoanApplicationPage() {
                   <option value="">Select employment status</option>
                   <option value="Employed">Employed</option>
                   <option value="Self-employed">Self-employed</option>
-                  <option value="Student">Student</option>
-                  <option value="Retired">Retired</option>
                 </select>
                 {renderInputError("employmentStatus")}
               </div>

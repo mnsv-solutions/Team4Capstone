@@ -168,10 +168,14 @@ export default function HomePage() {
     setIsSubmitting(true);
 
     try {
-      const response = await axios.post<StatusResponse>("/api/application-status", {
-        applicationNumber: applicationNo.trim(),
-        dob,
-      });
+      // Sends the request to the backend through the Next.js rewrite route.
+      const response = await axios.post<StatusResponse>(
+        process.env.NEXT_PUBLIC_API_URL + "/application-status",
+        {
+          applicationNumber: applicationNo.trim(),
+          dob: dob,
+        },
+      );
 
       setStatusData(response.data);
     } catch (error) {

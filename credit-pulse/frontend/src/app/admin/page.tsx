@@ -229,7 +229,7 @@ export default function AdminPage() {
       setUsersError("");
       setActionMessage("");
 
-      const response = await axios.get("/api/users/all", {
+      const response = await axios.get(process.env.NEXT_PUBLIC_API_URL + "/users/all", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -283,7 +283,7 @@ export default function AdminPage() {
       setActionMessage("");
 
       const response = await axios.patch(
-        "/api/user/update-status",
+        process.env.NEXT_PUBLIC_API_URL + "/user/update-status",
         {
           userId,
           status,
@@ -377,7 +377,7 @@ export default function AdminPage() {
       setActionError("");
       setActionMessage("");
 
-      const response = await axios.get("/api/teams/all", {
+      const response = await axios.get(process.env.NEXT_PUBLIC_API_URL + "/teams/all", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -413,7 +413,7 @@ export default function AdminPage() {
       setActionMessage("");
 
       const response = await axios.post(
-        "/api/teams/fetch-users",
+        process.env.NEXT_PUBLIC_API_URL + "/teams/fetch-users",
         { teamId },
         {
           headers: {
@@ -507,7 +507,7 @@ export default function AdminPage() {
       const teamDisplay = selectedTeam ? selectedTeam.teamName : "team";
 
       const response = await axios.post(
-        "/api/teams/add-user",
+        process.env.NEXT_PUBLIC_API_URL + "/teams/add-user",
         {
           teamId: selectedTeamForAddUser,
           userId: selectedUserForTeam,
@@ -570,7 +570,7 @@ export default function AdminPage() {
         setActionMessage("");
 
         const response = await axios.patch(
-          "/api/teams/remove-user",
+          process.env.NEXT_PUBLIC_API_URL + "/teams/remove-user",
           {
             teamId,
             userId,
@@ -625,7 +625,7 @@ export default function AdminPage() {
       setActionError("");
       setActionMessage("");
 
-      const response = await axios.get("/api/products/all", {
+      const response = await axios.get(process.env.NEXT_PUBLIC_API_URL + "/products/all", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -846,7 +846,7 @@ export default function AdminPage() {
 
       if (editingProductId) {
         const response = await axios.patch(
-          "/api/products/update-product",
+          process.env.NEXT_PUBLIC_API_URL + "/products/update-product",
           {
             productId: editingProductId,
             ...productFormData,
@@ -864,7 +864,7 @@ export default function AdminPage() {
         setActionMessage(message);
       } else {
         const response = await axios.post(
-          "/api/products/add",
+          process.env.NEXT_PUBLIC_API_URL + "/products/add",
           {
             ...productFormData,
             createdBy: currentUserId,
@@ -916,7 +916,7 @@ export default function AdminPage() {
         setActionMessage("");
 
         const response = await axios.patch(
-          "/api/products/update-status",
+          process.env.NEXT_PUBLIC_API_URL + "/products/update-status",
           {
             productId,
             status: newStatus,
@@ -1103,7 +1103,7 @@ export default function AdminPage() {
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      const response = await axios.post("/api/users/upload-excel", formData, {
+      const response = await axios.post(process.env.NEXT_PUBLIC_API_URL + "/users/upload-excel", formData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -2453,7 +2453,7 @@ export default function AdminPage() {
           <div className="cp-admin-topnav-head">
             <div>
               <p className="cp-admin-eyebrow">Admin Workspace</p>
-              <h2 className="cp-admin-topnav-title">Welcome, {displayName}</h2>
+              <h2 className="cp-admin-topnav-title">Welcome, {displayName.toString()}</h2>
             </div>
           </div>
 
