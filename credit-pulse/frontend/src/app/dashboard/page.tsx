@@ -1,5 +1,6 @@
 "use client";
 
+// This page shows the authenticated user's assigned applications and team pool queue.
 import axios from "axios";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -68,6 +69,7 @@ export default function DashboardPage() {
   const itemsPerPage = 3;
 
   useEffect(() => {
+    // Protects the dashboard route and loads both assigned and team-pool data after auth is ready.
     if (authLoading) return;
 
     if (!token) {
@@ -173,6 +175,7 @@ export default function DashboardPage() {
   }, [token, isAdmin, authLoading, logout, router]);
 
   const filteredApplications = useMemo(() => {
+    // Filters assigned applications by search term and selected status.
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const normalizedStatus = statusFilter.trim().toLowerCase();
 
@@ -197,6 +200,7 @@ export default function DashboardPage() {
   }, [applications, searchTerm, statusFilter]);
 
   const filteredPullApplications = useMemo(() => {
+    // Filters pool applications by search term, status, and assignment details.
     const normalizedSearch = searchTerm.trim().toLowerCase();
     const normalizedStatus = statusFilter.trim().toLowerCase();
 
@@ -262,6 +266,7 @@ export default function DashboardPage() {
   }, [searchTerm, statusFilter, applications, pullApplications]);
 
   const summary = useMemo(() => {
+    // Builds the status summary cards shown at the top of the dashboard.
     const normalizeStatus = (value: string | null) =>
       (value || "").trim().toLowerCase();
 
@@ -283,6 +288,7 @@ export default function DashboardPage() {
   }, [applications]);
 
   function formatCurrency(value: number | null) {
+    // Formats dashboard money values in Canadian dollars.
     return new Intl.NumberFormat("en-CA", {
       style: "currency",
       currency: "CAD",
@@ -291,6 +297,7 @@ export default function DashboardPage() {
   }
 
   function formatDate(value: string | null) {
+    // Formats optional ISO dates into a short readable label.
     if (!value) return "N/A";
 
     const date = new Date(value);
@@ -307,6 +314,7 @@ export default function DashboardPage() {
   }
 
   function getStatusClass(status: string | null) {
+    // Maps backend status labels to CSS modifier names.
     const normalized = (status || "").trim().toLowerCase();
 
     if (normalized === "under review") return "review";
@@ -332,12 +340,14 @@ export default function DashboardPage() {
   }
 
   function handleViewApplication(item: DashboardApplication) {
+    // Opens the detailed application review screen for the selected record.
     router.push(
       `/application-detail?applicationNumber=${item.applicationNumber}`,
     );
   }
 
   async function reloadApplications(authToken: string) {
+    // Refreshes the current user's assigned applications after allocation changes.
     const response = await axios.get("/api/dashboard/applications", {
       headers: {
         Authorization: `Bearer ${authToken}`,
@@ -348,6 +358,7 @@ export default function DashboardPage() {
   }
 
   async function reloadPullApplications(teamId: string, authToken: string) {
+    // Refreshes the team's pool applications after allocation changes.
     const pullResponse = await axios.post(
       "/api/applications/fetch-by-team",
       { teamId },
@@ -364,6 +375,7 @@ export default function DashboardPage() {
   }
 
   function formatRoleLabel(roleCode: string | null) {
+    // Converts backend role codes into a friendlier dashboard label.
     if (!roleCode) return "Team Member";
 
     return roleCode
@@ -374,10 +386,12 @@ export default function DashboardPage() {
   }
 
   function canCreateApplication(roleCode: string | null) {
+    // Only customer-facing roles can start a brand new application from the dashboard.
     return roleCode === "CUSTOMER" || roleCode === "SOURCING_OFFICER";
   }
 
   function isAssignedToCurrentUser(item: PullApplication) {
+    // Checks whether a pool item is already assigned to the logged-in teammate.
     if (!currentUserName) {
       return false;
     }
@@ -389,6 +403,7 @@ export default function DashboardPage() {
   }
 
   async function handleAssignToMe(item: PullApplication) {
+    // Allocates a pool application to the current user and refreshes both tabs.
     if (!token || !currentUserId) {
       setPullErrorMsg("Unable to assign the application to you right now.");
       return;
@@ -433,6 +448,7 @@ export default function DashboardPage() {
   }
 
   async function handleUnassignMe(item: PullApplication) {
+    // Returns an assigned application back to the team pool.
     if (!token || !currentTeamId) {
       setPullErrorMsg("Unable to unassign the application right now.");
       return;
@@ -485,6 +501,7 @@ export default function DashboardPage() {
 
   return (
     <main className="cp-dashboard-page">
+      {/* Dashboard shell: header, summaries, filters, and the tabbed table area */}
       <section className="cp-dashboard-shell">
         <div className="cp-dashboard-header">
           <div>

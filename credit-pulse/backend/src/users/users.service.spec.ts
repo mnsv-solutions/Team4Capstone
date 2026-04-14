@@ -8,7 +8,7 @@ import { UsersService } from './users.service.js';
 describe('UsersService', () => {
   let service: UsersService;
   let prismaService: {
-    user: {
+    users: {
       findFirst: jest.Mock;
       findMany: jest.Mock;
       create: jest.Mock;
@@ -19,7 +19,7 @@ describe('UsersService', () => {
 
   beforeEach(async () => {
     prismaService = {
-      user: {
+      users: {
         findFirst: jest.fn(),
         findMany: jest.fn(),
         create: jest.fn(),
@@ -44,10 +44,10 @@ describe('UsersService', () => {
     const whereInput = { email: 'user@example.com' };
     const expectedUser = { user_id: 'u1', email: 'user@example.com' };
 
-    prismaService.user.findFirst.mockResolvedValue(expectedUser);
+    prismaService.users.findFirst.mockResolvedValue(expectedUser);
 
     await expect(service.user(whereInput as never)).resolves.toEqual(expectedUser);
-    expect(prismaService.user.findFirst).toHaveBeenCalledWith({ where: whereInput });
+    expect(prismaService.users.findFirst).toHaveBeenCalledWith({ where: whereInput });
   });
 
   it('users should call prisma.user.findMany with params', async () => {
@@ -59,10 +59,10 @@ describe('UsersService', () => {
     };
     const expectedUsers = [{ user_id: 'u1' }, { user_id: 'u2' }];
 
-    prismaService.user.findMany.mockResolvedValue(expectedUsers);
+    prismaService.users.findMany.mockResolvedValue(expectedUsers);
 
     await expect(service.users(params as never)).resolves.toEqual(expectedUsers);
-    expect(prismaService.user.findMany).toHaveBeenCalledWith(params);
+    expect(prismaService.users.findMany).toHaveBeenCalledWith(params);
   });
 
   it('createUser should call prisma.user.create with data', async () => {
@@ -76,10 +76,10 @@ describe('UsersService', () => {
     };
     const expectedCreatedUser = { user_id: 'u3', email: 'jane@example.com' };
 
-    prismaService.user.create.mockResolvedValue(expectedCreatedUser);
+    prismaService.users.create.mockResolvedValue(expectedCreatedUser);
 
     await expect(service.createUser(data as never)).resolves.toEqual(expectedCreatedUser);
-    expect(prismaService.user.create).toHaveBeenCalledWith({ data });
+    expect(prismaService.users.create).toHaveBeenCalledWith({ data });
   });
 
   it('updateUser should call prisma.user.update with where and data', async () => {
@@ -89,10 +89,10 @@ describe('UsersService', () => {
     };
     const expectedUpdatedUser = { user_id: 'u1', first_name: 'Updated' };
 
-    prismaService.user.update.mockResolvedValue(expectedUpdatedUser);
+    prismaService.users.update.mockResolvedValue(expectedUpdatedUser);
 
     await expect(service.updateUser(params as never)).resolves.toEqual(expectedUpdatedUser);
-    expect(prismaService.user.update).toHaveBeenCalledWith({
+    expect(prismaService.users.update).toHaveBeenCalledWith({
       where: params.where,
       data: params.data,
     });
@@ -102,9 +102,9 @@ describe('UsersService', () => {
     const where = { user_id: 'u1' };
     const expectedDeletedUser = { user_id: 'u1' };
 
-    prismaService.user.delete.mockResolvedValue(expectedDeletedUser);
+    prismaService.users.delete.mockResolvedValue(expectedDeletedUser);
 
     await expect(service.deleteUser(where as never)).resolves.toEqual(expectedDeletedUser);
-    expect(prismaService.user.delete).toHaveBeenCalledWith({ where });
+    expect(prismaService.users.delete).toHaveBeenCalledWith({ where });
   });
 });

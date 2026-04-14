@@ -1,3 +1,4 @@
+// This is the root NestJS module that wires together all backend features.
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 

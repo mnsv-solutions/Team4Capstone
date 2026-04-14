@@ -709,13 +709,14 @@ html[data-theme="light"] .cp-admin-summary-card,
 html[data-theme="light"] .cp-admin-upload-result,
 html[data-theme="light"] .cp-admin-placeholder-card,
 html[data-theme="light"] .cp-admin-table-wrap {
-  background-color: #ffffff;
+  background: #ffffff;
 }
 
 html[data-theme="light"] .cp-admin-topnav-title,
 html[data-theme="light"] .cp-admin-title,
 html[data-theme="light"] .cp-admin-summary-value,
 html[data-theme="light"] .cp-admin-section-subtitle,
+html[data-theme="light"] .cp-admin-upload-label,
 html[data-theme="light"] .cp-admin-table tbody td,
 html[data-theme="light"] .cp-admin-placeholder-card h3 {
   color: #111827;
@@ -752,14 +753,37 @@ html[data-theme="light"]
   .cp-admin-action-group
   button:not(.cp-admin-action-btn-danger),
 html[data-theme="light"] .cp-admin-status-pill,
-html[data-theme="light"] .cp-admin-upload-box,
 html[data-theme="light"] .cp-admin-summary-card {
   color: #111827;
 }
 
+html[data-theme="light"] .cp-admin-summary-card {
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+
+html[data-theme="light"] .cp-admin-upload-card .cp-loan-upload-box {
+  background: #ffffff;
+  border-color: #cbd5e1;
+}
+
+html[data-theme="light"] .cp-admin-upload-card .cp-loan-upload-box:hover {
+  background: #f8fbff;
+  border-color: #6366f1;
+}
+
+html[data-theme="light"] .cp-admin-upload-card .cp-loan-upload-svg,
+html[data-theme="light"] .cp-admin-upload-card .cp-loan-upload-text,
+html[data-theme="light"] .cp-admin-upload-card .cp-loan-note {
+  color: #64748b;
+}
+
 html[data-theme="light"] .cp-admin-summary-card,
 html[data-theme="light"] .cp-admin-table-wrap,
-html[data-theme="light"] .cp-admin-upload-card {
+html[data-theme="light"] .cp-admin-upload-card,
+html[data-theme="light"] .cp-admin-upload-result,
+html[data-theme="light"] .cp-admin-placeholder-card,
+html[data-theme="light"] .cp-admin-panel,
+html[data-theme="light"] .cp-admin-topnav {
   border-color: rgba(209, 213, 219, 0.8);
 }
 
@@ -798,6 +822,10 @@ html[data-theme="light"] .cp-admin-alert-error {
 
 html[data-theme="light"] .cp-admin-field::placeholder {
   color: rgba(17, 24, 39, 0.55);
+}
+
+html[data-theme="light"] .cp-admin-field-error {
+  color: #b91c1c;
 }
 
 html[data-theme="light"] .cp-admin-table thead th,

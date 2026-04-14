@@ -1,5 +1,6 @@
 "use client";
 
+// This is the public home page that introduces CreditPulse and lets users check application status.
 import axios from "axios";
 import Link from "next/link";
 import { useState, type FormEvent } from "react";
@@ -19,6 +20,7 @@ type StatusResponse = {
   reasonCode?: string;
 };
 
+// These cards explain the main benefits applicants get from the platform.
 const experienceHighlights = [
   {
     icon: ShieldCheck,
@@ -37,6 +39,7 @@ const experienceHighlights = [
   },
 ];
 
+// These short steps summarize the loan journey shown on the home page.
 const processSteps = [
   "Create your account and start a secure application.",
   "Submit key details and track status updates clearly.",
@@ -44,6 +47,7 @@ const processSteps = [
   "Follow approval progress with more confidence.",
 ];
 
+// These quotes reinforce the product tone and user-experience goals.
 const testimonials = [
   {
     title: "Clear updates",
@@ -113,6 +117,7 @@ export default function HomePage() {
   }
 
   function handleApplicationNoChange(value: string) {
+    // Normalizes the application number and clears the matching field error.
     const cleanValue = value.replace(/\s+/g, "").toUpperCase();
     setApplicationNo(cleanValue);
     setErrors((previousErrors) => ({
@@ -123,6 +128,7 @@ export default function HomePage() {
   }
 
   function handleDobChange(value: string) {
+    // Updates the date of birth and clears the related error message.
     setDob(value);
     setErrors((previousErrors) => ({
       ...previousErrors,
@@ -147,6 +153,7 @@ export default function HomePage() {
   }
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    // Submits the status-check form and shows the latest application state.
     event.preventDefault();
     if (isSubmitting) return;
 
@@ -186,6 +193,7 @@ export default function HomePage() {
   };
 
   function handleReset() {
+    // Resets the status checker back to its initial empty state.
     setApplicationNo("");
     setDob("");
     setErrors({});
@@ -198,11 +206,11 @@ export default function HomePage() {
     <main className={styles.page}>
       <section className={styles.hero}>
         <div className={styles.heroContent}>
-          <span className={styles.eyebrow}>CreditPulse platform</span>
-          <h1 className={styles.heroTitle}>Track your loan application with clarity and confidence.</h1>
+          <span className={styles.eyebrow}>Check application status</span>
+          <h1 className={styles.heroTitle}>Check your loan application status with clarity and confidence.</h1>
           <p className={styles.heroText}>
-            CreditPulse brings together application tracking, document readiness, and next-step
-            guidance in one focused experience so applicants always know what is happening.
+            CreditPulse helps you check your current stage, understand progress updates, and see
+            the next steps for your application in one place.
           </p>
 
           <div className={styles.heroActions}>

@@ -1,3 +1,4 @@
+// This service validates and records stage transitions throughout the application lifecycle.
 import {
   BadRequestException,
   ForbiddenException,
@@ -91,6 +92,7 @@ export class ApplicationStageService {
     actorUserId: string,
     pushStageRequestDto: PushStageRequestDto,
   ): Promise<PushStageResponseDto> {
+    // Moves an application to its next stage after role, status, and payload checks pass.
     this.logger.log('The application stage update process has started.');
 
     // This makes sure the user ID is available from the token.
@@ -176,6 +178,41 @@ export class ApplicationStageService {
       this.logger.log(
         `The application was found with current status: ${application.application_status.status_code}`,
       );
+
+      if (pushStageRequestDto.actionType === 'UNDERWRITER_APPROVED') {
+        const applicationDocuments = await tx.loan_application.findUnique({
+          where: {
+            application_id: application.application_id,
+          },
+          include: {
+            sub_loan: {
+              include: {
+                customer: {
+                  include: {
+                    documents: true,
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        const documents =
+          applicationDocuments?.sub_loan.flatMap((subLoan) => subLoan.customer?.documents ?? []) ?? [];
+
+        const unverifiedDocumentCount = documents.filter(
+          (document) => document.is_active && document.is_verified !== true,
+        ).length;
+
+        if (documents.length === 0 || unverifiedDocumentCount > 0) {
+          this.logger.warn(
+            `Underwriter approval blocked because ${unverifiedDocumentCount} document(s) are not verified for application ${application.application_number}.`,
+          );
+          throw new BadRequestException(
+            'All uploaded documents must be verified before approving the application.',
+          );
+        }
+      }
 
       // This checks whether the action is allowed from the application's current status.
       if (!stageConfig.fromStatuses.includes(application.application_status.status_code)) {

@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+// This page shows the end-to-end application review workspace for officers and admins.
+import React, { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -38,6 +39,7 @@ type ProductDto = {
   productId: string;
   productCode: string;
   productName: string;
+  description?: string | null;
   minAmount: string;
   maxAmount: string;
   minTenureMonths: number;
@@ -134,6 +136,7 @@ type FinancialDetailsResponseDto = {
   productId?: string;
   productCode?: string;
   productName?: string;
+  productDescription?: string;
 };
 
 type FinancialDetailsApiResponse =
@@ -349,6 +352,7 @@ type ApplicationDetailsState = {
   applicationNumber: string;
   applicationStatus: string;
   loanProduct: string;
+  loanProductDescription: string;
 
   firstName: string;
   lastName: string;
@@ -508,7 +512,8 @@ type PushStageRequestDto = {
 
 type AssignApplicationRequestDto = {
   applicationNumber: string;
-  assignedTeamId: string;
+  assignedTeamId?: string;
+  assignedTeamCode?: string;
   remarks: string;
 };
 
@@ -523,7 +528,7 @@ type FetchStageHistoryResponse =
   | ApiEnvelope<StageHistoryItem[]>
   | StageHistoryItem[];
 
-const DISBURSAL_TEAM_ID = "3fa68ab1-df8e-4977-b7bb-837fe72e443f";
+const DISBURSAL_TEAM_CODE = "DISBURSAL_TEAM";
 
 const APPLICATION_STATUS_STEPS: StatusStep[] = [
   { key: "SUBMITTED", label: "Submitted" },
@@ -621,6 +626,7 @@ const initialDetails: ApplicationDetailsState = {
   applicationNumber: "",
   applicationStatus: "",
   loanProduct: "",
+  loanProductDescription: "",
 
   firstName: "",
   lastName: "",
@@ -1322,7 +1328,8 @@ function downloadRepaymentScheduleCsv(
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
 }
-export default function ApplicationDetailsPage() {
+function ApplicationDetailsPageContent() {
+  // Reads the selected application and renders role-based review actions.
   const router = useRouter();
   const searchParams = useSearchParams();
   const applicationNumberFromUrl = searchParams.get("applicationNumber") || "";
@@ -1335,6 +1342,7 @@ export default function ApplicationDetailsPage() {
   });
   const [products, setProducts] = useState<ProductDto[]>([]);
   const [pageError, setPageError] = useState("");
+  const [productLookupWarning, setProductLookupWarning] = useState("");
 
   const [repaymentSchedule, setRepaymentSchedule] = useState<LoanInstallmentDto[]>([]);
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>("UNKNOWN");
@@ -1387,6 +1395,7 @@ export default function ApplicationDetailsPage() {
     Record<string, LocalAttachmentLink>
   >({});
   const createdBlobUrlsRef = useRef<string[]>([]);
+  const didInitializeOfficerSectionsRef = useRef(false);
 
   const visibleSections = useMemo(
     () => getVisibleSectionsForRole(currentUserRole),
@@ -1492,24 +1501,36 @@ export default function ApplicationDetailsPage() {
     ]
   );
 
-  const topLevelErrorMessage = useMemo(() => {
+  const topLevelErrorMessage = useMemo(() => pageError || "", [pageError]);
+
+  const allDocumentsVerified = useMemo(() => {
     return (
-      pageError ||
-      decisionError ||
-      documentError ||
-      creditError ||
-      loanParametersError ||
-      communicationError ||
-      ""
+      details.documentRows.length > 0 &&
+      details.documentRows.every((doc) => doc.verificationStatus === "VERIFIED")
     );
+  }, [details.documentRows]);
+
+  const underwriterDecisionBlockedReason = useMemo(() => {
+    if (!canEditUnderwriterDecisionSection) return "";
+    if (details.documentRows.length === 0) {
+      return "Uploaded documents must be available and verified before the underwriter can save a decision.";
+    }
+
+    if (!allDocumentsVerified) {
+      return "Verify every uploaded document before saving the underwriter decision.";
+    }
+
+    return "";
   }, [
-    pageError,
-    decisionError,
-    documentError,
-    creditError,
-    loanParametersError,
-    communicationError,
+    allDocumentsVerified,
+    canEditUnderwriterDecisionSection,
+    details.documentRows.length,
   ]);
+
+  const hasPendingDocumentVerification = useMemo(
+    () => details.documentRows.some((doc) => !doc.verificationStatus),
+    [details.documentRows]
+  );
 
   useEffect(() => {
     if (applicationNumberFromUrl) {
@@ -1584,7 +1605,8 @@ export default function ApplicationDetailsPage() {
       };
     });
   }, [currentUserRole]);
-    useEffect(() => {
+
+  useEffect(() => {
     setOpenSections((prev) => {
       const next = { ...prev };
 
@@ -1597,6 +1619,29 @@ export default function ApplicationDetailsPage() {
       return next;
     });
   }, [visibleSections]);
+
+  useEffect(() => {
+    if (currentUserRole === "UNKNOWN") return;
+    if (didInitializeOfficerSectionsRef.current) return;
+
+    if (
+      currentUserRole === "UNDERWRITER" ||
+      currentUserRole === "DISBURSAL_OFFICER" ||
+      currentUserRole === "ADMIN"
+    ) {
+      setOpenSections((prev) => {
+        const next = { ...prev };
+
+        visibleSections.forEach((sectionKey) => {
+          next[sectionKey] = false;
+        });
+
+        return next;
+      });
+    }
+
+    didInitializeOfficerSectionsRef.current = true;
+  }, [currentUserRole, visibleSections]);
 
   async function fetchApplicationStatus() {
     if (!token) return;
@@ -1637,8 +1682,9 @@ export default function ApplicationDetailsPage() {
     if (!token) return;
 
     try {
+      setProductLookupWarning("");
       const response = await axios.get<FetchAllProductsResponseDto>(
-        "/api/product/fetch-all-products",
+        "/api/products/all",
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1649,7 +1695,10 @@ export default function ApplicationDetailsPage() {
       setProducts(Array.isArray(response.data?.data) ? response.data.data : []);
     } catch (error) {
       console.error("Failed to fetch products:", error);
-      setPageError("Failed to fetch product list.");
+      setProducts([]);
+      setProductLookupWarning(
+        "Product reference details could not be loaded. Applicant information is still available below."
+      );
     }
   }
 
@@ -1874,22 +1923,37 @@ export default function ApplicationDetailsPage() {
       setLoanParametersLoading(false);
     }
   }
-    async function saveDocumentVerification() {
+  async function saveDocumentVerification() {
+    // Persists the officer's verification decision for every uploaded document.
     if (!token || !isDocumentVerificationSavable) return;
 
+    if (details.documentRows.length === 0) {
+      setDocumentError("No documents are available to verify.");
+      return;
+    }
+
+    if (hasPendingDocumentVerification) {
+      setDocumentError(
+        "Please choose Verified or Not Verified for every document before saving."
+      );
+      return;
+    }
+
     try {
-      const verifiedDocs = details.documentRows
-        .filter((doc) => doc.verificationStatus === "VERIFIED")
-        .map((doc) => ({
+      const verificationRows = details.documentRows.map((doc) => ({
           documentType: doc.documentType,
           fileName: doc.fileName,
+          verificationStatus: doc.verificationStatus as Exclude<
+            VerificationStatus,
+            ""
+          >,
         }));
 
       await axios.post(
         "/api/application/document-verify",
         {
           applicationNumber: details.applicationNumber.trim(),
-          documents: verifiedDocs,
+          documents: verificationRows,
         },
         {
           headers: {
@@ -1898,6 +1962,7 @@ export default function ApplicationDetailsPage() {
         }
       );
 
+      setDocumentError("");
       setDocumentSuccess("Document verification saved successfully.");
       await fetchDocumentDetails();
     } catch (error) {
@@ -2121,6 +2186,11 @@ export default function ApplicationDetailsPage() {
           financialData.productCode ||
           matchedProduct?.productCode ||
           "",
+        loanProductDescription:
+          String(responsePayload?.productDescription ?? "") ||
+          String(financialData.productDescription ?? "") ||
+          matchedProduct?.description ||
+          "",
       }));
     } catch (error) {
       console.error("Failed to fetch financial details:", error);
@@ -2201,6 +2271,23 @@ export default function ApplicationDetailsPage() {
 
       return next;
     });
+  }
+
+  function renderInlineAlert(
+    message: string,
+    variant: "error" | "success" = "error"
+  ) {
+    if (!message) return null;
+
+    return (
+      <div
+        className={`alert mb-3 cp-loan-alert cp-loan-alert-inline ${
+          variant === "success" ? "cp-loan-alert-success" : "cp-loan-alert-error"
+        }`}
+      >
+        {message}
+      </div>
+    );
   }
 
   function updateDetail<K extends keyof ApplicationDetailsState>(
@@ -2539,7 +2626,7 @@ export default function ApplicationDetailsPage() {
 
     const payload: AssignApplicationRequestDto = {
       applicationNumber: details.applicationNumber.trim(),
-      assignedTeamId: DISBURSAL_TEAM_ID,
+      assignedTeamCode: DISBURSAL_TEAM_CODE,
       remarks: "Assigned to Disbursal Team",
     };
 
@@ -2549,9 +2636,20 @@ export default function ApplicationDetailsPage() {
       },
     });
   }
-    async function handleSaveUnderwriterDecision() {
+  async function handleSaveUnderwriterDecision() {
+    // Saves the underwriter decision after document and amount checks pass.
     if (!canEditUnderwriterDecisionSection) {
       setDecisionError("Only underwriter can save underwriter decision.");
+      return;
+    }
+
+    if (underwriterDecisionBlockedReason) {
+      setOpenSections((prev) => ({
+        ...prev,
+        documents: true,
+        underwriterReview: true,
+      }));
+      setDecisionError(underwriterDecisionBlockedReason);
       return;
     }
 
@@ -2894,7 +2992,9 @@ export default function ApplicationDetailsPage() {
     return (
       <button
         type="button"
-        className="w-100 d-flex justify-content-between align-items-center text-start btn btn-link text-decoration-none p-0"
+        className={`w-100 d-flex justify-content-between align-items-center text-start btn btn-link text-decoration-none p-0 cp-app-accordion-toggle ${
+          isOpen ? "cp-app-accordion-toggle-open" : "cp-app-accordion-toggle-closed"
+        }`}
         onClick={() => toggleSection(section.key)}
         aria-expanded={isOpen}
       >
@@ -2916,11 +3016,35 @@ export default function ApplicationDetailsPage() {
     if (!visibleSections.includes(section.key)) return null;
 
     const isOpen = openSections[section.key];
+    const isReadOnlySection =
+      OFFICER_READONLY_VISIBLE_SECTIONS.includes(section.key) &&
+      (currentUserRole === "UNDERWRITER" ||
+        currentUserRole === "DISBURSAL_OFFICER" ||
+        currentUserRole === "ADMIN");
 
     return (
-      <div className="cp-loan-bank-card mb-3">
-        <div className="cp-loan-bank-card-header">{renderAccordionHeader(section)}</div>
-        {isOpen ? <div className="pt-3">{children}</div> : null}
+      <div
+        className={`cp-loan-bank-card mb-3 ${
+          isOpen ? "cp-loan-bank-card-open" : "cp-loan-bank-card-closed"
+        }`}
+      >
+        <div
+          className={`cp-loan-bank-card-header ${
+            isOpen ? "cp-loan-bank-card-header-open" : "cp-loan-bank-card-header-closed"
+          }`}
+        >
+          {renderAccordionHeader(section)}
+        </div>
+        {isOpen ? (
+          <div className="pt-3 cp-app-section-body">
+            {isReadOnlySection ? (
+              <div className="cp-app-readonly-note">
+                Read-only applicant data
+              </div>
+            ) : null}
+            {children}
+          </div>
+        ) : null}
       </div>
     );
   }
@@ -2930,10 +3054,19 @@ export default function ApplicationDetailsPage() {
     value: string | number | boolean | null | undefined,
     colClassName = "col-12 col-md-4"
   ) {
+    const normalizedValue =
+      value === null || value === undefined || String(value).trim() === ""
+        ? "Not provided"
+        : String(value);
+
     return (
       <div className={colClassName}>
         <label className="form-label fw-semibold">{label}</label>
-        <input className="form-control" value={String(value ?? "")} readOnly />
+        <input
+          className="form-control cp-loan-readonly-control"
+          value={normalizedValue}
+          readOnly
+        />
       </div>
     );
   }
@@ -2951,16 +3084,34 @@ export default function ApplicationDetailsPage() {
   return (
     <main className="cp-loan-page">
       <section className="cp-loan-card">
-        <div className="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-          <div>
+        <div className="cp-app-hero">
+          <div className="cp-app-hero-copy">
+            <div className="cp-app-role-chip">
+              {currentUserRole === "UNDERWRITER"
+                ? "Underwriter workspace"
+                : currentUserRole === "DISBURSAL_OFFICER"
+                  ? "Disbursal workspace"
+                  : "Application workspace"}
+            </div>
             <h1 className="cp-loan-title mb-1">Application Details</h1>
             <p className="cp-loan-description mb-2">{headerSummary}</p>
-
+            {details.loanProductDescription && (
+              <p className="cp-loan-helper-text mb-0">
+                {details.loanProductDescription}
+              </p>
+            )}
             <div className="cp-loan-top-summary">
               <div className="cp-loan-top-pill">
                 <span className="cp-loan-top-pill-label">Application Number</span>
                 <span className="cp-loan-top-pill-value">
                   {details.applicationNumber || "-"}
+                </span>
+              </div>
+
+              <div className="cp-loan-top-pill">
+                <span className="cp-loan-top-pill-label">Applicant</span>
+                <span className="cp-loan-top-pill-value">
+                  {[details.firstName, details.lastName].filter(Boolean).join(" ") || "-"}
                 </span>
               </div>
 
@@ -2983,18 +3134,10 @@ export default function ApplicationDetailsPage() {
             </div>
           </div>
 
-          <div className="d-flex flex-column align-items-end gap-3">
+          <div className="cp-app-toolbar">
             <button
               type="button"
-              className="btn cp-loan-btn-back"
-              onClick={() => router.back()}
-            >
-              ← Back
-            </button>
-
-            <button
-              type="button"
-              className="btn cp-loan-btn-back"
+              className="btn cp-loan-btn-back cp-app-toolbar-btn"
               onClick={expandAllSections}
             >
               Expand All
@@ -3002,16 +3145,30 @@ export default function ApplicationDetailsPage() {
 
             <button
               type="button"
-              className="btn cp-loan-btn-back"
+              className="btn cp-loan-btn-back cp-app-toolbar-btn"
               onClick={collapseAllSections}
             >
               Collapse All
+            </button>
+
+            <button
+              type="button"
+              className="btn cp-loan-btn-back cp-app-toolbar-btn cp-app-toolbar-btn-primary"
+              onClick={() => router.back()}
+            >
+              ← Back
             </button>
           </div>
         </div>
 
         {topLevelErrorMessage ? (
-          <div className="alert alert-danger mb-3">{topLevelErrorMessage}</div>
+          <div className="alert alert-danger mb-3 cp-loan-alert cp-loan-alert-error">
+            {topLevelErrorMessage}
+          </div>
+        ) : null}
+
+        {productLookupWarning ? (
+          <div className="cp-app-soft-warning">{productLookupWarning}</div>
         ) : null}
 
         <div className="cp-app-status-card">
@@ -3291,6 +3448,9 @@ export default function ApplicationDetailsPage() {
           {renderSectionShell(
             accordionSections[5],
             <div className="cp-loan-table-wrap">
+              {renderInlineAlert(documentError)}
+              {renderInlineAlert(documentSuccess, "success")}
+
               {documentLoading ? (
                 <div className="cp-loan-note">Loading document details...</div>
               ) : (
@@ -3386,6 +3546,7 @@ export default function ApplicationDetailsPage() {
                         type="button"
                         className="btn btn-primary cp-loan-btn-next"
                         onClick={saveDocumentVerification}
+                        disabled={hasPendingDocumentVerification}
                       >
                         Save Verification
                       </button>
@@ -3398,73 +3559,79 @@ export default function ApplicationDetailsPage() {
 
           {renderSectionShell(
             accordionSections[6],
-            creditLoading ? (
-              <div className="cp-loan-note">Loading CIBIL details...</div>
-            ) : !details.cibilScore && !details.cibilReferenceId ? (
-              <div className="alert alert-warning mb-0">
-                Credit check record not found for this application.
-              </div>
-            ) : (
-              <div className="row g-3">
-                {renderStaticField("Score", details.cibilScore, "col-12 col-md-6")}
-                {renderStaticField("Risk Level", details.cibilRiskLevel, "col-12 col-md-6")}
-                {renderStaticField(
-                  "Debt To Income Estimate",
-                  details.cibilDebtToIncomeEstimate,
-                  "col-12 col-md-6"
-                )}
-                {renderStaticField(
-                  "Credit Utilization Ratio",
-                  details.cibilCreditUtilizationRatio,
-                  "col-12 col-md-6"
-                )}
-                {renderStaticField(
-                  "Average Account Age (Years)",
-                  details.cibilAverageAccountAgeYears,
-                  "col-12 col-md-6"
-                )}
-                {renderStaticField(
-                  "Total Outstanding Balance",
-                  details.cibilTotalOutstandingBalance,
-                  "col-12 col-md-6"
-                )}
-                {renderStaticField(
-                  "Total Accounts",
-                  details.cibilTotalAccounts,
-                  "col-12 col-md-4"
-                )}
-                {renderStaticField(
-                  "Active Accounts",
-                  details.cibilActiveAccounts,
-                  "col-12 col-md-4"
-                )}
-                {renderStaticField(
-                  "Closed Accounts",
-                  details.cibilClosedAccounts,
-                  "col-12 col-md-4"
-                )}
-                {renderStaticField(
-                  "Report Date",
-                  formatDate(details.cibilReportDate),
-                  "col-12 col-md-4"
-                )}
-                {renderStaticField(
-                  "Report Time",
-                  details.cibilReportTime ? formatDateTime(details.cibilReportTime) : "",
-                  "col-12 col-md-4"
-                )}
-                {renderStaticField(
-                  "Reference ID",
-                  details.cibilReferenceId,
-                  "col-12 col-md-4"
-                )}
-              </div>
-            )
+            <div>
+              {renderInlineAlert(creditError)}
+
+              {creditLoading ? (
+                <div className="cp-loan-note">Loading CIBIL details...</div>
+              ) : !details.cibilScore && !details.cibilReferenceId ? (
+                <div className="alert alert-warning mb-0">
+                  Credit check record not found for this application.
+                </div>
+              ) : (
+                <div className="row g-3">
+                  {renderStaticField("Score", details.cibilScore, "col-12 col-md-6")}
+                  {renderStaticField("Risk Level", details.cibilRiskLevel, "col-12 col-md-6")}
+                  {renderStaticField(
+                    "Debt To Income Estimate",
+                    details.cibilDebtToIncomeEstimate,
+                    "col-12 col-md-6"
+                  )}
+                  {renderStaticField(
+                    "Credit Utilization Ratio",
+                    details.cibilCreditUtilizationRatio,
+                    "col-12 col-md-6"
+                  )}
+                  {renderStaticField(
+                    "Average Account Age (Years)",
+                    details.cibilAverageAccountAgeYears,
+                    "col-12 col-md-6"
+                  )}
+                  {renderStaticField(
+                    "Total Outstanding Balance",
+                    details.cibilTotalOutstandingBalance,
+                    "col-12 col-md-6"
+                  )}
+                  {renderStaticField(
+                    "Total Accounts",
+                    details.cibilTotalAccounts,
+                    "col-12 col-md-4"
+                  )}
+                  {renderStaticField(
+                    "Active Accounts",
+                    details.cibilActiveAccounts,
+                    "col-12 col-md-4"
+                  )}
+                  {renderStaticField(
+                    "Closed Accounts",
+                    details.cibilClosedAccounts,
+                    "col-12 col-md-4"
+                  )}
+                  {renderStaticField(
+                    "Report Date",
+                    formatDate(details.cibilReportDate),
+                    "col-12 col-md-4"
+                  )}
+                  {renderStaticField(
+                    "Report Time",
+                    details.cibilReportTime ? formatDateTime(details.cibilReportTime) : "",
+                    "col-12 col-md-4"
+                  )}
+                  {renderStaticField(
+                    "Reference ID",
+                    details.cibilReferenceId,
+                    "col-12 col-md-4"
+                  )}
+                </div>
+              )}
+            </div>
           )}
 
           {renderSectionShell(
             accordionSections[7],
             <div className="d-flex flex-column gap-4">
+              {renderInlineAlert(loanParametersError)}
+
               <div className="row g-3">
                 {renderStaticField("EMI Amount", details.emiAmount)}
                 {renderStaticField("Total Repayment", details.totalRepayment)}
@@ -3639,12 +3806,21 @@ export default function ApplicationDetailsPage() {
           {showUnderwriterDecisionSection ? (
             <>
               {underwriterSavedMessage ? (
-                <div className="alert alert-success mb-3">{underwriterSavedMessage}</div>
+                <div className="alert alert-success mb-3 cp-loan-alert cp-loan-alert-success">
+                  {underwriterSavedMessage}
+                </div>
               ) : null}
 
               {renderSectionShell(
                 accordionSections[10],
                 <div className="row g-3">
+                  {renderInlineAlert(underwriterDecisionBlockedReason)}
+                  {renderInlineAlert(
+                    decisionError !== underwriterDecisionBlockedReason
+                      ? decisionError
+                      : ""
+                  )}
+
                   <div className="col-12 col-md-6">
                     <label className="form-label fw-semibold">Underwriter Decision</label>
                     <select
@@ -3657,7 +3833,11 @@ export default function ApplicationDetailsPage() {
                             e.target.value as UnderwriterDecisionOption,
                         }))
                       }
-                      disabled={!canEditUnderwriterDecisionSection || decisionLoading}
+                      disabled={
+                        !canEditUnderwriterDecisionSection ||
+                        decisionLoading ||
+                        Boolean(underwriterDecisionBlockedReason)
+                      }
                     >
                       <option value="">Select decision</option>
                       <option value="APPROVED">Approved</option>
@@ -3678,7 +3858,11 @@ export default function ApplicationDetailsPage() {
                         }))
                       }
                       placeholder="Enter underwriter comments"
-                      disabled={!canEditUnderwriterDecisionSection || decisionLoading}
+                      disabled={
+                        !canEditUnderwriterDecisionSection ||
+                        decisionLoading ||
+                        Boolean(underwriterDecisionBlockedReason)
+                      }
                     />
                   </div>
 
@@ -3688,10 +3872,10 @@ export default function ApplicationDetailsPage() {
                         type="button"
                         className="btn btn-primary cp-loan-btn-next"
                         onClick={handleSaveUnderwriterDecision}
-                        disabled={decisionLoading}
+                        disabled={decisionLoading || Boolean(underwriterDecisionBlockedReason)}
                         style={{ color: "#ffffff" }}
                       >
-                        {decisionLoading ? "Saving..." : "Save"}
+                        {decisionLoading ? "Saving..." : "Save Decision"}
                       </button>
                     </div>
                   ) : null}
@@ -3703,12 +3887,16 @@ export default function ApplicationDetailsPage() {
           {showDisbursalDecisionSection ? (
             <>
               {disbursalSavedMessage ? (
-                <div className="alert alert-success mb-3">{disbursalSavedMessage}</div>
+                <div className="alert alert-success mb-3 cp-loan-alert cp-loan-alert-success">
+                  {disbursalSavedMessage}
+                </div>
               ) : null}
 
               {renderSectionShell(
                 accordionSections[11],
                 <div className="row g-3">
+                  {renderInlineAlert(decisionError)}
+
                   <div className="col-12 col-md-6">
                     <label className="form-label fw-semibold">Disbursal Decision</label>
                     <select
@@ -3777,14 +3965,10 @@ export default function ApplicationDetailsPage() {
                         type="button"
                         className="btn btn-primary cp-loan-btn-next"
                         onClick={handleSaveDisbursalDecision}
-                        disabled={
-                          decisionLoading ||
-                          normalizedApplicationStatus === "DISBURSAL_COMPLETED" ||
-                          normalizedApplicationStatus === "DISBURSAL_REJECTED"
-                        }
+                        disabled={decisionLoading}
                         style={{ color: "#ffffff" }}
                       >
-                        {decisionLoading ? "Saving..." : "Save"}
+                        {decisionLoading ? "Saving..." : "Save Decision"}
                       </button>
                     </div>
                   ) : null}
@@ -3802,6 +3986,11 @@ export default function ApplicationDetailsPage() {
                 </div>
 
                 <form onSubmit={handleSendCommunication} className="row g-3 p-3">
+                  <div className="col-12">
+                    {renderInlineAlert(communicationError)}
+                    {renderInlineAlert(communicationSuccess, "success")}
+                  </div>
+
                   <div className="col-12 col-md-6">
                     <label className="form-label fw-semibold">Recipient Type</label>
                     <select
@@ -4039,5 +4228,22 @@ export default function ApplicationDetailsPage() {
         </div>
       </section>
     </main>
+  );
+}
+
+export default function ApplicationDetailsPage() {
+  // Suspense is required because this screen depends on useSearchParams.
+  return (
+    <Suspense
+      fallback={
+        <main className="page">
+          <div className="cp-loan-form-container">
+            <div className="panel cp-admin-status-box">Loading application details...</div>
+          </div>
+        </main>
+      }
+    >
+      <ApplicationDetailsPageContent />
+    </Suspense>
   );
 }

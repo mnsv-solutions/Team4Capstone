@@ -1,5 +1,6 @@
 "use client";
 
+// This page handles applicant account creation before users begin the loan journey.
 import Image from "next/image";
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
@@ -46,6 +47,7 @@ export default function SignUpPage() {
   );
 
   function setField<K extends keyof SignUpFormState>(key: K, value: SignUpFormState[K]) {
+    // Updates one form field and revalidates once the field has been touched.
     setForm((prev) => {
       const next = { ...prev, [key]: value };
       if (touched[key] || submitted) setErrors(validateSignUp(next));
@@ -54,11 +56,13 @@ export default function SignUpPage() {
   }
 
   function onBlurField<K extends keyof SignUpFormState>(key: K) {
+    // Marks a field as touched so inline validation can start appearing naturally.
     setTouched((prev) => ({ ...prev, [key]: true }));
     setErrors(validateSignUp(form));
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    // Normalizes input, validates it, and submits a sign-up request to the backend.
     e.preventDefault();
 
     if (isSubmitting) return;
@@ -128,6 +132,7 @@ export default function SignUpPage() {
 
   return (
     <main className={styles.page}>
+      {/* Split layout: onboarding message on the left and sign-up form on the right */}
       <section className={styles.card}>
         <div className={styles.visualPanel}>
           <div className={styles.visualBox}>
