@@ -1,5 +1,6 @@
 "use client";
 
+// This page powers the admin workspace for users, teams, and loan products.
 import axios from "axios";
 import { ChangeEvent, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -40,6 +41,7 @@ type Product = {
   productId: string;
   productCode: string;
   productName: string;
+  description?: string | null;
   minAmount: string;
   maxAmount: string;
   minTenureMonths: number;
@@ -81,7 +83,7 @@ export default function AdminPage() {
 
   const [activeSection, setActiveSection] = useState<AdminSection>("users");
 
-  // User state
+  // User state: drives the user management tab and Excel upload flow.
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [isUsersLoading, setIsUsersLoading] = useState(false);
   const [usersError, setUsersError] = useState("");
@@ -93,7 +95,7 @@ export default function AdminPage() {
   const [userSearchText, setUserSearchText] = useState("");
   const [userStatusFilter, setUserStatusFilter] = useState("All");
 
-  // Team state
+  // Team state: drives team listing, member lookup, and assignment actions.
   const [teams, setTeams] = useState<Team[]>([]);
   const [isTeamsLoading, setIsTeamsLoading] = useState(false);
   const [teamUsers, setTeamUsers] = useState<TeamUser[]>([]);
@@ -106,7 +108,7 @@ export default function AdminPage() {
   const [selectedUserForTeam, setSelectedUserForTeam] = useState<string>("");
   const [isAddingUserToTeam, setIsAddingUserToTeam] = useState(false);
 
-  // Product state
+  // Product state: drives product creation, editing, filtering, and status updates.
   const [products, setProducts] = useState<Product[]>([]);
   const [isProductsLoading, setIsProductsLoading] = useState(false);
   const [productSearchText, setProductSearchText] = useState("");
@@ -117,6 +119,7 @@ export default function AdminPage() {
   const [productFormData, setProductFormData] = useState({
     productCode: "",
     productName: "",
+    description: "",
     minAmount: "",
     maxAmount: "",
     minTenureMonths: "",
@@ -682,6 +685,15 @@ export default function AdminPage() {
       errors.productName = "Product name must be at least 3 characters.";
     }
 
+    if (
+      productFormData.description.trim() &&
+      productFormData.description.trim().length < 10
+    ) {
+      errors.description = "Description must be at least 10 characters.";
+    } else if (productFormData.description.trim().length > 300) {
+      errors.description = "Description cannot exceed 300 characters.";
+    }
+
     if (Number.isNaN(minAmount) || minAmount <= 0) {
       errors.minAmount = "Min amount must be a positive number.";
     } else if (!decimalPattern.test(productFormData.minAmount.trim())) {
@@ -794,6 +806,7 @@ export default function AdminPage() {
     setProductFormData({
       productCode: "",
       productName: "",
+      description: "",
       minAmount: "",
       maxAmount: "",
       minTenureMonths: "",
@@ -958,6 +971,7 @@ export default function AdminPage() {
     setProductFormData({
       productCode: product.productCode,
       productName: product.productName,
+      description: product.description || "",
       minAmount: product.minAmount,
       maxAmount: product.maxAmount,
       minTenureMonths: product.minTenureMonths.toString(),
@@ -1195,7 +1209,8 @@ export default function AdminPage() {
       result = result.filter((item) => {
         return (
           item.productName.toLowerCase().includes(keyword) ||
-          item.productCode.toLowerCase().includes(keyword)
+          item.productCode.toLowerCase().includes(keyword) ||
+          (item.description || "").toLowerCase().includes(keyword)
         );
       });
     }
@@ -2101,6 +2116,30 @@ export default function AdminPage() {
               </div>
             </div>
 
+            <div className="cp-admin-product-form-grid cp-admin-product-form-grid-single mb-3">
+              <div className="d-grid gap-2">
+                <label className="cp-admin-upload-label">Description</label>
+                <textarea
+                  className={`cp-admin-field ${productFormErrors.description ? "cp-admin-field-invalid" : ""}`}
+                  placeholder={editingProductId ? "" : "Product description"}
+                  value={productFormData.description}
+                  onChange={(e) =>
+                    setProductFormData({
+                      ...productFormData,
+                      description: e.target.value,
+                    })
+                  }
+                  rows={4}
+                  maxLength={300}
+                />
+                {productFormErrors.description && (
+                  <p className="cp-admin-field-error">
+                    {productFormErrors.description}
+                  </p>
+                )}
+              </div>
+            </div>
+
             <div className="cp-admin-product-form-grid mb-3">
               <div className="d-grid gap-2">
                 <label className="cp-admin-upload-label">
@@ -2259,6 +2298,7 @@ export default function AdminPage() {
               <tr>
                 <th>Code</th>
                 <th>Product Name</th>
+                <th>Description</th>
                 <th>Amount Range</th>
                 <th>Tenure (months)</th>
                 <th>Interest Rate Range</th>
@@ -2271,7 +2311,7 @@ export default function AdminPage() {
             <tbody>
               {isProductsLoading ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <div className="cp-admin-empty-state">
                       Loading products...
                     </div>
@@ -2284,6 +2324,7 @@ export default function AdminPage() {
                       <strong>{product.productCode}</strong>
                     </td>
                     <td>{product.productName}</td>
+                    <td>{product.description || "-"}</td>
                     <td>
                       ₹{parseFloat(product.minAmount).toLocaleString()} - ₹
                       {parseFloat(product.maxAmount).toLocaleString()}
@@ -2343,7 +2384,7 @@ export default function AdminPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={9}>
                     <div className="cp-admin-empty-state">
                       No products found for the current filter.
                     </div>

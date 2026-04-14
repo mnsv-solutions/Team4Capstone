@@ -14,7 +14,7 @@ describe("signupValidation", () => {
     expect(errors.firstName).toBeTruthy();
     expect(errors.lastName).toBeTruthy();
     expect(errors.email).toBeTruthy();
-    expect(errors.mobile).toBeTruthy();
+    expect(errors.phone).toBeTruthy();
     expect(errors.password).toBeTruthy();
   });
 

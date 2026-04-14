@@ -1,5 +1,6 @@
 "use client";
 
+// This file provides shared authentication state for the frontend app.
 import axios from "axios";
 import {
   useCallback,
@@ -10,7 +11,14 @@ import {
   useState,
 } from "react";
 
-type AuthUser = Record<string, unknown> | null;
+type AuthUser = {
+  id?: string;
+  userId?: string;
+  name?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+} | null;
 
 type AuthContextType = {
   token: string | null;
@@ -65,6 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
+    // Restores the previous browser session after a refresh.
     const restoreSession = async () => {
       try {
         const savedToken = localStorage.getItem(AUTH_TOKEN_KEY);
@@ -94,6 +103,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = useCallback(
     async (newToken: string, newUser: AuthUser = null) => {
+      // Saves the new session in both React state and local storage.
       setToken(newToken);
       setUser(newUser);
 
@@ -113,6 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const logout = () => {
+    // Clears the browser session and resets auth-related UI state.
     setToken(null);
     setUser(null);
     setIsAdmin(false);

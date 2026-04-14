@@ -24,11 +24,11 @@
     "start:debug": "NODE_ENV=local nest start --debug --watch",
     "start:dev": "nest start --watch",
     "start:prod": "NODE_ENV=prod nest start",
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest --config ./jest.config.mjs",
-    "test:watch": "NODE_OPTIONS=--experimental-vm-modules jest --config ./jest.config.mjs --watch",
-    "test:cov": "NODE_OPTIONS=--experimental-vm-modules jest --config ./jest.config.mjs --coverage",
-    "test:debug": "NODE_OPTIONS=--experimental-vm-modules node --inspect-brk node_modules/.bin/jest --config ./jest.config.mjs --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json"
+    "test": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ./jest.config.mjs",
+    "test:watch": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ./jest.config.mjs --watch",
+    "test:cov": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ./jest.config.mjs --coverage",
+    "test:debug": "node --experimental-vm-modules --inspect-brk ../../node_modules/jest/bin/jest.js --config ./jest.config.mjs --runInBand",
+    "test:e2e": "node --experimental-vm-modules ../../node_modules/jest/bin/jest.js --config ./test/jest-e2e.json --runInBand"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1009.0",

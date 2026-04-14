@@ -1,3 +1,4 @@
+/* This stylesheet controls the About page layout, cards, team section, and theme overrides. */
 .page {
   display: flex;
   flex-direction: column;
@@ -6,6 +7,7 @@
   width: 100%;
 }
 
+/* Shared panel surfaces used across the About page sections. */
 .hero,
 .section,
 .infoSection,
@@ -37,6 +39,7 @@
   text-align: left;
 }
 
+/* Shared eyebrow badges for hero and section labels. */
 .eyebrow,
 .sectionEyebrow {
   display: inline-flex;
@@ -87,6 +90,7 @@
   margin-top: 32px;
 }
 
+/* Reusable content cards used for metrics, highlights, team members, and footer stats. */
 .metricCard,
 .highlightCard,
 .knowledgeCard,
@@ -262,6 +266,7 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+/* Team grid keeps four cards on desktop and collapses on smaller screens. */
 .teamGrid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
 }
@@ -273,21 +278,26 @@
 }
 
 .teamCard h3 {
+  margin-bottom: 6px;
   overflow-wrap: anywhere;
 }
 
 .avatar {
-  width: 84px;
-  height: 84px;
+  width: 156px;
+  height: 156px;
   margin: 0 auto 16px;
   border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 1.35rem;
-  font-weight: 800;
-  color: #f8fbff;
-  background: linear-gradient(135deg, #2563eb, #6366f1 65%, #22d3ee);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  overflow: hidden;
+  border: 3px solid rgba(125, 211, 252, 0.35);
+  box-shadow:
+    0 16px 28px rgba(2, 6, 23, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .footerPanel {
@@ -320,6 +330,7 @@
   line-height: 1.5;
 }
 
+/* Light theme overrides keep the About page readable on bright backgrounds. */
 :global(html[data-theme="light"]) .page {
   color: #0f172a;
 }
@@ -343,6 +354,10 @@
   color: #1d4ed8;
 }
 
+:global(html[data-theme="light"]) .heroTitle {
+  color: #0f172a;
+}
+
 :global(html[data-theme="light"]) .heroLead,
 :global(html[data-theme="light"]) .heroBody,
 :global(html[data-theme="light"]) .sectionText,
@@ -351,6 +366,10 @@
 :global(html[data-theme="light"]) .journeyBody p,
 :global(html[data-theme="light"]) .teamCard p {
   color: rgba(15, 23, 42, 0.74);
+}
+
+:global(html[data-theme="light"]) .avatar {
+  border-color: rgba(37, 99, 235, 0.22);
 }
 
 :global(html[data-theme="light"]) .metricCard,
@@ -491,10 +510,9 @@
   }
 
   .avatar {
-    width: 72px;
-    height: 72px;
+    width: 128px;
+    height: 128px;
     margin-bottom: 14px;
-    font-size: 1.15rem;
   }
 }
 

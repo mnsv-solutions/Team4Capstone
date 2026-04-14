@@ -3,6 +3,9 @@ import { Mail, MapPin, Phone, ShieldCheck } from "lucide-react";
 import CreditPulseLogo from "./CreditPulseLogo";
 import styles from "./Footer.module.css";
 
+const creatorNames =
+  "Victor Ferreira Araujo, Sukhpreet Singh, Nirali Dineshkumar Patel, and Miswa Shaileshbhai Patel";
+
 const quickLinks = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
@@ -94,8 +97,8 @@ export default function Footer() {
         </div>
 
         <div className={styles.bottom}>
-          <small>© {new Date().getFullYear()} CreditPulse. All rights reserved.</small>
-          <small>Built for transparency, trust, and a smoother application journey.</small>
+          <small>Created by {creatorNames}. All rights reserved.</small>
+          <small>&copy; {new Date().getFullYear()} CreditPulse.</small>
         </div>
       </div>
     </footer>

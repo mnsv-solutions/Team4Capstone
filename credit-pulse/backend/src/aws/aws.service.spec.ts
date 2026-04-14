@@ -1,13 +1,22 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { jest } from '@jest/globals';
 
-import { AwsService } from './aws.service';
+import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
+
+import { AwsService } from './aws.service.js';
 
 describe('AwsService', () => {
   let service: AwsService;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [AwsService],
+      providers: [
+        AwsService,
+        {
+          provide: ConfigService,
+          useValue: { get: jest.fn().mockImplementation((key: string) => key) },
+        },
+      ],
     }).compile();
 
     service = module.get<AwsService>(AwsService);

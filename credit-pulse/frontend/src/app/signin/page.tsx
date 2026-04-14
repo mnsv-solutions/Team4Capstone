@@ -1,5 +1,6 @@
 "use client";
 
+// This page handles user sign-in and routes authenticated users to the correct workspace.
 import axios from "axios";
 import Link from "next/link";
 import { useState } from "react";
@@ -19,6 +20,7 @@ export default function SignInPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
+    // Validates credentials, requests an access token, and redirects after sign-in.
     e.preventDefault();
     if (isSubmitting) return;
 
@@ -90,6 +92,7 @@ export default function SignInPage() {
 
   return (
     <main className={styles.page}>
+      {/* Sign-in card: header, feedback alerts, and credential form */}
       <section className={styles.wrapper}>
         <div className={styles.card}>
           <div className={styles.header}>

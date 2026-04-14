@@ -101,7 +101,7 @@ describe('PrismaService', () => {
     await PrismaService.prototype.onModuleInit.call(mockContext as unknown as PrismaService);
 
     expect(mockContext.$connect).toHaveBeenCalledTimes(1);
-    expect(mockContext.logger.log).toHaveBeenCalledWith('Database connected');
+    expect(mockContext.logger.log).toHaveBeenCalledWith('Database connected successfully');
   });
 
   it('onModuleDestroy should disconnect and log success', async () => {

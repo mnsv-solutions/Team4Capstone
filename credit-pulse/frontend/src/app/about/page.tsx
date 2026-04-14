@@ -1,6 +1,8 @@
+// This page introduces the CreditPulse product story, team, and project purpose.
 import Image from "next/image";
 import styles from "./page.module.css";
 
+// These cards explain the main user-facing benefits of the platform.
 const platformHighlights = [
   {
     title: "Transparent application journey",
@@ -19,6 +21,7 @@ const platformHighlights = [
   },
 ];
 
+// These steps describe the high-level application journey shown on the page.
 const journeySteps = [
   {
     number: "01",
@@ -46,29 +49,32 @@ const journeySteps = [
   },
 ];
 
+// These team entries power the profile cards for the capstone team.
 const teamMembers = [
   {
     name: "Victor Ferreira Araujo",
-    role: "Frontend and workflow contributor",
-    initials: "VF",
+    responsibilities: "Back-end Developer, DevOps",
+    image: "/about/team-image/team-member-3.jpeg",
+    imagePosition: "center 24%",
   },
   {
     name: "Sukhpreet Singh",
-    role: "Platform and implementation contributor",
-    initials: "SS",
+    responsibilities: "Product Owner, Scrum Master, Back-end Developer, Database Designer",
+    image: "/about/team-image/team-member-2.jpeg",
   },
   {
     name: "Nirali Dineshkumar Patel",
-    role: "Design and user experience contributor",
-    initials: "NP",
+    responsibilities: "Front-end Developer, Tester",
+    image: "/about/team-image/team-member-4.jpeg",
   },
   {
     name: "Miswa Shaileshbhai Patel",
-    role: "Research and delivery contributor",
-    initials: "MP",
+    responsibilities: "Front-end Developer, Tester",
+    image: "/about/team-image/team-member-1.jpeg",
   },
 ];
 
+// These cards explain the lending concepts behind the project in simple language.
 const knowledgeCards = [
   {
     title: "Loan origination",
@@ -90,6 +96,7 @@ const knowledgeCards = [
 export default function AboutPage() {
   return (
     <main className={styles.page}>
+      {/* Hero section: product purpose and first impression */}
       <section className={styles.hero}>
         <div className={styles.heroContent}>
           <h1 className={styles.heroTitle}>About CreditPulse</h1>
@@ -136,6 +143,7 @@ export default function AboutPage() {
 
       </section>
 
+      {/* Team section: member photos and responsibilities */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <span className={styles.sectionEyebrow}>Meet the team</span>
@@ -149,14 +157,28 @@ export default function AboutPage() {
         <div className={styles.teamGrid}>
           {teamMembers.map((member) => (
             <article key={member.name} className={styles.teamCard}>
-              <div className={styles.avatar}>{member.initials}</div>
+              <div className={styles.avatar}>
+                <Image
+                  src={member.image}
+                  alt={`${member.name} profile photo`}
+                  width={220}
+                  height={220}
+                  className={styles.avatarImage}
+                  style={
+                    member.imagePosition
+                      ? { objectPosition: member.imagePosition }
+                      : undefined
+                  }
+                />
+              </div>
               <h3>{member.name}</h3>
-              <p>{member.role}</p>
+              <p>{member.responsibilities}</p>
             </article>
           ))}
         </div>
       </section>
 
+      {/* Value section: why the platform matters for applicants */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <span className={styles.sectionEyebrow}>Why it matters</span>
@@ -178,6 +200,7 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* Journey section: product flow explained in three visual steps */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <span className={styles.sectionEyebrow}>Platform journey</span>
@@ -206,6 +229,7 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* Concepts section: plain-language explanations of key lending ideas */}
       <section className={styles.infoSection}>
         <div className={styles.infoPanel}>
           <div className={styles.infoIntro}>
@@ -228,6 +252,7 @@ export default function AboutPage() {
         </div>
       </section>
 
+      {/* Footer summary: final project framing and goals */}
       <section className={styles.footerPanel}>
         <div>
           <span className={styles.sectionEyebrow}>Project details</span>

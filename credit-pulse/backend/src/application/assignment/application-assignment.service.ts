@@ -1,3 +1,4 @@
+// This service manages team and user assignment for application work queues.
 import {
   BadRequestException,
   ForbiddenException,
@@ -28,16 +29,18 @@ export class AssignApplicationService {
     this.logger.log('The application assignment process has started.');
 
     // This gets the main values from the request body.
-    const { applicationNumber, assignedTeamId, assignedUserId, remarks } = dto;
+    const { applicationNumber, assignedTeamId, assignedTeamCode, assignedUserId, remarks } = dto;
 
     this.logger.log(`The request is being checked for application number: ${applicationNumber}`);
 
     // This makes sure at least a team ID or user ID is provided.
-    if (!assignedTeamId && !assignedUserId) {
+    if (!assignedTeamId && !assignedTeamCode && !assignedUserId) {
       this.logger.warn(
         'The assignment request could not continue because no team or user was provided.',
       );
-      throw new BadRequestException('Either assignedTeamId or assignedUserId must be provided.');
+      throw new BadRequestException(
+        'Either assignedTeamId, assignedTeamCode, or assignedUserId must be provided.',
+      );
     }
 
     // This checks whether the logged-in user exists and is active.
@@ -88,13 +91,38 @@ export class AssignApplicationService {
     // This keeps the selected team ID and updates it later if needed.
     let resolvedTeamId = assignedTeamId ?? null;
 
+    if (!resolvedTeamId && assignedTeamCode) {
+      this.logger.log(`The selected team is being resolved for team code: ${assignedTeamCode}`);
+
+      const teamByCode = await this.prisma.teams.findFirst({
+        where: {
+          team_code: assignedTeamCode,
+          is_active: true,
+        },
+        select: {
+          team_id: true,
+        },
+      });
+
+      if (!teamByCode) {
+        this.logger.warn(`The selected team could not be found for team code: ${assignedTeamCode}`);
+        throw new NotFoundException('Assigned team not found.');
+      }
+
+      resolvedTeamId = teamByCode.team_id;
+
+      this.logger.log(
+        `The selected team was resolved successfully for team code: ${assignedTeamCode}`,
+      );
+    }
+
     // This checks whether the selected team exists and is active.
-    if (assignedTeamId) {
-      this.logger.log(`The selected team is being verified for team ID: ${assignedTeamId}`);
+    if (resolvedTeamId) {
+      this.logger.log(`The selected team is being verified for team ID: ${resolvedTeamId}`);
 
       const team = await this.prisma.teams.findFirst({
         where: {
-          team_id: assignedTeamId,
+          team_id: resolvedTeamId,
           is_active: true,
         },
         select: {
@@ -104,11 +132,11 @@ export class AssignApplicationService {
 
       // This throws an error if the selected team is not found.
       if (!team) {
-        this.logger.warn(`The selected team could not be found for team ID: ${assignedTeamId}`);
+        this.logger.warn(`The selected team could not be found for team ID: ${resolvedTeamId}`);
         throw new NotFoundException('Assigned team not found.');
       }
 
-      this.logger.log(`The selected team was verified successfully for team ID: ${assignedTeamId}`);
+      this.logger.log(`The selected team was verified successfully for team ID: ${resolvedTeamId}`);
     }
 
     // This checks whether the selected user exists and is active.

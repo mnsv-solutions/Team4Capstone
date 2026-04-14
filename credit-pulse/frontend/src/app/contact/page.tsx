@@ -1,5 +1,6 @@
 "use client";
 
+// This page collects support requests in a simple demo flow for the frontend.
 import { useState, type FormEvent } from "react";
 import { Clock3, Mail, MapPin, MessageSquareMore, Phone, Send, ShieldCheck } from "lucide-react";
 import styles from "./page.module.css";
@@ -12,6 +13,9 @@ type ContactForm = {
 };
 
 type ContactErrors = Partial<Record<keyof ContactForm, string>>;
+
+const NAME_REGEX = /^[A-Za-z][A-Za-z\s'-]*$/;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const faqItems = [
   {
@@ -71,25 +75,44 @@ export default function ContactPage() {
 
   function validateForm(values: ContactForm) {
     const nextErrors: ContactErrors = {};
+    const fullName = values.fullName.trim().replace(/\s+/g, " ");
+    const email = values.email.trim().toLowerCase();
+    const subject = values.subject.trim().replace(/\s+/g, " ");
+    const message = values.message.trim();
 
-    if (!values.fullName.trim()) {
+    if (!fullName) {
       nextErrors.fullName = "Please enter your full name.";
+    } else if (fullName.length < 2) {
+      nextErrors.fullName = "Full name must be at least 2 characters.";
+    } else if (fullName.length > 80) {
+      nextErrors.fullName = "Full name must be 80 characters or fewer.";
+    } else if (!NAME_REGEX.test(fullName)) {
+      nextErrors.fullName =
+        "Full name can contain letters, spaces, hyphens (-), and apostrophes (').";
     }
 
-    if (!values.email.trim()) {
+    if (!email) {
       nextErrors.email = "Please enter your email address.";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email)) {
+    } else if (email.includes(" ")) {
+      nextErrors.email = "Email address cannot contain spaces.";
+    } else if (!EMAIL_REGEX.test(email)) {
       nextErrors.email = "Please enter a valid email address.";
     }
 
-    if (!values.subject.trim()) {
+    if (!subject) {
       nextErrors.subject = "Please enter a subject.";
+    } else if (subject.length < 5) {
+      nextErrors.subject = "Subject must be at least 5 characters.";
+    } else if (subject.length > 120) {
+      nextErrors.subject = "Subject must be 120 characters or fewer.";
     }
 
-    if (!values.message.trim()) {
+    if (!message) {
       nextErrors.message = "Please enter your message.";
-    } else if (values.message.trim().length < 10) {
-      nextErrors.message = "Please add a little more detail so we can help properly.";
+    } else if (message.length < 20) {
+      nextErrors.message = "Please add at least 20 characters so we can help properly.";
+    } else if (message.length > 1000) {
+      nextErrors.message = "Message must be 1000 characters or fewer.";
     }
 
     return nextErrors;
@@ -102,12 +125,21 @@ export default function ContactPage() {
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    // Validates the demo contact form and shows a simple success message.
     event.preventDefault();
-    const nextErrors = validateForm(form);
+    const normalizedForm: ContactForm = {
+      fullName: form.fullName.trim().replace(/\s+/g, " "),
+      email: form.email.trim().toLowerCase(),
+      subject: form.subject.trim().replace(/\s+/g, " "),
+      message: form.message.trim(),
+    };
+
+    const nextErrors = validateForm(normalizedForm);
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length > 0) return;
 
+    setForm(normalizedForm);
     setIsSubmitted(true);
     setForm(defaultForm);
   }
@@ -158,8 +190,14 @@ export default function ContactPage() {
                     placeholder="Enter your full name"
                     value={form.fullName}
                     onChange={(event) => handleChange("fullName", event.target.value)}
+                    aria-invalid={!!errors.fullName}
+                    aria-describedby={errors.fullName ? "fullName-error" : undefined}
                   />
-                  {errors.fullName && <div className="invalid-feedback">{errors.fullName}</div>}
+                  {errors.fullName && (
+                    <div id="fullName-error" className="invalid-feedback">
+                      {errors.fullName}
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -171,8 +209,14 @@ export default function ContactPage() {
                     placeholder="Enter your email address"
                     value={form.email}
                     onChange={(event) => handleChange("email", event.target.value)}
+                    aria-invalid={!!errors.email}
+                    aria-describedby={errors.email ? "email-error" : undefined}
                   />
-                  {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                  {errors.email && (
+                    <div id="email-error" className="invalid-feedback">
+                      {errors.email}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -185,8 +229,14 @@ export default function ContactPage() {
                   placeholder="What do you need help with?"
                   value={form.subject}
                   onChange={(event) => handleChange("subject", event.target.value)}
+                  aria-invalid={!!errors.subject}
+                  aria-describedby={errors.subject ? "subject-error" : undefined}
                 />
-                {errors.subject && <div className="invalid-feedback">{errors.subject}</div>}
+                {errors.subject && (
+                  <div id="subject-error" className="invalid-feedback">
+                    {errors.subject}
+                  </div>
+                )}
               </div>
 
               <div>
@@ -198,8 +248,14 @@ export default function ContactPage() {
                   placeholder="Write your message here..."
                   value={form.message}
                   onChange={(event) => handleChange("message", event.target.value)}
+                  aria-invalid={!!errors.message}
+                  aria-describedby={errors.message ? "message-error" : undefined}
                 />
-                {errors.message && <div className="invalid-feedback">{errors.message}</div>}
+                {errors.message && (
+                  <div id="message-error" className="invalid-feedback">
+                    {errors.message}
+                  </div>
+                )}
               </div>
 
               <button type="submit" className="btn btn-primary">

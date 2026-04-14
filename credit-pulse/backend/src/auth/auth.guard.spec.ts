@@ -1,20 +1,35 @@
-import { jest } from '@jest/globals';
+import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 
 import { UnauthorizedException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 
 import { AuthGuard } from './auth.guard.js';
 
 describe('AuthGuard', () => {
   let guard: AuthGuard;
-  let jwtService: { verifyAsync: jest.Mock };
+  let jwtService: {
+    verifyAsync: jest.Mock<
+      (token: string, options: { secret: string }) => Promise<unknown>
+    >;
+  };
+  let configService: {
+    get: jest.Mock<(key: string) => string>;
+  };
 
   beforeEach(() => {
     jwtService = {
       verifyAsync: jest.fn(),
     };
 
-    guard = new AuthGuard(jwtService as unknown as JwtService);
+    configService = {
+      get: jest.fn().mockReturnValue('test-secret'),
+    };
+
+    guard = new AuthGuard(
+      jwtService as unknown as JwtService,
+      configService as unknown as ConfigService,
+    );
   });
 
   it('should be defined', () => {
@@ -48,7 +63,9 @@ describe('AuthGuard', () => {
     await expect(guard.canActivate(context as never)).rejects.toThrow(
       new UnauthorizedException('Invalid token'),
     );
-    expect(jwtService.verifyAsync).toHaveBeenCalledWith('invalid-token');
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('invalid-token', {
+      secret: 'test-secret',
+    });
   });
 
   it('should attach payload to request and return true for valid token', async () => {
@@ -65,7 +82,9 @@ describe('AuthGuard', () => {
     jwtService.verifyAsync.mockResolvedValue(payload);
 
     await expect(guard.canActivate(context as never)).resolves.toBe(true);
-    expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-token');
+    expect(jwtService.verifyAsync).toHaveBeenCalledWith('valid-token', {
+      secret: 'test-secret',
+    });
     expect(request.user).toEqual(payload);
   });
 
